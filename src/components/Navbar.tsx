@@ -17,10 +17,12 @@ import {
   Globe,
   DollarSign,
   Sparkles,
+  Search,
 } from 'lucide-react';
 import { CoinTopupModal } from './CoinTopupModal';
 import { IotMachineControlModal } from './IotMachineControlModal';
 import { LandingPageModal } from './LandingPageModal';
+import { CommandPaletteModal } from './CommandPaletteModal';
 
 export const Navbar: React.FC = () => {
   const {
@@ -49,6 +51,19 @@ export const Navbar: React.FC = () => {
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isBranchMenuOpen, setIsBranchMenuOpen] = useState(false);
   const [isLandingOpen, setIsLandingOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+
+  // Global Ctrl+K / Cmd+K listener
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const activeBranch = branches.find((b) => b.id === currentBranchId) || branches[0];
   const runningMachinesCount = machines.filter((m) => m.status === 'running').length;
@@ -130,6 +145,19 @@ export const Navbar: React.FC = () => {
                 </div>
               )}
             </div>
+
+            {/* Quick Command Palette Button (Ctrl+K / Google & Linear style) */}
+            <button
+              onClick={() => setIsCommandPaletteOpen(true)}
+              className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-700/80 hover:border-cyan-500/40 text-xs text-slate-400 hover:text-slate-200 transition-all cursor-pointer shadow-inner ml-1"
+              title="Cari Cepat & Navigasi (Ctrl+K)"
+            >
+              <Search className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="text-[11px] font-medium">Cari nota, pelanggan...</span>
+              <kbd className="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-400 font-mono font-bold">
+                ⌘K
+              </kbd>
+            </button>
           </div>
 
           {/* Right: Quick Widgets & Controls */}
@@ -145,6 +173,15 @@ export const Navbar: React.FC = () => {
               {isOnline ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
               <span>{isOnline ? 'Cloud Sync Online' : 'Offline Cache'}</span>
             </div>
+
+            {/* Mobile Search Button */}
+            <button
+              onClick={() => setIsCommandPaletteOpen(true)}
+              className="lg:hidden p-2 rounded-xl bg-slate-800/80 border border-slate-700/80 text-cyan-400 hover:text-white hover:bg-slate-800 transition-colors"
+              title="Pencarian Cepat & Navigasi"
+            >
+              <Search className="w-4 h-4" />
+            </button>
 
             {/* Showcase & Promo Button */}
             <button
@@ -317,6 +354,13 @@ export const Navbar: React.FC = () => {
       <CoinTopupModal isOpen={isCoinModalOpen} onClose={() => setIsCoinModalOpen(false)} />
       <IotMachineControlModal isOpen={isIotModalOpen} onClose={() => setIsIotModalOpen(false)} />
       <LandingPageModal isOpen={isLandingOpen} onClose={() => setIsLandingOpen(false)} />
+      <CommandPaletteModal
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        onOpenCoinModal={() => setIsCoinModalOpen(true)}
+        onOpenIotModal={() => setIsIotModalOpen(true)}
+        onOpenLandingModal={() => setIsLandingOpen(true)}
+      />
     </>
   );
 };

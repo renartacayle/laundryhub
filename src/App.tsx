@@ -10,12 +10,16 @@ import { ProduksiKanban } from './pages/ProduksiKanban';
 import { KurirDashboard } from './pages/KurirDashboard';
 import { PelangganPortal } from './pages/PelangganPortal';
 import { AgenDropshipDashboard } from './pages/AgenDropshipDashboard';
+import { LiveSocialProofToast } from './components/LiveSocialProofToast';
+import { StickyConversionBar } from './components/StickyConversionBar';
+import { LandingPageModal } from './components/LandingPageModal';
 
 const MainLayout: React.FC = () => {
   const { currentRole } = useApp();
 
   // Active sub-tab state
   const [activeTab, setActiveTab] = useState<string>('owner-overview');
+  const [isLandingModalOpen, setIsLandingModalOpen] = useState(false);
 
   // When role changes, switch to default tab for that role
   useEffect(() => {
@@ -72,6 +76,15 @@ const MainLayout: React.FC = () => {
 
       {/* Mobile Bottom Navigation */}
       <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
+
+      {/* High-Traffic Social Proof Toast (Tokopedia & Amazon style) */}
+      <LiveSocialProofToast onOpenShowcase={() => setIsLandingModalOpen(true)} />
+
+      {/* High-Converting Sticky Bottom Conversion Bar (Fitts's Law Thumb-Zone) */}
+      <StickyConversionBar onOpenShowcase={() => setIsLandingModalOpen(true)} />
+
+      {/* Landing Page Showcase Modal */}
+      <LandingPageModal isOpen={isLandingModalOpen} onClose={() => setIsLandingModalOpen(false)} />
     </div>
   );
 };

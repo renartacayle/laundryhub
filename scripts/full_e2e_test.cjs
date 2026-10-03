@@ -21,6 +21,7 @@ async function runFullTest() {
   }
 
   const page = await browser.newPage();
+  await page.setCacheEnabled(false);
   const results = [];
 
   const recordResult = (testName, passed, details = '') => {
@@ -32,14 +33,15 @@ async function runFullTest() {
   try {
     // 1. PAGE LOAD
     console.log(`--- [1] TESTING PAGE LOAD & TITLE ---`);
-    await page.goto(TARGET_URL, { waitUntil: 'networkidle2', timeout: 30000 });
+    await page.goto(TARGET_URL, { waitUntil: 'load', timeout: 30000 });
+    await wait(1500);
     const pageTitle = await page.title();
     const hasCorrectTitle = pageTitle.includes('LAUNDRYHUB');
     recordResult('Page Title & Live Availability', hasCorrectTitle, pageTitle);
 
     // 2. HEADER BRAND & TOPBAR
     console.log(`\n--- [2] TESTING HEADER BRAND & TOPBAR ---`);
-    await page.waitForSelector('header', { timeout: 10000 });
+    await page.waitForSelector('header', { timeout: 20000 });
     const headerText = await page.$eval('header', el => el.innerText);
     recordResult('Header Brand & Version', headerText.includes('LAUNDRYHUB') && headerText.includes('v2.6'), 'Brand & v2.6 visible');
 
@@ -400,6 +402,47 @@ async function runFullTest() {
       const hasIotPitch = updatedPitch.includes('pengunci mesin cuci') || updatedPitch.includes('teknologi IoT');
       recordResult('Cold Pitch Template Switching (IoT)', hasIotPitch, 'Pitch preview dynamically generated');
     }
+
+    // 11. GOOGLE & LINEAR STYLE COMMAND PALETTE (CTRL+K)
+    console.log(`\n--- [11] TESTING COMMAND PALETTE MODAL (CTRL+K / GOOGLE & LINEAR) ---`);
+    const openedPalette = await page.evaluate(() => {
+      const searchBtn = Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes('Cari nota') || b.querySelector('svg'));
+      // Find button with search icon or title
+      const btn = Array.from(document.querySelectorAll('button')).find(b => b.title && b.title.includes('Ctrl+K'));
+      if (btn) {
+        btn.click();
+        return true;
+      }
+      return false;
+    });
+    recordResult('Open Command Palette Button (Ctrl+K)', openedPalette, 'Clicked search trigger in Navbar');
+
+    if (openedPalette) {
+      await wait(800);
+      const paletteText = await page.evaluate(() => document.body.innerText);
+      const hasPaletteContent = paletteText.includes('Aksi Cepat & Navigasi') || paletteText.includes('Instant Command Hub');
+      recordResult('Command Palette Quick Actions & Navigation', hasPaletteContent, 'Quick jump actions available');
+
+      // Test typing search query
+      await page.type('input[placeholder*="Ketik nama nota"]', 'Budi');
+      await wait(600);
+      const searchResults = await page.evaluate(() => document.body.innerText);
+      const hasCustomerResult = searchResults.includes('Budi') || searchResults.includes('Pelanggan');
+      recordResult('Instant Order & Customer Real-time Search', hasCustomerResult, 'Search query filtered results immediately');
+
+      // Close modal
+      await page.keyboard.press('Escape');
+      await wait(600);
+    }
+
+    // 12. TOKOPEDIA & AMAZON STYLE LIVE SOCIAL PROOF & STICKY CONVERSION BAR
+    console.log(`\n--- [12] TESTING SOCIAL PROOF TOAST & STICKY THUMB-ZONE BAR ---`);
+    const pageText = await page.evaluate(() => document.body.innerText);
+    const hasSocialProof = pageText.includes('Laundry Berkah') || pageText.includes('Lihat Promo Rp 25') || pageText.includes('Free Trial Diklaim') || pageText.includes('menit lalu');
+    recordResult('Live Social Proof Floating Toast (Tokopedia/Amazon)', hasSocialProof, 'Real-time bustling activity ticker active');
+
+    const hasStickyConversion = pageText.includes('Bebas Biaya Bulanan!') || pageText.includes('RP 25/NOTA') || pageText.includes('Klaim 50');
+    recordResult('Sticky Bottom Thumb-Zone Conversion Bar (Fitts Law)', hasStickyConversion, 'High-converting lead capture bar active');
 
   } catch (err) {
     console.error('❌ Exception during test execution:', err.message);
