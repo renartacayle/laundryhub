@@ -19,6 +19,9 @@ interface CustomPromoCode {
 
 export const CoinTopupModal: React.FC<CoinTopupModalProps> = ({ isOpen, onClose }) => {
   const { tokenCoins, topupCoins, currentUser, language, currency, t } = useApp();
+  
+  if (!isOpen) return null;
+
   const [selectedPackage, setSelectedPackage] = useState<number>(500);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isQrisOpen, setIsQrisOpen] = useState(false);

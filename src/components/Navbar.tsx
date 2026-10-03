@@ -20,6 +20,7 @@ import {
   Search,
   Smartphone,
   Download,
+  HelpCircle,
 } from 'lucide-react';
 import { CoinTopupModal } from './CoinTopupModal';
 import { IotMachineControlModal } from './IotMachineControlModal';
@@ -207,7 +208,15 @@ export const Navbar: React.FC = () => {
               <span className="hidden sm:inline">Unduh APK</span>
               <span className="sm:hidden">APK</span>
             </a>
-
+            {/* Panduan / Intro Walkthrough Button */}
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('lh_open_intro'))}
+              className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700/80 hover:border-emerald-500/50 text-xs font-semibold text-slate-200 transition-all hover:bg-slate-800"
+              title="Buka Panduan & Pengenalan Aplikasi"
+            >
+              <HelpCircle className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Panduan</span>
+            </button>
             {/* IoT Machine Trigger Button */}
             <button
               onClick={() => setIsIotModalOpen(true)}

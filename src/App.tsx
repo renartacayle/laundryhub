@@ -13,6 +13,7 @@ import { AgenDropshipDashboard } from './pages/AgenDropshipDashboard';
 import { LiveSocialProofToast } from './components/LiveSocialProofToast';
 import { StickyConversionBar } from './components/StickyConversionBar';
 import { LandingPageModal } from './components/LandingPageModal';
+import { IntroductionModal } from './components/IntroductionModal';
 
 const MainLayout: React.FC = () => {
   const { currentRole } = useApp();
@@ -20,6 +21,16 @@ const MainLayout: React.FC = () => {
   // Active sub-tab state
   const [activeTab, setActiveTab] = useState<string>('owner-overview');
   const [isLandingModalOpen, setIsLandingModalOpen] = useState(false);
+  const [isIntroOpen, setIsIntroOpen] = useState(() => {
+    return localStorage.getItem('lh_intro_seen') !== 'true';
+  });
+
+  // Global listener to re-open intro anytime
+  useEffect(() => {
+    const handleOpenIntro = () => setIsIntroOpen(true);
+    window.addEventListener('lh_open_intro', handleOpenIntro);
+    return () => window.removeEventListener('lh_open_intro', handleOpenIntro);
+  }, []);
 
   // When role changes, switch to default tab for that role
   useEffect(() => {
@@ -85,6 +96,9 @@ const MainLayout: React.FC = () => {
 
       {/* Landing Page Showcase Modal */}
       <LandingPageModal isOpen={isLandingModalOpen} onClose={() => setIsLandingModalOpen(false)} />
+
+      {/* Interactive Introduction / Onboarding Modal */}
+      <IntroductionModal isOpen={isIntroOpen} onClose={() => setIsIntroOpen(false)} />
     </div>
   );
 };
