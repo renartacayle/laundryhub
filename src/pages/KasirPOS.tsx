@@ -632,7 +632,7 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
 
           {/* RIGHT 5/12: Cart Drawer & Checkout Summary */}
           <div className="lg:col-span-5 space-y-4">
-            <div className="p-5 rounded-3xl glass-panel border border-slate-700/80 shadow-2xl flex flex-col justify-between">
+            <div id="cart-checkout-section" className="p-5 rounded-3xl glass-panel border border-slate-700/80 shadow-2xl flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between pb-3 border-b border-slate-800">
                   <div className="flex items-center gap-2">
@@ -873,6 +873,38 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* STICKY MOBILE CART BAR (Above BottomNav) */}
+      {activeSubView === 'pos' && cartItems.length > 0 && (
+        <div className="fixed bottom-16 left-3 right-3 sm:hidden z-30 animate-in slide-in-from-bottom duration-300">
+          <div className="p-3 rounded-2xl bg-slate-900/95 border border-cyan-500/60 shadow-2xl backdrop-blur-lg flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+                <ShoppingCart className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-[10px] text-slate-400 font-semibold">
+                  {cartItems.length} Layanan Dipilih
+                </div>
+                <div className="text-sm font-black text-cyan-400">
+                  Rp {finalPrice.toLocaleString('id-ID')}
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                document.getElementById('cart-checkout-section')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-teal-500 text-slate-950 font-black text-xs shadow-glow-cyan active:scale-95 transition-all"
+            >
+              <span>Bayar</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
         </div>
       )}

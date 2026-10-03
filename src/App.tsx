@@ -57,7 +57,7 @@ const MainLayout: React.FC = () => {
   }, [currentRole]);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-emerald-500/30 selection:text-emerald-200">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-emerald-500/30 selection:text-emerald-200 w-full max-w-full overflow-x-hidden">
       {/* Background Glow Decorations */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
         <div className="absolute -top-40 -left-40 w-96 h-96 bg-emerald-600/10 rounded-full blur-3xl" />
@@ -72,10 +72,10 @@ const MainLayout: React.FC = () => {
       <Navbar />
 
       {/* Content Area with Collapsible Sidebar */}
-      <div className="flex-1 flex max-w-7xl w-full mx-auto relative z-10">
+      <div className="flex-1 flex max-w-7xl w-full mx-auto relative z-10 overflow-x-hidden">
         <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-24 md:pb-8 overflow-x-hidden min-h-[calc(100vh-130px)]">
+        <main className="flex-1 p-3 sm:p-6 lg:p-8 pb-28 md:pb-8 overflow-x-hidden min-h-[calc(100vh-120px)] w-full max-w-full">
           {currentRole === 'owner' && <OwnerDashboard currentSubTab={activeTab} />}
           {currentRole === 'agen' && <AgenDropshipDashboard currentSubTab={activeTab} />}
           {currentRole === 'kasir' && <KasirPOS currentSubTab={activeTab} />}
@@ -88,11 +88,15 @@ const MainLayout: React.FC = () => {
       {/* Mobile Bottom Navigation */}
       <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
 
-      {/* High-Traffic Social Proof Toast (Tokopedia & Amazon style) */}
-      <LiveSocialProofToast onOpenShowcase={() => setIsLandingModalOpen(true)} />
+      {/* High-Traffic Social Proof Toast (Desktop & Tablet only to avoid mobile clutter) */}
+      <div className="hidden sm:block">
+        <LiveSocialProofToast onOpenShowcase={() => setIsLandingModalOpen(true)} />
+      </div>
 
-      {/* High-Converting Sticky Bottom Conversion Bar (Fitts's Law Thumb-Zone) */}
-      <StickyConversionBar onOpenShowcase={() => setIsLandingModalOpen(true)} />
+      {/* High-Converting Sticky Bottom Conversion Bar (Hidden in Kasir mode to give 100% unobstructed POS checkout) */}
+      {currentRole !== 'kasir' && (
+        <StickyConversionBar onOpenShowcase={() => setIsLandingModalOpen(true)} />
+      )}
 
       {/* Landing Page Showcase Modal */}
       <LandingPageModal isOpen={isLandingModalOpen} onClose={() => setIsLandingModalOpen(false)} />

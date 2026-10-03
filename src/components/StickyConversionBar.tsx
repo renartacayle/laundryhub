@@ -8,7 +8,9 @@ interface StickyConversionBarProps {
 
 export const StickyConversionBar: React.FC<StickyConversionBarProps> = ({ onOpenShowcase }) => {
   const { setCurrentRole, topupCoins } = useApp();
-  const [isMinimized, setIsMinimized] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(
+    typeof window !== 'undefined' ? window.innerWidth < 640 : false
+  );
   const [isDismissed, setIsDismissed] = useState(false);
   const [claimed, setClaimed] = useState(false);
 

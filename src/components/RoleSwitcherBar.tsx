@@ -90,55 +90,56 @@ export const RoleSwitcherBar: React.FC = () => {
   ];
 
   return (
-    <div className="w-full bg-slate-900/90 border-b border-slate-800/80 backdrop-blur-md px-3 py-2 sticky top-0 z-40">
-      <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 flex-wrap">
-        <div className="flex items-center gap-2">
-          {/* Mode toggle */}
-          <button
-            type="button"
-            onClick={toggleAuthMode}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-bold border transition-all ${
-              isCommercialMode
-                ? 'bg-rose-500/20 border-rose-500/50 text-rose-300 shadow-sm'
-                : 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
-            }`}
-            title="Klik untuk beralih antara Mode Demo dan Mode Komersial Terkunci PIN"
-          >
-            {isCommercialMode ? (
-              <>
-                <Lock className="w-3.5 h-3.5 text-rose-400" />
-                <span>Mode Komersial (PIN On)</span>
-              </>
-            ) : (
-              <>
-                <Unlock className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Mode Demo Bebas (1-Click)</span>
-              </>
-            )}
-          </button>
-        </div>
+    <>
+      <div className="w-full bg-slate-900/95 border-b border-slate-800/80 backdrop-blur-md px-2 sm:px-3 py-1 sm:py-1.5 sticky top-0 z-40 overflow-hidden">
+      <div className="max-w-7xl mx-auto flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar scroll-smooth flex-nowrap py-0.5">
+        {/* Mode toggle */}
+        <button
+          type="button"
+          onClick={toggleAuthMode}
+          className={`flex-shrink-0 flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-xl text-[10px] sm:text-[11px] font-bold border transition-all ${
+            isCommercialMode
+              ? 'bg-rose-500/20 border-rose-500/50 text-rose-300 shadow-sm'
+              : 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
+          }`}
+          title="Klik untuk beralih antara Mode Demo dan Mode Komersial Terkunci PIN"
+        >
+          {isCommercialMode ? (
+            <>
+              <Lock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-rose-400" />
+              <span>PIN On</span>
+            </>
+          ) : (
+            <>
+              <Unlock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-400" />
+              <span>Demo</span>
+            </>
+          )}
+        </button>
 
-        <div className="flex items-center gap-1.5 overflow-x-auto py-1 no-scrollbar flex-1 justify-end max-w-full">
-          {roles.map((r) => {
-            const isActive = currentRole === r.id;
-            return (
-              <button
-                key={r.id}
-                onClick={() => handleRoleClick(r.id)}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-medium transition-all duration-200 whitespace-nowrap ${
-                  isActive
-                    ? `${r.bgActive} scale-105 font-semibold`
-                    : 'bg-slate-800/60 border-slate-700/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-                }`}
-              >
-                <span className={r.color}>{r.icon}</span>
-                <span className="font-medium">{r.label}</span>
-                <span className="hidden md:inline text-[10px] opacity-60">({r.desc})</span>
-              </button>
-            );
-          })}
-        </div>
+        <div className="h-4 w-[1px] bg-slate-800 flex-shrink-0 hidden sm:block" />
+
+        {/* Roles list */}
+        {roles.map((r) => {
+          const isActive = currentRole === r.id;
+          return (
+            <button
+              key={r.id}
+              onClick={() => handleRoleClick(r.id)}
+              className={`flex-shrink-0 flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl border text-[11px] sm:text-xs font-medium transition-all duration-200 whitespace-nowrap active:scale-95 ${
+                isActive
+                  ? `${r.bgActive} font-bold`
+                  : 'bg-slate-800/60 border-slate-700/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+              }`}
+            >
+              <span className={r.color}>{r.icon}</span>
+              <span>{r.label}</span>
+              <span className="hidden lg:inline text-[9px] opacity-60">({r.desc})</span>
+            </button>
+          );
+        })}
       </div>
+    </div>
 
       {/* Auth PIN Gate Modal */}
       {authModalTargetRole && (
@@ -152,6 +153,6 @@ export const RoleSwitcherBar: React.FC = () => {
           }}
         />
       )}
-    </div>
+    </>
   );
 };
