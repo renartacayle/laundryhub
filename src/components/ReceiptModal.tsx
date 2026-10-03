@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Order, Branch } from '../types';
 import { Printer, MessageSquare, X, CheckCircle2, QrCode, Bluetooth, Sparkles, AlertCircle } from 'lucide-react';
 import { bluetoothPrinter, buildReceiptEscPosBytes } from '../utils/escpos';
+import { useApp } from '../context/AppContext';
+import { formatCurrency } from '../utils/currency';
 
 interface ReceiptModalProps {
   isOpen: boolean;
@@ -18,6 +20,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
   branch,
   onOpenWhatsApp,
 }) => {
+  const { language, currency, t } = useApp();
   if (!isOpen || !order) return null;
 
   const [paperWidth, setPaperWidth] = useState<'58mm' | '80mm'>('58mm');
@@ -63,7 +66,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
     }
   };
 
-  const formattedDate = new Date(order.createdAt).toLocaleString('id-ID', {
+  const formattedDate = new Date(order.createdAt).toLocaleString(language === 'en' ? 'en-US' : 'id-ID', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
@@ -71,7 +74,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
     minute: '2-digit',
   });
 
-  const formattedEstReady = new Date(order.estReadyDate).toLocaleString('id-ID', {
+  const formattedEstReady = new Date(order.estReadyDate).toLocaleString(language === 'en' ? 'en-US' : 'id-ID', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
@@ -86,7 +89,9 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
         <div className="flex items-center justify-between px-5 py-3 border-b border-slate-800 bg-slate-800/50">
           <div className="flex items-center gap-2">
             <Printer className="w-4 h-4 text-cyan-400" />
-            <h3 className="text-sm font-semibold text-white">Struk Thermal Kasir ({paperWidth})</h3>
+            <h3 className="text-sm font-semibold text-white">
+              {language === 'en' ? 'Thermal Receipt' : 'Struk Thermal Kasir'} ({paperWidth})
+            </h3>
           </div>
           <div className="flex items-center gap-2">
             {/* Paper width toggle */}
@@ -162,27 +167,27 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
             {/* Order Details */}
             <div className="py-2.5 border-b border-dashed border-slate-400 text-[10px] space-y-1">
               <div className="flex justify-between">
-                <span>No. Nota:</span>
+                <span>{language === 'en' ? 'Invoice No:' : 'No. Nota:'}</span>
                 <span className="font-bold">{order.invoiceNo}</span>
               </div>
               <div className="flex justify-between">
-                <span>Tanggal:</span>
+                <span>{language === 'en' ? 'Date:' : 'Tanggal:'}</span>
                 <span>{formattedDate}</span>
               </div>
               <div className="flex justify-between">
-                <span>Pelanggan:</span>
+                <span>{language === 'en' ? 'Customer:' : 'Pelanggan:'}</span>
                 <span className="font-bold">{order.customerName}</span>
               </div>
               <div className="flex justify-between">
-                <span>No. Telp:</span>
+                <span>{language === 'en' ? 'Phone:' : 'No. Telp:'}</span>
                 <span>{order.customerPhone}</span>
               </div>
               <div className="flex justify-between">
-                <span>Parfum:</span>
+                <span>{language === 'en' ? 'Fragrance:' : 'Parfum:'}</span>
                 <span className="font-semibold text-purple-700">{order.perfumeName}</span>
               </div>
               <div className="flex justify-between text-emerald-800 font-medium">
-                <span>Est. Selesai:</span>
+                <span>{language === 'en' ? 'Est. Ready:' : 'Est. Selesai:'}</span>
                 <span>{formattedEstReady}</span>
               </div>
             </div>
@@ -190,7 +195,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
             {/* Items */}
             <div className="py-2.5 border-b border-dashed border-slate-400">
               <div className="font-bold text-[10px] pb-1 flex justify-between">
-                <span>Item & Layanan</span>
+                <span>{language === 'en' ? 'Items & Services' : 'Item & Layanan'}</span>
                 <span>Subtotal</span>
               </div>
               {order.items.map((item, idx) => (
@@ -198,10 +203,10 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
                   <div className="font-semibold">{item.serviceName}</div>
                   <div className="flex justify-between text-slate-600 text-[9px]">
                     <span>
-                      {item.quantity} {item.unit} x Rp {item.pricePerUnit.toLocaleString('id-ID')}
+                      {item.quantity} {item.unit} x {formatCurrency(item.pricePerUnit, currency)}
                     </span>
                     <span className="font-medium text-slate-900">
-                      Rp {item.subtotal.toLocaleString('id-ID')}
+                      {formatCurrency(item.subtotal, currency)}
                     </span>
                   </div>
                 </div>
@@ -211,29 +216,36 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
             {/* Calculations */}
             <div className="py-2 text-[10px] space-y-1 border-b border-dashed border-slate-400">
               <div className="flex justify-between text-slate-600">
-                <span>Total Berat / Item:</span>
-                <span>{order.weightKg > 0 ? `${order.weightKg} kg` : `${order.itemCount} item`}</span>
+                <span>{language === 'en' ? 'Total Weight / Items:' : 'Total Berat / Item:'}</span>
+                <span>{order.weightKg > 0 ? `${order.weightKg} kg` : `${order.itemCount} ${language === 'en' ? 'items' : 'item'}`}</span>
               </div>
               <div className="flex justify-between text-slate-600">
                 <span>Subtotal:</span>
-                <span>Rp {order.totalPrice.toLocaleString('id-ID')}</span>
+                <span>{formatCurrency(order.totalPrice, currency)}</span>
               </div>
               {order.discount > 0 && (
                 <div className="flex justify-between text-red-600">
-                  <span>Diskon Promo:</span>
-                  <span>- Rp {order.discount.toLocaleString('id-ID')}</span>
+                  <span>{language === 'en' ? 'Promo Discount:' : 'Diskon Promo:'}</span>
+                  <span>- {formatCurrency(order.discount, currency)}</span>
                 </div>
               )}
               <div className="flex justify-between font-bold text-xs pt-1 border-t border-slate-300">
-                <span>TOTAL AKHIR:</span>
-                <span>Rp {order.finalPrice.toLocaleString('id-ID')}</span>
+                <span>{language === 'en' ? 'GRAND TOTAL:' : 'TOTAL AKHIR:'}</span>
+                <span>
+                  {formatCurrency(order.finalPrice, currency)}
+                  {currency === 'USD' && (
+                    <span className="text-[10px] text-slate-500 font-normal block text-right">
+                      (~Rp {order.finalPrice.toLocaleString('id-ID')})
+                    </span>
+                  )}
+                </span>
               </div>
               <div className="flex justify-between text-slate-700">
-                <span>Metode Bayar:</span>
+                <span>{language === 'en' ? 'Payment Method:' : 'Metode Bayar:'}</span>
                 <span className="uppercase font-semibold">{order.paymentMethod}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span>Status Bayar:</span>
+                <span>{language === 'en' ? 'Payment Status:' : 'Status Bayar:'}</span>
                 <span
                   className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${
                     order.paymentStatus === 'lunas'
@@ -241,7 +253,9 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
                       : 'bg-amber-100 text-amber-800'
                   }`}
                 >
-                  {order.paymentStatus === 'lunas' ? 'LUNAS' : 'BELUM LUNAS'}
+                  {order.paymentStatus === 'lunas'
+                    ? (language === 'en' ? 'PAID IN FULL' : 'LUNAS')
+                    : (language === 'en' ? 'PAYMENT PENDING' : 'BELUM LUNAS')}
                 </span>
               </div>
             </div>
@@ -249,7 +263,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
             {/* Special Notes */}
             {order.specialNotes && (
               <div className="py-2 border-b border-dashed border-slate-400 text-[9px] text-amber-900 bg-amber-50/70 p-1.5 rounded mt-1">
-                <span className="font-bold">Catatan Khusus:</span> {order.specialNotes}
+                <span className="font-bold">{language === 'en' ? 'Special Notes:' : 'Catatan Khusus:'}</span> {order.specialNotes}
               </div>
             )}
 
@@ -260,11 +274,23 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
                   ||||| |||| |||||| |||| |||||
                 </div>
               </div>
-              <div className="text-[9px] text-slate-500">Scan nota untuk tracking di mesin / website</div>
+              <div className="text-[9px] text-slate-500">
+                {language === 'en' ? 'Scan receipt for machine / online tracking' : 'Scan nota untuk tracking di mesin / website'}
+              </div>
               <div className="text-[8px] text-slate-400 mt-2 leading-tight">
-                * Komplain wajib bawa nota maks 1x24 jam setelah ambil.<br />
-                * Pakaian tidak diambil &gt;30 hari di luar tanggung jawab kami.<br />
-                * Terima kasih atas kepercayaan Anda!
+                {language === 'en' ? (
+                  <>
+                    * Claims/complaints must be reported within 24h with receipt.<br />
+                    * Uncollected items &gt; 30 days are beyond our responsibility.<br />
+                    * Thank you for trusting LAUNDRYHUB!
+                  </>
+                ) : (
+                  <>
+                    * Komplain wajib bawa nota maks 1x24 jam setelah ambil.<br />
+                    * Pakaian tidak diambil &gt;30 hari di luar tanggung jawab kami.<br />
+                    * Terima kasih atas kepercayaan Anda!
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -279,14 +305,18 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
               className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold text-xs shadow-lg shadow-cyan-500/20 transition-all disabled:opacity-50"
             >
               <Bluetooth className={`w-4 h-4 ${isBluetoothPrinting ? 'animate-spin' : ''}`} />
-              <span>{isBluetoothPrinting ? 'Mengirim...' : `Cetak BT (${paperWidth})`}</span>
+              <span>
+                {isBluetoothPrinting
+                  ? (language === 'en' ? 'Sending...' : 'Mengirim...')
+                  : (language === 'en' ? `Print BT (${paperWidth})` : `Cetak BT (${paperWidth})`)}
+              </span>
             </button>
             <button
               onClick={handlePrint}
               className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs transition-colors"
             >
               <Printer className="w-4 h-4 text-cyan-400" />
-              <span>Cetak Browser (PDF)</span>
+              <span>{language === 'en' ? 'Print PDF (Browser)' : 'Cetak Browser (PDF)'}</span>
             </button>
           </div>
 
@@ -295,7 +325,9 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
             className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-colors shadow-glow-emerald"
           >
             <MessageSquare className="w-4 h-4" />
-            <span>Kirim Nota Digital ke WhatsApp Pelanggan</span>
+            <span>
+              {language === 'en' ? 'Send Digital Receipt to Customer WhatsApp' : 'Kirim Nota Digital ke WhatsApp Pelanggan'}
+            </span>
           </button>
         </div>
       </div>

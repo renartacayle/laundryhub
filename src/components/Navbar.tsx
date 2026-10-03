@@ -14,6 +14,8 @@ import {
   Cpu,
   CheckCircle2,
   X,
+  Globe,
+  DollarSign,
 } from 'lucide-react';
 import { CoinTopupModal } from './CoinTopupModal';
 import { IotMachineControlModal } from './IotMachineControlModal';
@@ -29,6 +31,11 @@ export const Navbar: React.FC = () => {
     isDarkMode,
     toggleDarkMode,
     isOnline,
+    language,
+    setLanguage,
+    currency,
+    setCurrency,
+    t,
     machines,
     notifications,
     markNotificationRead,
@@ -163,8 +170,37 @@ export const Navbar: React.FC = () => {
             >
               <Coins className="w-3.5 h-3.5 text-amber-400" />
               <span>{tokenCoins.toLocaleString('id-ID')}</span>
-              <span className="hidden sm:inline text-[10px] font-normal text-amber-300/80">Koin</span>
+              <span className="hidden sm:inline text-[10px] font-normal text-amber-300/80">{t.nav.coins}</span>
               <span className="text-[10px] ml-1 px-1 bg-amber-500/30 rounded font-black">+</span>
+            </button>
+
+            {/* Language Switcher (ID / EN) */}
+            <button
+              onClick={() => {
+                const nextLang = language === 'id' ? 'en' : 'id';
+                setLanguage(nextLang);
+                if (nextLang === 'en') setCurrency('USD');
+                else setCurrency('IDR');
+              }}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700/80 hover:border-cyan-500/50 text-xs font-bold text-slate-200 transition-all hover:bg-slate-800"
+              title={language === 'id' ? 'Switch to English (Global)' : 'Ganti ke Bahasa Indonesia'}
+            >
+              <Globe className="w-3.5 h-3.5 text-cyan-400" />
+              <span>{language === 'id' ? '🇮🇩 ID' : '🇬🇧 EN'}</span>
+            </button>
+
+            {/* Currency Switcher (IDR / USD) */}
+            <button
+              onClick={() => setCurrency(currency === 'IDR' ? 'USD' : 'IDR')}
+              className={`flex items-center gap-1 px-2 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                currency === 'USD'
+                  ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400 shadow-glow-emerald'
+                  : 'bg-slate-800/70 border-slate-700/80 text-slate-300 hover:text-white'
+              }`}
+              title="Toggle Currency (IDR / USD)"
+            >
+              <DollarSign className="w-3.5 h-3.5" />
+              <span>{currency}</span>
             </button>
 
             {/* Notification Bell */}

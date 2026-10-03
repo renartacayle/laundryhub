@@ -91,11 +91,14 @@ export const QrisModal: React.FC<QrisModalProps> = ({
             <span>Berlaku hingga: <strong className="font-mono text-amber-300">{formattedTime}</strong></span>
           </div>
 
-          <div className="text-xs text-slate-400">Total Tagihan:</div>
-          <div className="text-2xl font-black text-cyan-400 mt-0.5 tracking-tight">
-            Rp {amount.toLocaleString('id-ID')}
+          <div className="text-xs text-slate-400">Total Tagihan / Grand Total:</div>
+          <div className="text-2xl font-black text-cyan-400 mt-0.5 tracking-tight flex items-baseline gap-2">
+            <span>Rp {amount.toLocaleString('id-ID')}</span>
+            <span className="text-xs font-normal text-slate-400 font-mono">
+              (~${(amount / 16000).toFixed(2)} USD)
+            </span>
           </div>
-          <div className="text-[11px] font-mono text-slate-500 mb-4">{invoiceNo}</div>
+          <div className="text-[11px] font-mono text-slate-500 mb-3">{invoiceNo}</div>
 
           {/* QR Code Frame */}
           <div className="p-3 bg-white rounded-2xl shadow-inner border-4 border-slate-700 relative group flex flex-col items-center">
@@ -113,9 +116,22 @@ export const QrisModal: React.FC<QrisModalProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 mt-3 text-[11px] text-slate-400">
+          <div className="flex items-center gap-1.5 mt-2.5 text-[11px] text-slate-400">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
             <span>QRIS Nasional SpeedCash Terverifikasi (Semarang)</span>
+          </div>
+
+          {/* ASEAN Cross-Border Badges */}
+          <div className="mt-2 flex items-center justify-center gap-1.5 flex-wrap">
+            <span className="text-[9px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-bold border border-slate-700">
+              🇸🇬 NETS Singapore
+            </span>
+            <span className="text-[9px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-bold border border-slate-700">
+              🇲🇾 DuitNow Malaysia
+            </span>
+            <span className="text-[9px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-bold border border-slate-700">
+              🇹🇭 PromptPay Thailand
+            </span>
           </div>
 
           {/* Webhook Radar Indicator */}

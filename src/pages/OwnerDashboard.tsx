@@ -50,6 +50,7 @@ import {
   Legend,
 } from 'recharts';
 import { CoinTopupModal } from '../components/CoinTopupModal';
+import { formatCurrency } from '../utils/currency';
 
 interface OwnerDashboardProps {
   currentSubTab?: string;
@@ -130,6 +131,9 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
     approveWithdrawal,
     registerDropshipAgent,
     orderDropshipSupplies,
+    language,
+    currency,
+    t,
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'overview' | 'stats' | 'branches' | 'inventory' | 'staff' | 'audit' | 'dropship' | 'supplies'>(
@@ -448,16 +452,18 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
             {/* Total Revenue */}
             <div className="p-4 rounded-2xl glass-card border border-amber-500/30 relative overflow-hidden">
               <div className="flex items-center justify-between text-xs text-slate-400">
-                <span>Omzet Konsolidasi</span>
+                <span>{language === 'en' ? 'Consolidated Revenue' : 'Omzet Konsolidasi'}</span>
                 <span className="flex items-center text-emerald-400 font-bold text-[11px]">
                   <ArrowUpRight className="w-3.5 h-3.5" /> +18.4%
                 </span>
               </div>
               <div className="text-2xl font-black text-amber-400 font-mono mt-1">
-                Rp {totalRevenue.toLocaleString('id-ID')}
+                {formatCurrency(totalRevenue, currency)}
               </div>
               <div className="text-[11px] text-slate-400 mt-1">
-                Total dari {filteredOrders.length} transaksi tercatat
+                {language === 'en'
+                  ? `Total from ${filteredOrders.length} recorded orders`
+                  : `Total dari ${filteredOrders.length} transaksi tercatat`}
               </div>
               <div className="absolute -bottom-6 -right-6 w-20 h-20 bg-amber-500/10 rounded-full blur-xl pointer-events-none" />
             </div>
@@ -465,16 +471,18 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
             {/* Estimated Net Profit */}
             <div className="p-4 rounded-2xl glass-card border border-emerald-500/30 relative overflow-hidden">
               <div className="flex items-center justify-between text-xs text-slate-400">
-                <span>Estimasi Laba Bersih</span>
+                <span>{language === 'en' ? 'Estimated Net Profit' : 'Estimasi Laba Bersih'}</span>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300">
                   Margin ~62%
                 </span>
               </div>
               <div className="text-2xl font-black text-emerald-400 font-mono mt-1">
-                Rp {estimatedNetProfit.toLocaleString('id-ID')}
+                {formatCurrency(estimatedNetProfit, currency)}
               </div>
               <div className="text-[11px] text-slate-400 mt-1">
-                Beban op. deterjen & utilitas ~Rp {estimatedCost.toLocaleString('id-ID')}
+                {language === 'en'
+                  ? `Estimated overhead expenses ~${formatCurrency(estimatedCost, currency)}`
+                  : `Beban op. deterjen & utilitas ~${formatCurrency(estimatedCost, currency)}`}
               </div>
               <div className="absolute -bottom-6 -right-6 w-20 h-20 bg-emerald-500/10 rounded-full blur-xl pointer-events-none" />
             </div>
@@ -497,7 +505,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
             {/* Token / Coin Balance */}
             <div className="p-4 rounded-2xl glass-card border border-purple-500/30 relative overflow-hidden">
               <div className="flex items-center justify-between text-xs text-slate-400">
-                <span>Saldo Token Koin</span>
+                <span>{language === 'en' ? 'Note Token Balance' : 'Saldo Token Koin'}</span>
                 <button
                   onClick={() => setIsCoinModalOpen(true)}
                   className="px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 text-[10px] font-bold transition-colors"
@@ -506,10 +514,12 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
                 </button>
               </div>
               <div className="text-2xl font-black text-purple-400 font-mono mt-1">
-                {tokenCoins.toLocaleString('id-ID')}
+                {tokenCoins.toLocaleString('id-ID')} {language === 'en' ? 'Coins' : 'Koin'}
               </div>
               <div className="text-[11px] text-slate-400 mt-1">
-                Mencukupi untuk ~{tokenCoins} nota transaksi lagi
+                {language === 'en'
+                  ? `Sufficient for ~${tokenCoins} more order notes (Rp 25 - 50 / note)`
+                  : `Mencukupi untuk ~${tokenCoins} nota transaksi lagi (Rp 25 - 50 / nota)`}
               </div>
               <div className="absolute -bottom-6 -right-6 w-20 h-20 bg-purple-500/10 rounded-full blur-xl pointer-events-none" />
             </div>

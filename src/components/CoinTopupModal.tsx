@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import confetti from 'canvas-confetti';
-import { Coins, X, CheckCircle, Zap, Shield, Sparkles, QrCode, Gift, Tag, PlusCircle, Check } from 'lucide-react';
+import { Coins, X, CheckCircle, Zap, Shield, Sparkles, QrCode, Gift, Tag, PlusCircle, Check, CreditCard } from 'lucide-react';
 import { QrisModal } from './QrisModal';
+import { InternationalCardModal } from './InternationalCardModal';
+import { formatCurrency } from '../utils/currency';
 
 interface CoinTopupModalProps {
   isOpen: boolean;
@@ -16,10 +18,11 @@ interface CustomPromoCode {
 }
 
 export const CoinTopupModal: React.FC<CoinTopupModalProps> = ({ isOpen, onClose }) => {
-  const { tokenCoins, topupCoins, currentUser } = useApp();
+  const { tokenCoins, topupCoins, currentUser, language, currency, t } = useApp();
   const [selectedPackage, setSelectedPackage] = useState<number>(500);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isQrisOpen, setIsQrisOpen] = useState(false);
+  const [isCardModalOpen, setIsCardModalOpen] = useState(false);
 
   // Promo Code State
   const [promoInput, setPromoInput] = useState('');
@@ -191,11 +194,11 @@ export const CoinTopupModal: React.FC<CoinTopupModalProps> = ({ isOpen, onClose 
                   )}
                   <div className="text-xs font-bold text-white">{pkg.label}</div>
                   <div className="text-base font-black text-amber-400 mt-0.5">
-                    {pkg.coins.toLocaleString('id-ID')} Koin
+                    {pkg.coins.toLocaleString('id-ID')} {t.tokens.coinsUnit}
                   </div>
                   <div className="text-[10px] text-emerald-400 font-medium mt-0.5">{pkg.bonus}</div>
                   <div className="text-xs font-semibold text-slate-300 mt-2">
-                    Rp {pkg.price.toLocaleString('id-ID')}
+                    {formatCurrency(pkg.price, currency)}
                   </div>
                 </div>
               );
@@ -331,17 +334,26 @@ export const CoinTopupModal: React.FC<CoinTopupModalProps> = ({ isOpen, onClose 
           </div>
         </div>
 
-        {/* Action Button */}
-        <div className="p-5 bg-slate-900 border-t border-slate-800 space-y-2">
+        {/* Action Buttons */}
+        <div className="p-5 bg-slate-900 border-t border-slate-800 space-y-2.5">
           <button
             onClick={handleOpenQris}
-            className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs transition-all shadow-glow-amber"
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs transition-all shadow-glow-amber"
           >
             <QrCode className="w-4 h-4" />
-            <span>Bayar Rp {currentPkg.price.toLocaleString('id-ID')} via QRIS (Dapatkan {currentPkg.coins.toLocaleString('id-ID')} Koin)</span>
+            <span>Bayar {formatCurrency(currentPkg.price, currency)} via QRIS (Indonesia & ASEAN)</span>
           </button>
+
+          <button
+            onClick={() => setIsCardModalOpen(true)}
+            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 text-cyan-300 font-bold text-xs transition-all"
+          >
+            <CreditCard className="w-4 h-4 text-cyan-400" />
+            <span>Bayar via Kartu Luar Negeri / Visa / Mastercard / PayPal</span>
+          </button>
+
           <p className="text-[10px] text-center text-slate-500">
-            Pembayaran langsung diverifikasi realtime ke QRIS SPEEDCASH RENARTASHOP
+            {t.tokens.crossBorderNotice}
           </p>
         </div>
       </div>
@@ -353,6 +365,19 @@ export const CoinTopupModal: React.FC<CoinTopupModalProps> = ({ isOpen, onClose 
         amount={currentPkg.price}
         invoiceNo={`TOPUP-TOKEN-${Date.now().toString().slice(-6)}`}
         onPaymentSuccess={handleQrisPaymentSuccess}
+      />
+
+      {/* Embedded International Card Modal */}
+      <InternationalCardModal
+        isOpen={isCardModalOpen}
+        onClose={() => setIsCardModalOpen(false)}
+        amountInIdr={currentPkg.price}
+        invoiceNo={`TOPUP-INTL-${Date.now().toString().slice(-6)}`}
+        onPaymentSuccess={() => {
+          setIsCardModalOpen(false);
+          handleQrisPaymentSuccess();
+        }}
+        lang={language}
       />
     </div>
   );

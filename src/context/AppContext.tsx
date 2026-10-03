@@ -16,6 +16,8 @@ import {
   DropshipSupplyOrder,
   WithdrawalRequest,
 } from '../types';
+import { Language, Translations, translations } from '../utils/i18n';
+import { Currency } from '../utils/currency';
 import {
   INITIAL_BRANCHES,
   INITIAL_USERS,
@@ -44,6 +46,13 @@ interface AppContextType {
   isDarkMode: boolean;
   toggleDarkMode: () => void;
   isOnline: boolean;
+
+  // i18n & Multi-Currency
+  language: Language;
+  setLanguage: (lang: Language) => void;
+  currency: Currency;
+  setCurrency: (curr: Currency) => void;
+  t: Translations;
 
   // Business State
   tokenCoins: number;
@@ -110,6 +119,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
     return localStorage.getItem('lh_dark') !== 'false';
   });
+
+  const [language, setLanguage] = useState<Language>(() => {
+    return (localStorage.getItem('lh_lang') as Language) || 'id';
+  });
+
+  const [currency, setCurrency] = useState<Currency>(() => {
+    return (localStorage.getItem('lh_currency') as Currency) || 'IDR';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('lh_lang', language);
+  }, [language]);
+
+  useEffect(() => {
+    localStorage.setItem('lh_currency', currency);
+  }, [currency]);
+
+  const t = translations[language] || translations.id;
 
   const [tokenCoins, setTokenCoins] = useState<number>(() => {
     const saved = localStorage.getItem('lh_coins');
@@ -923,6 +950,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isDarkMode,
         toggleDarkMode,
         isOnline,
+        language,
+        setLanguage,
+        currency,
+        setCurrency,
+        t,
         tokenCoins,
         topupCoins,
         branches,

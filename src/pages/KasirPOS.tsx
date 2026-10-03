@@ -34,10 +34,13 @@ import {
   Layers,
   ChevronRight,
   Filter,
+  Globe,
 } from 'lucide-react';
 import { ReceiptModal } from '../components/ReceiptModal';
 import { WhatsAppSimulatorModal } from '../components/WhatsAppSimulatorModal';
 import { QrisModal } from '../components/QrisModal';
+import { InternationalCardModal } from '../components/InternationalCardModal';
+import { formatCurrency } from '../utils/currency';
 import { dbService } from '../services/api';
 
 interface KasirPOSProps {
@@ -56,6 +59,9 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
     addCustomer,
     topupCustomerDeposit,
     tokenCoins,
+    language,
+    currency,
+    t,
   } = useApp();
 
   const [activeSubView, setActiveSubView] = useState<'pos' | 'orders' | 'customers'>(
@@ -95,6 +101,7 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [isWhatsAppOpen, setIsWhatsAppOpen] = useState(false);
   const [isQrisOpen, setIsQrisOpen] = useState(false);
+  const [isCardModalOpen, setIsCardModalOpen] = useState(false);
 
   // New Customer Modal
   const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false);
@@ -252,6 +259,11 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
 
     if (paymentMethod === 'qris') {
       setIsQrisOpen(true);
+      return;
+    }
+
+    if (paymentMethod === 'card_international') {
+      setIsCardModalOpen(true);
       return;
     }
 
@@ -742,11 +754,12 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
                   </label>
                   <div className="grid grid-cols-3 gap-1.5">
                     {[
-                      { id: 'tunai', label: 'Tunai (Cash)', icon: <DollarSign className="w-3.5 h-3.5" /> },
-                      { id: 'qris', label: 'QRIS', icon: <QrCode className="w-3.5 h-3.5" /> },
+                      { id: 'tunai', label: language === 'id' ? 'Tunai (Cash)' : 'Cash (IDR)', icon: <DollarSign className="w-3.5 h-3.5" /> },
+                      { id: 'qris', label: 'QRIS SpeedCash', icon: <QrCode className="w-3.5 h-3.5" /> },
+                      { id: 'card_international', label: language === 'id' ? 'Kartu Luar Negeri' : 'Intl Card (Visa/MC)', icon: <Globe className="w-3.5 h-3.5" /> },
                       { id: 'transfer', label: 'Transfer Bank', icon: <CreditCard className="w-3.5 h-3.5" /> },
                       { id: 'deposit', label: 'Deposit Saldo', icon: <Wallet className="w-3.5 h-3.5" /> },
-                      { id: 'piutang', label: 'Bayar Nanti', icon: <Clock className="w-3.5 h-3.5" /> },
+                      { id: 'piutang', label: language === 'id' ? 'Bayar Nanti' : 'Pay on Delivery', icon: <Clock className="w-3.5 h-3.5" /> },
                     ].map((m) => (
                       <button
                         key={m.id}
@@ -1189,6 +1202,19 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
           setIsQrisOpen(false);
           executeFinalizeOrder();
         }}
+      />
+
+      {/* International Card Modal */}
+      <InternationalCardModal
+        isOpen={isCardModalOpen}
+        onClose={() => setIsCardModalOpen(false)}
+        amountInIdr={finalPrice}
+        invoiceNo={`LH-${activeBranch.code}-INTL`}
+        onPaymentSuccess={() => {
+          setIsCardModalOpen(false);
+          executeFinalizeOrder();
+        }}
+        lang={language}
       />
     </div>
   );

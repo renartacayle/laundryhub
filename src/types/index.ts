@@ -78,7 +78,7 @@ export type OrderStatus =
 
 export type PaymentStatus = 'lunas' | 'belum_lunas' | 'piutang';
 
-export type PaymentMethod = 'tunai' | 'transfer' | 'qris' | 'deposit' | 'piutang';
+export type PaymentMethod = 'tunai' | 'transfer' | 'qris' | 'deposit' | 'piutang' | 'card_international';
 
 export interface StatusTimestamp {
   time: string;

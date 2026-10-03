@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { ReceiptModal } from '../components/ReceiptModal';
 import { WhatsAppSimulatorModal } from '../components/WhatsAppSimulatorModal';
+import { formatCurrency } from '../utils/currency';
 import confetti from 'canvas-confetti';
 
 interface PelangganPortalProps {
@@ -31,6 +32,9 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
     orders,
     branches,
     currentBranchId,
+    language,
+    currency,
+    t,
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'tracking' | 'wallet' | 'history' | 'pickup'>(
@@ -67,14 +71,23 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
 
   const activeBranch = branches.find((b) => b.id === currentBranchId) || branches[0];
 
-  const workflowSteps: { id: OrderStatus; label: string; desc: string }[] = [
-    { id: 'antrean', label: 'Antrean', desc: 'Diterima Kasir' },
-    { id: 'cuci', label: 'Cuci', desc: 'Mesin Washer Putar' },
-    { id: 'kering', label: 'Kering', desc: 'Pengering Suhu Pas' },
-    { id: 'setrika', label: 'Setrika', desc: 'Uap Halus & Wangi' },
-    { id: 'packing', label: 'Packing', desc: 'Quality Control' },
-    { id: 'siap', label: 'Siap', desc: 'Siap Diambil/Antar' },
-  ];
+  const workflowSteps: { id: OrderStatus; label: string; desc: string }[] = language === 'en'
+    ? [
+        { id: 'antrean', label: 'Queued', desc: 'Received at Counter' },
+        { id: 'cuci', label: 'Washing', desc: 'Washer Machine Cycle' },
+        { id: 'kering', label: 'Drying', desc: 'Tumble Dryer Cycle' },
+        { id: 'setrika', label: 'Ironing', desc: 'Steam Press & Scent' },
+        { id: 'packing', label: 'Packing', desc: 'Quality Check' },
+        { id: 'siap', label: 'Ready', desc: 'Ready for Pickup / Delivery' },
+      ]
+    : [
+        { id: 'antrean', label: 'Antrean', desc: 'Diterima Kasir' },
+        { id: 'cuci', label: 'Cuci', desc: 'Mesin Washer Putar' },
+        { id: 'kering', label: 'Kering', desc: 'Pengering Suhu Pas' },
+        { id: 'setrika', label: 'Setrika', desc: 'Uap Halus & Wangi' },
+        { id: 'packing', label: 'Packing', desc: 'Quality Control' },
+        { id: 'siap', label: 'Siap', desc: 'Siap Diambil/Antar' },
+      ];
 
   const getStepIndex = (status: OrderStatus) => {
     const list: OrderStatus[] = ['antrean', 'cuci', 'kering', 'setrika', 'packing', 'siap', 'selesai'];
@@ -97,10 +110,10 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
 
   const handleRedeemVoucher = (pointsCost: number, voucherName: string) => {
     if (currentCustomer.loyaltyPoints < pointsCost) {
-      alert('Poin Anda tidak mencukupi untuk menukar voucher ini.');
+      alert(language === 'en' ? 'Insufficient reward points to redeem this voucher.' : 'Poin Anda tidak mencukupi untuk menukar voucher ini.');
       return;
     }
-    alert(`Berhasil! Kode Voucher '${voucherName}' telah diklaim dan dapat digunakan di kasir.`);
+    alert(language === 'en' ? `Success! Voucher '${voucherName}' has been claimed and can be used at checkout.` : `Berhasil! Kode Voucher '${voucherName}' telah diklaim dan dapat digunakan di kasir.`);
   };
 
   return (
@@ -117,7 +130,7 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
             }`}
           >
             <Sparkles className="w-4 h-4" />
-            <span>Lacak Status Cucian</span>
+            <span>{t.portal.tabTrack}</span>
           </button>
           <button
             onClick={() => setActiveTab('wallet')}
@@ -128,7 +141,7 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
             }`}
           >
             <Wallet className="w-4 h-4" />
-            <span>Deposit & Poin Member</span>
+            <span>{t.portal.tabWallet}</span>
           </button>
           <button
             onClick={() => setActiveTab('history')}
@@ -139,7 +152,7 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
             }`}
           >
             <Clock className="w-4 h-4" />
-            <span>Histori Transaksi ({customerOrders.length})</span>
+            <span>{t.portal.tabHistory} ({customerOrders.length})</span>
           </button>
           <button
             onClick={() => setActiveTab('pickup')}
@@ -150,13 +163,15 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
             }`}
           >
             <Bike className="w-4 h-4" />
-            <span>Request Jemput Baru</span>
+            <span>{t.portal.tabPickup}</span>
           </button>
         </div>
 
         {/* Switch demo customer */}
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-400">Pilih Akun Member:</span>
+          <span className="text-xs text-slate-400">
+            {language === 'en' ? 'Select Member Account:' : 'Pilih Akun Member:'}
+          </span>
           <select
             value={currentCustomer.id}
             onChange={(e) => {
@@ -186,13 +201,13 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
                 <div>
                   <span className="text-xs text-emerald-400 font-bold uppercase tracking-wider flex items-center gap-1">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                    Live Realtime Tracking
+                    {language === 'en' ? 'Live Realtime Tracking' : 'Live Realtime Tracking'}
                   </span>
                   <h3 className="text-xl font-extrabold text-white mt-0.5">
-                    No. Nota: <span className="font-mono text-emerald-300">{activeOrder.invoiceNo}</span>
+                    {language === 'en' ? 'Invoice No:' : 'No. Nota:'} <span className="font-mono text-emerald-300">{activeOrder.invoiceNo}</span>
                   </h3>
                   <p className="text-xs text-slate-400">
-                    Est. Selesai: {activeOrder.estReadyDate} • Parfum: {activeOrder.perfumeName}
+                    {language === 'en' ? 'Est. Ready:' : 'Est. Selesai:'} {activeOrder.estReadyDate} • {language === 'en' ? 'Fragrance:' : 'Parfum:'} {activeOrder.perfumeName}
                   </p>
                 </div>
 
@@ -205,7 +220,7 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
                     className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-colors"
                   >
                     <Printer className="w-4 h-4" />
-                    <span>Lihat Nota Digital</span>
+                    <span>{language === 'en' ? 'View Digital Receipt' : 'Lihat Nota Digital'}</span>
                   </button>
                   <button
                     onClick={() => {
@@ -215,7 +230,7 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
                     className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-colors shadow-glow-emerald"
                   >
                     <MessageSquare className="w-4 h-4" />
-                    <span>Simulasi WA Notifikasi</span>
+                    <span>{language === 'en' ? 'Simulate WA Notification' : 'Simulasi WA Notifikasi'}</span>
                   </button>
                 </div>
               </div>
@@ -258,17 +273,21 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
               {/* Order Detail Summary Box */}
               <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800/80 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
                 <div>
-                  <span className="text-slate-500 block text-[10px] uppercase font-bold">Layanan Cucian:</span>
+                  <span className="text-slate-500 block text-[10px] uppercase font-bold">
+                    {language === 'en' ? 'Laundry Services:' : 'Layanan Cucian:'}
+                  </span>
                   <div className="font-bold text-white mt-0.5">
                     {activeOrder.items.map((i) => i.serviceName).join(', ')}
                   </div>
                   <div className="text-slate-400 text-[11px]">
-                    {activeOrder.weightKg > 0 ? `${activeOrder.weightKg} kg` : `${activeOrder.itemCount} pcs`}
+                    {activeOrder.weightKg > 0 ? `${activeOrder.weightKg} kg` : `${activeOrder.itemCount} ${language === 'en' ? 'items' : 'pcs'}`}
                   </div>
                 </div>
 
                 <div>
-                  <span className="text-slate-500 block text-[10px] uppercase font-bold">Status Pembayaran:</span>
+                  <span className="text-slate-500 block text-[10px] uppercase font-bold">
+                    {language === 'en' ? 'Payment Status:' : 'Status Pembayaran:'}
+                  </span>
                   <div className="mt-0.5">
                     <span
                       className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
@@ -277,25 +296,29 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
                           : 'bg-amber-950 text-amber-300'
                       }`}
                     >
-                      {activeOrder.paymentStatus === 'lunas' ? '✅ Lunas' : '⚠️ Belum Lunas'}
+                      {activeOrder.paymentStatus === 'lunas'
+                        ? (language === 'en' ? '✅ Paid' : '✅ Lunas')
+                        : (language === 'en' ? '⚠️ Payment Pending' : '⚠️ Belum Lunas')}
                     </span>
                   </div>
                   <div className="font-mono text-emerald-400 font-bold mt-1">
-                    Rp {activeOrder.finalPrice.toLocaleString('id-ID')}
+                    {formatCurrency(activeOrder.finalPrice, currency)}
                   </div>
                 </div>
 
                 <div>
-                  <span className="text-slate-500 block text-[10px] uppercase font-bold">Catatan Khusus:</span>
+                  <span className="text-slate-500 block text-[10px] uppercase font-bold">
+                    {language === 'en' ? 'Special Notes:' : 'Catatan Khusus:'}
+                  </span>
                   <p className="text-slate-300 mt-0.5 text-[11px]">
-                    {activeOrder.specialNotes || 'Tidak ada catatan khusus.'}
+                    {activeOrder.specialNotes || (language === 'en' ? 'No special instructions.' : 'Tidak ada catatan khusus.')}
                   </p>
                 </div>
               </div>
             </div>
           ) : (
             <div className="p-12 text-center rounded-3xl glass-panel border border-slate-800 text-slate-400">
-              Belum ada cucian aktif untuk akun member ini.
+              {language === 'en' ? 'No active laundry orders for this account.' : 'Belum ada cucian aktif untuk akun member ini.'}
             </div>
           )}
         </div>
@@ -309,23 +332,25 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
             <div className="p-6 rounded-3xl glass-panel border border-emerald-500/40 space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                  Dompet Saldo Deposit
+                  {language === 'en' ? 'Prepaid Deposit Wallet' : 'Dompet Saldo Deposit'}
                 </span>
                 <Wallet className="w-5 h-5 text-emerald-400" />
               </div>
               <div>
                 <div className="text-3xl font-black font-mono text-emerald-400">
-                  Rp {currentCustomer.depositBalance.toLocaleString('id-ID')}
+                  {formatCurrency(currentCustomer.depositBalance, currency)}
                 </div>
                 <p className="text-xs text-slate-400 mt-1">
-                  Dapat digunakan untuk bayar instan saat laundry tanpa perlu bawa uang tunai.
+                  {language === 'en'
+                    ? 'Use for seamless instant cashless payment without needing cash on delivery.'
+                    : 'Dapat digunakan untuk bayar instan saat laundry tanpa perlu bawa uang tunai.'}
                 </p>
               </div>
               <button
-                onClick={() => alert('Top up saldo deposit dapat dilakukan di kasir outlet atau via transfer VA!')}
+                onClick={() => alert(language === 'en' ? 'Deposit top-up can be done at outlet cashier or via transfer/QRIS!' : 'Top up saldo deposit dapat dilakukan di kasir outlet atau via transfer VA!')}
                 className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-colors shadow-glow-emerald"
               >
-                + Top Up Saldo Deposit
+                {language === 'en' ? '+ Top Up Wallet Deposit' : '+ Top Up Saldo Deposit'}
               </button>
             </div>
 
@@ -333,20 +358,23 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
             <div className="p-6 rounded-3xl glass-panel border border-purple-500/40 space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                  Poin Loyalitas Member
+                  {language === 'en' ? 'Member Loyalty Points' : 'Poin Loyalitas Member'}
                 </span>
                 <Award className="w-5 h-5 text-purple-400" />
               </div>
               <div>
                 <div className="text-3xl font-black font-mono text-purple-400">
-                  {currentCustomer.loyaltyPoints} Poin
+                  {currentCustomer.loyaltyPoints} {language === 'en' ? 'Points' : 'Poin'}
                 </div>
                 <p className="text-xs text-slate-400 mt-1">
-                  Kumpulkan 1 Poin setiap transaksi Rp 1.000. Tukarkan dengan voucher cuci gratis!
+                  {language === 'en'
+                    ? 'Earn 1 Point per Rp 1,000 spent. Redeem for free wash vouchers and fragrance upgrades!'
+                    : 'Kumpulkan 1 Poin setiap transaksi Rp 1.000. Tukarkan dengan voucher cuci gratis!'}
                 </p>
               </div>
               <div className="text-xs text-slate-400 font-medium">
-                Tingkat Keanggotaan: <strong className="text-white">Gold VIP LaundryHub</strong>
+                {language === 'en' ? 'Membership Tier:' : 'Tingkat Keanggotaan:'}{' '}
+                <strong className="text-white">Gold VIP LaundryHub</strong>
               </div>
             </div>
           </div>
@@ -355,14 +383,26 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
           <div className="space-y-3">
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
               <Gift className="w-4 h-4 text-purple-400" />
-              <span>Katalog Penukaran Poin Hadiah</span>
+              <span>{language === 'en' ? 'Points Reward Catalog' : 'Katalog Penukaran Poin Hadiah'}</span>
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {[
-                { name: 'Voucher Cuci Kiloan 3kg Gratis', points: 150, desc: 'Berlaku untuk paket cuci setrika' },
-                { name: 'Gratis Parfum Snappy Red Premium', points: 80, desc: 'Upgrade wangi tahan 14 hari' },
-                { name: 'Diskon 50% Cuci Sepatu Sneakers', points: 200, desc: 'Deep cleaning segala merk' },
+                {
+                  name: language === 'en' ? 'Free 3kg Wash & Fold Voucher' : 'Voucher Cuci Kiloan 3kg Gratis',
+                  points: 150,
+                  desc: language === 'en' ? 'Valid for wash, dry & press package' : 'Berlaku untuk paket cuci setrika',
+                },
+                {
+                  name: language === 'en' ? 'Free Snappy Red Premium Scent' : 'Gratis Parfum Snappy Red Premium',
+                  points: 80,
+                  desc: language === 'en' ? 'Upgrades freshness up to 14 days' : 'Upgrade wangi tahan 14 hari',
+                },
+                {
+                  name: language === 'en' ? '50% Off Sneakers Cleaning' : 'Diskon 50% Cuci Sepatu Sneakers',
+                  points: 200,
+                  desc: language === 'en' ? 'Deep cleaning for all sneaker brands' : 'Deep cleaning segala merk',
+                },
               ].map((reward, i) => (
                 <div
                   key={i}
@@ -373,12 +413,14 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
                     <p className="text-[11px] text-slate-400 mt-1">{reward.desc}</p>
                   </div>
                   <div className="flex items-center justify-between pt-2 border-t border-slate-800">
-                    <span className="font-mono text-purple-400 font-bold text-xs">{reward.points} Poin</span>
+                    <span className="font-mono text-purple-400 font-bold text-xs">
+                      {reward.points} {language === 'en' ? 'Pts' : 'Poin'}
+                    </span>
                     <button
                       onClick={() => handleRedeemVoucher(reward.points, reward.name)}
                       className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-purple-600 text-purple-300 hover:text-white text-xs font-semibold transition-colors"
                     >
-                      Tukar Voucher
+                      {language === 'en' ? 'Claim Voucher' : 'Tukar Voucher'}
                     </button>
                   </div>
                 </div>
@@ -396,23 +438,29 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
               <thead className="bg-slate-950/70 text-slate-400 font-bold uppercase tracking-wider text-[10px] border-b border-slate-800">
                 <tr>
                   <th className="p-3.5">Invoice</th>
-                  <th className="p-3.5">Tanggal</th>
-                  <th className="p-3.5">Layanan</th>
-                  <th className="p-3.5">Total Biaya</th>
-                  <th className="p-3.5">Status</th>
-                  <th className="p-3.5 text-right">Nota Digital</th>
+                  <th className="p-3.5">{language === 'en' ? 'Date' : 'Tanggal'}</th>
+                  <th className="p-3.5">{language === 'en' ? 'Service' : 'Layanan'}</th>
+                  <th className="p-3.5">{language === 'en' ? 'Total Bill' : 'Total Biaya'}</th>
+                  <th className="p-3.5">{language === 'en' ? 'Status' : 'Status'}</th>
+                  <th className="p-3.5 text-right">{language === 'en' ? 'Digital Receipt' : 'Nota Digital'}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">
                 {customerOrders.map((ord) => (
                   <tr key={ord.id} className="hover:bg-slate-800/40">
                     <td className="p-3.5 font-mono font-bold text-emerald-400">{ord.invoiceNo}</td>
-                    <td className="p-3.5 text-slate-400">{ord.createdAt}</td>
+                    <td className="p-3.5 text-slate-400">
+                      {new Date(ord.createdAt).toLocaleDateString(language === 'en' ? 'en-US' : 'id-ID', {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                      })}
+                    </td>
                     <td className="p-3.5 text-slate-200">
                       {ord.items.map((i) => i.serviceName).join(', ')}
                     </td>
                     <td className="p-3.5 font-mono font-bold text-white">
-                      Rp {ord.finalPrice.toLocaleString('id-ID')}
+                      {formatCurrency(ord.finalPrice, currency)}
                     </td>
                     <td className="p-3.5">
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-slate-800 text-slate-300">
@@ -427,7 +475,7 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
                         }}
                         className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 font-semibold text-xs"
                       >
-                        Buka Nota
+                        {language === 'en' ? 'Open Receipt' : 'Buka Nota'}
                       </button>
                     </td>
                   </tr>
@@ -445,25 +493,48 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
             <div>
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <Bike className="w-5 h-5 text-emerald-400" />
-                <span>Pesan Layanan Antar-Jemput Laundry</span>
+                <span>
+                  {language === 'en' ? 'Request Laundry Pickup & Delivery' : 'Pesan Layanan Antar-Jemput Laundry'}
+                </span>
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">
-                Kurir kami akan datang ke alamat Anda untuk mengambil pakaian kotor
+                {language === 'en'
+                  ? 'Our couriers pick up directly from your residence, hotel, villa, or Airbnb lobby.'
+                  : 'Kurir kami akan datang ke alamat Anda untuk mengambil pakaian kotor.'}
               </p>
+            </div>
+
+            {/* Tourist / Hotel Friendly Notice */}
+            <div className="p-3 rounded-2xl bg-indigo-950/40 border border-indigo-500/30 flex items-start gap-2.5 text-xs text-indigo-200">
+              <span className="text-base">🏨</span>
+              <div>
+                <strong className="block text-indigo-300">
+                  {language === 'en' ? 'Visiting Tourist / Hotel Guest?' : 'Tamu Hotel, Villa & Wisatawan Mancanegara?'}
+                </strong>
+                <span className="text-[11px] text-slate-300">
+                  {language === 'en'
+                    ? 'Enter your Hotel/Villa name and Room Number in the address field. Couriers coordinate with front desk reception for pickup & return.'
+                    : 'Tulis nama hotel dan nomor kamar pada kolom alamat. Kurir akan berkoordinasi langsung dengan resepsionis untuk serah-terima pakaian.'}
+                </span>
+              </div>
             </div>
 
             {pickupSuccess && (
               <div className="p-3.5 rounded-xl bg-emerald-950/80 border border-emerald-500/50 text-xs text-emerald-200 flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                 <span>
-                  Permintaan jemput berhasil dibuat! Kurir akan menghubungi Anda dalam 15-30 menit.
+                  {language === 'en'
+                    ? 'Pickup request submitted successfully! Our courier will contact you within 15-30 minutes.'
+                    : 'Permintaan jemput berhasil dibuat! Kurir akan menghubungi Anda dalam 15-30 menit.'}
                 </span>
               </div>
             )}
 
             <form onSubmit={handleRequestPickupSubmit} className="space-y-3 text-xs">
               <div>
-                <label className="text-slate-300 font-semibold block mb-1">Nama Pemesan:</label>
+                <label className="text-slate-300 font-semibold block mb-1">
+                  {language === 'en' ? 'Customer / Guest Name:' : 'Nama Pemesan:'}
+                </label>
                 <input
                   type="text"
                   disabled
@@ -473,7 +544,9 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
               </div>
 
               <div>
-                <label className="text-slate-300 font-semibold block mb-1">Nomor WhatsApp:</label>
+                <label className="text-slate-300 font-semibold block mb-1">
+                  {language === 'en' ? 'WhatsApp / Phone Number:' : 'Nomor WhatsApp:'}
+                </label>
                 <input
                   type="text"
                   disabled
@@ -483,10 +556,13 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
               </div>
 
               <div>
-                <label className="text-slate-300 font-semibold block mb-1">Alamat Penjemputan:</label>
+                <label className="text-slate-300 font-semibold block mb-1">
+                  {language === 'en' ? 'Pickup Address (or Hotel Name & Room No):' : 'Alamat Penjemputan:'}
+                </label>
                 <textarea
                   rows={2}
                   required
+                  placeholder={language === 'en' ? 'e.g. Tentrem Hotel, Room 412, Jl. Gajah Mada / Villa Pandanaran' : 'Alamat lengkap rumah atau nama hotel'}
                   value={pickupAddress}
                   onChange={(e) => setPickupAddress(e.target.value)}
                   className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
@@ -495,11 +571,17 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
 
               <div>
                 <label className="text-slate-300 font-semibold block mb-1">
-                  Catatan untuk Kurir (Perkiraan jumlah baju / patokan rumah):
+                  {language === 'en'
+                    ? 'Special Notes for Courier (Estimated clothes qty / landmarks):'
+                    : 'Catatan untuk Kurir (Perkiraan jumlah baju / patokan rumah):'}
                 </label>
                 <input
                   type="text"
-                  placeholder="Misal: Sekitar 2 kantong kresek, pagar hitam sebelah warung"
+                  placeholder={
+                    language === 'en'
+                      ? 'e.g. Approx 2 laundry bags, leave at hotel front desk'
+                      : 'Misal: Sekitar 2 kantong kresek, pagar hitam sebelah warung'
+                  }
                   value={pickupNotes}
                   onChange={(e) => setPickupNotes(e.target.value)}
                   className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
@@ -511,7 +593,7 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
                   type="submit"
                   className="w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-bold text-xs transition-all shadow-glow-emerald"
                 >
-                  Kirim Permintaan Jemput ke Kurir
+                  {language === 'en' ? 'Submit Courier Pickup Request' : 'Kirim Permintaan Jemput ke Kurir'}
                 </button>
               </div>
             </form>
