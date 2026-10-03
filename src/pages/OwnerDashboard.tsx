@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { DropshipSupplyItem } from '../types';
+import { DropshipSupplyItem, Role } from '../types';
 import {
   TrendingUp,
   DollarSign,
@@ -43,6 +43,10 @@ import {
   MessageSquare,
   Check,
   Zap,
+  Mail,
+  Trash2,
+  Shield,
+  X,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -143,10 +147,30 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
     approveWithdrawal,
     registerDropshipAgent,
     orderDropshipSupplies,
+    addWorker,
+    removeWorker,
+    updateWorker,
+    loginWithGmail,
+    setCurrentRole,
+    setCurrentUser,
     language,
     currency,
     t,
   } = useApp();
+
+  // Add Worker Modal State
+  const [isAddWorkerModalOpen, setIsAddWorkerModalOpen] = useState(false);
+  const [newWorkerName, setNewWorkerName] = useState('');
+  const [newWorkerEmail, setNewWorkerEmail] = useState('');
+  const [newWorkerPhone, setNewWorkerPhone] = useState('');
+  const [newWorkerRole, setNewWorkerRole] = useState<Role>('kasir');
+  const [newWorkerBranchId, setNewWorkerBranchId] = useState(branches[0]?.id || 'br-kemang');
+  const [newWorkerRateKg, setNewWorkerRateKg] = useState(300);
+  const [newWorkerRateItem, setNewWorkerRateItem] = useState(1000);
+  const [workerFormError, setWorkerFormError] = useState<string | null>(null);
+  const [workerFormSuccess, setWorkerFormSuccess] = useState<string | null>(null);
+  const [staffRoleFilter, setStaffRoleFilter] = useState<string>('all');
+  const [staffSearchText, setStaffSearchText] = useState<string>('');
 
   const [activeTab, setActiveTab] = useState<'overview' | 'stats' | 'branches' | 'inventory' | 'staff' | 'audit' | 'dropship' | 'supplies' | 'marketing'>(
     currentSubTab === 'owner-stats'
@@ -1430,51 +1454,495 @@ Konsultasi Admin WA: 081228263200`;
 
       {/* 5. KARYAWAN & KOMISI TAB */}
       {activeTab === 'staff' && (
-        <div className="space-y-4">
-          <div className="p-4 rounded-2xl glass-card border border-slate-700/80">
-            <h3 className="text-sm font-bold text-white">Manajemen Karyawan & Automasi Komisi</h3>
-            <p className="text-xs text-slate-400">
-              Sistem menghitung komisi secara otomatis per kilogram (cuci/setrika) dan per item pakaian yang selesai dikerjakan
-            </p>
+        <div className="space-y-5">
+          {/* Header Banner */}
+          <div className="p-5 rounded-2xl glass-card border border-cyan-500/30 bg-gradient-to-r from-cyan-950/40 via-slate-900/70 to-emerald-950/40 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-2xl bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                <Users className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2 flex-wrap">
+                  <span>Manajemen Karyawan & Hak Akses Akun Gmail</span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                    Google Auth Ready
+                  </span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Owner dapat mendaftarkan akun Gmail karyawan. Karyawan langsung otomatis masuk ke hak akses mereka (Kasir, Workshop Cuci, Kurir, Agen) via Google Sign-In tanpa password.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                setWorkerFormError(null);
+                setWorkerFormSuccess(null);
+                setIsAddWorkerModalOpen(true);
+              }}
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-slate-950 font-black text-xs shadow-glow-cyan transition-all flex items-center gap-2 shrink-0 active:scale-95"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>+ Tambah Karyawan via Gmail</span>
+            </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {users.map((u) => {
-              const branch = branches.find((b) => b.id === u.branchId);
-              return (
-                <div
-                  key={u.id}
-                  className="p-4 rounded-2xl glass-panel border border-slate-800 space-y-3"
+          {/* Search & Role Filter Bar */}
+          <div className="p-4 rounded-2xl glass-panel border border-slate-800 flex items-center justify-between gap-3 flex-wrap">
+            <div className="relative flex-1 min-w-[240px]">
+              <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+              <input
+                type="text"
+                placeholder="Cari nama karyawan atau alamat email gmail..."
+                value={staffSearchText}
+                onChange={(e) => setStaffSearchText(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+              />
+            </div>
+
+            <div className="flex gap-1.5 flex-wrap">
+              {[
+                { id: 'all', label: `Semua (${users.length})` },
+                { id: 'owner', label: `Owner (${users.filter((u) => u.role === 'owner').length})` },
+                { id: 'kasir', label: `Kasir (${users.filter((u) => u.role === 'kasir').length})` },
+                { id: 'produksi', label: `Produksi (${users.filter((u) => u.role === 'produksi').length})` },
+                { id: 'kurir', label: `Kurir (${users.filter((u) => u.role === 'kurir').length})` },
+                { id: 'agen', label: `Agen (${users.filter((u) => u.role === 'agen').length})` },
+              ].map((rf) => (
+                <button
+                  key={rf.id}
+                  onClick={() => setStaffRoleFilter(rf.id)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                    staffRoleFilter === rf.id
+                      ? 'bg-cyan-500 text-slate-950 font-bold shadow-glow-cyan'
+                      : 'bg-slate-800/80 text-slate-400 hover:text-white'
+                  }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={u.avatar}
-                      alt={u.name}
-                      className="w-10 h-10 rounded-xl object-cover border border-slate-700"
-                    />
+                  {rf.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Employee Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {users
+              .filter((u) => {
+                if (staffRoleFilter !== 'all' && u.role !== staffRoleFilter) return false;
+                if (staffSearchText) {
+                  const q = staffSearchText.toLowerCase();
+                  return u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
+                }
+                return true;
+              })
+              .map((u) => {
+                const branch = branches.find((b) => b.id === u.branchId);
+                const isOwner = u.role === 'owner';
+
+                return (
+                  <div
+                    key={u.id}
+                    className="p-4 rounded-2xl glass-panel border border-slate-800 hover:border-slate-700 transition-all flex flex-col justify-between space-y-3 group"
+                  >
                     <div>
-                      <h4 className="text-xs font-bold text-white">{u.name}</h4>
-                      <span className="text-[10px] px-2 py-0.2 rounded-full font-bold uppercase bg-slate-800 text-slate-300">
-                        {u.role}
-                      </span>
+                      {/* Top Header of Card */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={u.avatar}
+                            alt={u.name}
+                            className="w-10 h-10 rounded-xl object-cover border border-slate-700 shrink-0"
+                          />
+                          <div>
+                            <h4 className="text-xs font-bold text-white leading-tight">{u.name}</h4>
+                            <span
+                              className={`inline-block mt-1 text-[9px] px-2 py-0.2 rounded-full font-bold uppercase border ${
+                                u.role === 'owner'
+                                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                                  : u.role === 'kasir'
+                                  ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
+                                  : u.role === 'produksi'
+                                  ? 'bg-orange-500/20 text-orange-300 border-orange-500/40'
+                                  : u.role === 'kurir'
+                                  ? 'bg-purple-500/20 text-purple-300 border-purple-500/40'
+                                  : 'bg-teal-500/20 text-teal-300 border-teal-500/40'
+                              }`}
+                            >
+                              {u.role === 'owner'
+                                ? '👑 Owner'
+                                : u.role === 'kasir'
+                                ? '🖥️ Kasir'
+                                : u.role === 'produksi'
+                                ? '🧺 Produksi'
+                                : u.role === 'kurir'
+                                ? '🛵 Kurir'
+                                : '🏪 Agen'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {!isOwner && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (window.confirm(`Hapus akses karyawan ${u.name} (${u.email})?`)) {
+                                removeWorker(u.id);
+                              }
+                            }}
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition-colors"
+                            title="Hapus Karyawan"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Gmail Account Badge */}
+                      <div className="mt-3 p-2 rounded-xl bg-slate-950/80 border border-slate-800/80 space-y-1">
+                        <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
+                          {/* Google G mini icon */}
+                          <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24">
+                            <path
+                              fill="#4285F4"
+                              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                            />
+                            <path
+                              fill="#34A853"
+                              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                            />
+                            <path
+                              fill="#FBBC05"
+                              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                            />
+                            <path
+                              fill="#EA4335"
+                              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                            />
+                          </svg>
+                          <span className="font-mono text-cyan-300 font-semibold truncate select-all">
+                            {u.email}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-[9px] text-emerald-400 font-medium">
+                          <span>✓ Akun Google Siap Login</span>
+                          <span className="text-slate-500 font-mono">
+                            {u.lastLoginAt ? `Login: ${u.lastLoginAt.slice(5, 16)}` : 'Belum login'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Outlet & Contact */}
+                      <div className="mt-2.5 text-[11px] text-slate-400 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span>Penempatan:</span>
+                          <strong className="text-slate-200">{branch?.name || 'Pusat'}</strong>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span>WhatsApp:</span>
+                          <a
+                            href={`https://wa.me/${u.phone.replace(/[^0-9]/g, '')}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="font-mono text-cyan-400 hover:underline"
+                          >
+                            {u.phone}
+                          </a>
+                        </div>
+                        {!isOwner && (
+                          <div className="flex items-center justify-between">
+                            <span>Rate Komisi:</span>
+                            <span className="font-mono text-emerald-300 text-[10px]">
+                              Rp {u.commissionRateKg}/kg • Rp {u.commissionRateItem}/item
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Bottom Commission & 1-Click Simulation */}
+                    <div className="space-y-2 pt-2 border-t border-slate-800">
+                      {!isOwner && (
+                        <div className="p-2 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between">
+                          <span className="text-[10px] text-slate-400">Total Komisi:</span>
+                          <span className="text-xs font-black font-mono text-amber-400">
+                            Rp {u.totalCommissionEarned.toLocaleString('id-ID')}
+                          </span>
+                        </div>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          loginWithGmail(u.email);
+                        }}
+                        className="w-full py-1.5 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 text-[11px] font-bold border border-cyan-500/30 transition-all flex items-center justify-center gap-1.5"
+                      >
+                        <Zap className="w-3.5 h-3.5 text-cyan-400" />
+                        <span>Simulasi Login Staf Ini</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+
+          {/* MODAL: Tambah Karyawan Baru via Gmail */}
+          {isAddWorkerModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in">
+              <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-lg w-full p-6 shadow-2xl relative space-y-4">
+                <button
+                  type="button"
+                  onClick={() => setIsAddWorkerModalOpen(false)}
+                  className="absolute top-4 right-4 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+
+                {/* Header */}
+                <div className="flex items-center gap-3 border-b border-slate-800 pb-3">
+                  <div className="w-10 h-10 rounded-2xl bg-white flex items-center justify-center shadow-md shrink-0">
+                    <svg className="w-6 h-6" viewBox="0 0 24 24">
+                      <path
+                        fill="#4285F4"
+                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                      />
+                      <path
+                        fill="#34A853"
+                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                      />
+                      <path
+                        fill="#FBBC05"
+                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                      />
+                      <path
+                        fill="#EA4335"
+                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                      />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white">Tambah Akses Karyawan (Google / Gmail)</h3>
+                    <p className="text-xs text-slate-400">
+                      Karyawan dapat langsung masuk menggunakan akun Gmail tanpa membuat password baru.
+                    </p>
+                  </div>
+                </div>
+
+                {workerFormError && (
+                  <div className="p-3 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-semibold flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
+                    <span>{workerFormError}</span>
+                  </div>
+                )}
+
+                {workerFormSuccess && (
+                  <div className="p-3 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                    <span>{workerFormSuccess}</span>
+                  </div>
+                )}
+
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    setWorkerFormError(null);
+                    const email = newWorkerEmail.trim().toLowerCase();
+                    if (!email || !email.includes('@')) {
+                      setWorkerFormError('Masukkan email Gmail yang valid (misal: nama@gmail.com)');
+                      return;
+                    }
+                    try {
+                      addWorker({
+                        name: newWorkerName.trim(),
+                        email: email,
+                        phone: newWorkerPhone.trim() || '0812-0000-0000',
+                        role: newWorkerRole,
+                        branchId: newWorkerBranchId,
+                        commissionRateKg: Number(newWorkerRateKg) || 0,
+                        commissionRateItem: Number(newWorkerRateItem) || 0,
+                        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(newWorkerName)}`,
+                      });
+                      setWorkerFormSuccess(`✓ Karyawan ${newWorkerName} (${email}) berhasil didaftarkan! Karyawan dapat langsung login via Google.`);
+                      setTimeout(() => {
+                        setIsAddWorkerModalOpen(false);
+                        setWorkerFormSuccess(null);
+                        setNewWorkerName('');
+                        setNewWorkerEmail('');
+                        setNewWorkerPhone('');
+                      }, 1200);
+                    } catch (err: any) {
+                      setWorkerFormError(err.message || 'Gagal menambahkan karyawan');
+                    }
+                  }}
+                  className="space-y-3 text-left"
+                >
+                  {/* Alamat Gmail */}
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                      Alamat Akun Gmail Karyawan: <span className="text-rose-400">*</span>
+                    </label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                      <input
+                        type="email"
+                        required
+                        placeholder="contoh: sitikasir@gmail.com"
+                        value={newWorkerEmail}
+                        onChange={(e) => setNewWorkerEmail(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-cyan-500"
+                      />
+                    </div>
+                    <div className="flex gap-1.5 mt-1">
+                      {['@gmail.com', '@google.com'].map((domain) => (
+                        <button
+                          key={domain}
+                          type="button"
+                          onClick={() => {
+                            if (!newWorkerEmail.includes('@')) {
+                              setNewWorkerEmail((prev) => `${prev.trim()}${domain}`);
+                            }
+                          }}
+                          className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:text-cyan-300 border border-slate-700"
+                        >
+                          + {domain}
+                        </button>
+                      ))}
                     </div>
                   </div>
 
-                  <div className="text-[11px] text-slate-400 space-y-0.5">
-                    <div>Penempatan: <strong className="text-slate-300">{branch?.code}</strong></div>
-                    <div>Rate Komisi: <span className="font-mono text-cyan-300">Rp {u.commissionRateKg}/kg</span></div>
+                  {/* Nama & Nomor Telepon */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                        Nama Lengkap: <span className="text-rose-400">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Misal: Siti Rahmawati"
+                        value={newWorkerName}
+                        onChange={(e) => setNewWorkerName(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                        No. HP / WhatsApp:
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="08123456789"
+                        value={newWorkerPhone}
+                        onChange={(e) => setNewWorkerPhone(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                      />
+                    </div>
                   </div>
 
-                  <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between">
-                    <span className="text-[10px] text-slate-400">Total Komisi Terakumulasi:</span>
-                    <span className="text-xs font-black font-mono text-amber-400">
-                      Rp {u.totalCommissionEarned.toLocaleString('id-ID')}
-                    </span>
+                  {/* Peran / Hak Akses (Role) */}
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-300 block mb-1.5">
+                      Peran Hak Akses (Role):
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {[
+                        { id: 'kasir', label: 'Kasir POS', desc: 'Input & Bayar Nota' },
+                        { id: 'produksi', label: 'Produksi', desc: 'Cuci, Setrika, IoT' },
+                        { id: 'kurir', label: 'Kurir Delivery', desc: 'Jemput Antar & COD' },
+                        { id: 'agen', label: 'Mitra Agen', desc: 'Drop Point & Komisi' },
+                      ].map((r) => (
+                        <button
+                          key={r.id}
+                          type="button"
+                          onClick={() => setNewWorkerRole(r.id as Role)}
+                          className={`p-2.5 rounded-xl border text-left transition-all ${
+                            newWorkerRole === r.id
+                              ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300 shadow-glow-cyan'
+                              : 'bg-slate-800/80 border-slate-700 text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          <div className="font-bold text-xs">{r.label}</div>
+                          <div className="text-[10px] text-slate-400">{r.desc}</div>
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+
+                  {/* Penempatan Outlet / Cabang */}
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                      Penempatan Outlet Cabang:
+                    </label>
+                    <select
+                      value={newWorkerBranchId}
+                      onChange={(e) => setNewWorkerBranchId(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-semibold focus:outline-none focus:border-cyan-500"
+                    >
+                      {branches.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.name} ({b.code}) — {b.address.slice(0, 35)}...
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Pengaturan Komisi Karyawan */}
+                  <div className="p-3 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                      Automasi Komisi Karyawan (Opsional):
+                    </span>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[10px] text-slate-400 block mb-1">
+                          Rate Komisi Kiloan (Rp/kg):
+                        </label>
+                        <input
+                          type="number"
+                          step="50"
+                          min="0"
+                          value={newWorkerRateKg}
+                          onChange={(e) => setNewWorkerRateKg(parseInt(e.target.value, 10) || 0)}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-emerald-400 font-mono font-bold focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-slate-400 block mb-1">
+                          Rate Komisi Satuan (Rp/pcs):
+                        </label>
+                        <input
+                          type="number"
+                          step="100"
+                          min="0"
+                          value={newWorkerRateItem}
+                          onChange={(e) => setNewWorkerRateItem(parseInt(e.target.value, 10) || 0)}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-emerald-400 font-mono font-bold focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Buttons */}
+                  <div className="pt-2 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsAddWorkerModalOpen(false)}
+                      className="flex-1 py-2.5 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs font-semibold"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="submit"
+                      className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500 text-slate-950 font-black text-xs shadow-glow-cyan hover:opacity-95 transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Simpan & Beri Hak Akses</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

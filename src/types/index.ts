@@ -20,6 +20,9 @@ export interface User {
   commissionRateKg: number; // Rp per kg (e.g. 500)
   commissionRateItem: number; // Rp per satuan (e.g. 1000)
   totalCommissionEarned: number;
+  isGmailLinked?: boolean;
+  invitedAt?: string;
+  lastLoginAt?: string;
 }
 
 export interface Customer {

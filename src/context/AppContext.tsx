@@ -102,6 +102,16 @@ interface AppContextType {
     destinationAddress: string,
     cargoCourier?: string
   ) => DropshipSupplyOrder;
+
+  // Worker & Gmail Auth Management
+  activeGmailAccount: string | null;
+  isGoogleAuthModalOpen: boolean;
+  setIsGoogleAuthModalOpen: (open: boolean) => void;
+  loginWithGmail: (email: string, name?: string, avatar?: string) => { success: boolean; user?: User; role?: Role; message: string };
+  logoutGmail: () => void;
+  addWorker: (workerData: Omit<User, 'id' | 'totalCommissionEarned'>) => User;
+  removeWorker: (userId: string) => void;
+  updateWorker: (userId: string, data: Partial<User>) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -929,6 +939,154 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return newOrder;
   };
 
+  const [activeGmailAccount, setActiveGmailAccount] = useState<string | null>(() => {
+    return localStorage.getItem('lh_active_gmail');
+  });
+  const [isGoogleAuthModalOpen, setIsGoogleAuthModalOpen] = useState(false);
+
+  // Sync users to localStorage
+  useEffect(() => {
+    localStorage.setItem('lh_users', JSON.stringify(users));
+  }, [users]);
+
+  // Restore active user from saved Gmail on mount
+  useEffect(() => {
+    const savedGmail = localStorage.getItem('lh_active_gmail');
+    if (savedGmail) {
+      const matched = users.find((u) => u.email.toLowerCase() === savedGmail.toLowerCase());
+      if (matched) {
+        setCurrentUser(matched);
+        setCurrentRole(matched.role);
+        setCurrentBranchId(matched.branchId);
+      }
+    }
+  }, []);
+
+  const loginWithGmail = (email: string, name?: string, avatar?: string) => {
+    const cleanEmail = email.trim().toLowerCase();
+    const matchedUser = users.find((u) => u.email.toLowerCase() === cleanEmail);
+
+    if (matchedUser) {
+      const updatedUser: User = {
+        ...matchedUser,
+        isGmailLinked: true,
+        lastLoginAt: new Date().toISOString().replace('T', ' ').substring(0, 19),
+        name: name || matchedUser.name,
+        avatar: avatar || matchedUser.avatar,
+      };
+
+      setUsers((prev) => prev.map((u) => (u.id === matchedUser.id ? updatedUser : u)));
+      setCurrentUser(updatedUser);
+      setCurrentRole(updatedUser.role);
+      setCurrentBranchId(updatedUser.branchId);
+      setActiveGmailAccount(cleanEmail);
+      localStorage.setItem('lh_active_gmail', cleanEmail);
+      localStorage.setItem('lh_role', updatedUser.role);
+
+      const branchName = branches.find((b) => b.id === updatedUser.branchId)?.name || 'LaundryHub';
+      const newLog: AuditLog = {
+        id: `log-${Date.now()}`,
+        timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+        actorName: updatedUser.name,
+        actorRole: updatedUser.role,
+        action: 'LOGIN_GMAIL',
+        details: `Berhasil login via Akun Google (${cleanEmail}) sebagai ${updatedUser.role.toUpperCase()} di ${branchName}`,
+        branchId: updatedUser.branchId,
+      };
+      setAuditLogs((prev) => [newLog, ...prev]);
+
+      return {
+        success: true,
+        user: updatedUser,
+        role: updatedUser.role,
+        message: `Selamat datang, ${updatedUser.name}! Anda berhasil login sebagai ${updatedUser.role.toUpperCase()} (${branchName}).`,
+      };
+    }
+
+    // Unregistered Gmail: login as Pelanggan / Guest member
+    setActiveGmailAccount(cleanEmail);
+    localStorage.setItem('lh_active_gmail', cleanEmail);
+    setCurrentRole('pelanggan');
+    localStorage.setItem('lh_role', 'pelanggan');
+
+    const newLog: AuditLog = {
+      id: `log-${Date.now()}`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      actorName: name || cleanEmail.split('@')[0],
+      actorRole: 'pelanggan',
+      action: 'LOGIN_GMAIL_PELANGGAN',
+      details: `Login via Akun Google (${cleanEmail}) ke Portal Pelanggan LaundryHub`,
+      branchId: currentBranchId,
+    };
+    setAuditLogs((prev) => [newLog, ...prev]);
+
+    return {
+      success: true,
+      role: 'pelanggan' as Role,
+      message: `Akun Google ${cleanEmail} aktif. Anda masuk sebagai Pelanggan. (Minta Owner untuk mendaftarkan email ini jika Anda staf)`,
+    };
+  };
+
+  const logoutGmail = () => {
+    setActiveGmailAccount(null);
+    localStorage.removeItem('lh_active_gmail');
+  };
+
+  const addWorker = (workerData: Omit<User, 'id' | 'totalCommissionEarned'>): User => {
+    const cleanEmail = workerData.email.trim().toLowerCase();
+    const existing = users.find((u) => u.email.toLowerCase() === cleanEmail);
+    if (existing) {
+      throw new Error(`Email ${cleanEmail} sudah digunakan oleh staf ${existing.name}!`);
+    }
+
+    const newWorker: User = {
+      ...workerData,
+      id: `usr-${Date.now()}`,
+      email: cleanEmail,
+      totalCommissionEarned: 0,
+      isGmailLinked: true,
+      invitedAt: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      avatar: workerData.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(workerData.name)}`,
+    };
+
+    setUsers((prev) => [...prev, newWorker]);
+
+    const newLog: AuditLog = {
+      id: `log-${Date.now()}`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      actorName: currentUser.name,
+      actorRole: currentUser.role,
+      action: 'TAMBAH_KARYAWAN_GMAIL',
+      details: `Owner mendaftarkan staf baru: ${newWorker.name} (${cleanEmail}) role: ${newWorker.role.toUpperCase()} cabang: ${newWorker.branchId}`,
+      branchId: newWorker.branchId,
+    };
+    setAuditLogs((prev) => [newLog, ...prev]);
+
+    return newWorker;
+  };
+
+  const removeWorker = (userId: string) => {
+    const target = users.find((u) => u.id === userId);
+    setUsers((prev) => prev.filter((u) => u.id !== userId));
+
+    if (target) {
+      const newLog: AuditLog = {
+        id: `log-${Date.now()}`,
+        timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+        actorName: currentUser.name,
+        actorRole: currentUser.role,
+        action: 'HAPUS_KARYAWAN',
+        details: `Owner menghapus akses staf: ${target.name} (${target.email})`,
+        branchId: target.branchId,
+      };
+      setAuditLogs((prev) => [newLog, ...prev]);
+    }
+  };
+
+  const updateWorker = (userId: string, data: Partial<User>) => {
+    setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, ...data } : u)));
+  };
+
   const resetAllData = () => {
     localStorage.clear();
     setOrders(ALL_ORDERS);
@@ -998,6 +1156,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         approveWithdrawal,
         registerDropshipAgent,
         orderDropshipSupplies,
+        activeGmailAccount,
+        isGoogleAuthModalOpen,
+        setIsGoogleAuthModalOpen,
+        loginWithGmail,
+        logoutGmail,
+        addWorker,
+        removeWorker,
+        updateWorker,
       }}
     >
       {children}
