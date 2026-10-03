@@ -33,6 +33,8 @@ import {
   Clock,
   CheckCircle,
   Sparkles,
+  QrCode,
+  Settings,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -50,6 +52,8 @@ import {
   Legend,
 } from 'recharts';
 import { CoinTopupModal } from '../components/CoinTopupModal';
+import { OutletQrisConfigModal } from '../components/OutletQrisConfigModal';
+import { getOutletQrisConfig, OutletQrisConfig } from '../utils/outletQris';
 import { formatCurrency } from '../utils/currency';
 
 interface OwnerDashboardProps {
@@ -166,7 +170,17 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
   }, [currentSubTab]);
 
   const [isCoinModalOpen, setIsCoinModalOpen] = useState(false);
+  const [isOutletQrisModalOpen, setIsOutletQrisModalOpen] = useState(false);
+  const [outletQrisConfig, setOutletQrisConfig] = useState<OutletQrisConfig>(getOutletQrisConfig());
   const [selectedBranchFilter, setSelectedBranchFilter] = useState<string>('all');
+
+  React.useEffect(() => {
+    const handleQrisUpdate = () => {
+      setOutletQrisConfig(getOutletQrisConfig());
+    };
+    window.addEventListener('lh_outlet_qris_updated', handleQrisUpdate);
+    return () => window.removeEventListener('lh_outlet_qris_updated', handleQrisUpdate);
+  }, []);
 
   // Dropship Modals & Forms
   const [isAddAgentOpen, setIsAddAgentOpen] = useState(false);
@@ -1176,6 +1190,53 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* Outlet QRIS Configuration Card */}
+          <div className="p-5 rounded-3xl glass-panel border border-emerald-500/30 space-y-3 mt-4">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-2xl bg-emerald-500/20 text-emerald-400">
+                  <QrCode className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                    <span>QRIS Kasir Outlet (Penerimaan Uang Cucian)</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
+                      Model 1: 100% Milik Warung
+                    </span>
+                  </h4>
+                  <p className="text-xs text-slate-400">
+                    Pelanggan kasir POS scan QRIS ini dan uang cucian langsung masuk ke rekening bank / e-wallet warung laundry Anda.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsOutletQrisModalOpen(true)}
+                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-bold text-xs transition-all shadow-glow-emerald flex items-center gap-1.5"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>Atur / Upload QRIS Toko</span>
+              </button>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <div>
+                <span className="text-[10px] text-slate-400 block">Nama Merchant Kasir:</span>
+                <span className="font-bold text-white text-sm">{outletQrisConfig.merchantName}</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-400 block">NMID Terdaftar:</span>
+                <span className="font-mono text-cyan-300 font-semibold">{outletQrisConfig.nmid}</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-400 block">Status Gambar QRIS:</span>
+                <span className="font-medium text-emerald-400">
+                  {outletQrisConfig.imageUrl ? '✅ Gambar Custom Terupload' : '⚡ Menggunakan QRIS Standar (Bisa Upload)'}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -2270,6 +2331,12 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
 
       {/* Coin Topup Modal */}
       <CoinTopupModal isOpen={isCoinModalOpen} onClose={() => setIsCoinModalOpen(false)} />
+
+      {/* Outlet QRIS Configuration Modal */}
+      <OutletQrisConfigModal
+        isOpen={isOutletQrisModalOpen}
+        onClose={() => setIsOutletQrisModalOpen(false)}
+      />
     </div>
   );
 };

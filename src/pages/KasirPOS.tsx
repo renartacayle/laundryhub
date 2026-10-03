@@ -35,11 +35,13 @@ import {
   ChevronRight,
   Filter,
   Globe,
+  Settings,
 } from 'lucide-react';
 import { ReceiptModal } from '../components/ReceiptModal';
 import { WhatsAppSimulatorModal } from '../components/WhatsAppSimulatorModal';
 import { QrisModal } from '../components/QrisModal';
 import { InternationalCardModal } from '../components/InternationalCardModal';
+import { OutletQrisConfigModal } from '../components/OutletQrisConfigModal';
 import { formatCurrency } from '../utils/currency';
 import { dbService } from '../services/api';
 
@@ -102,6 +104,7 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
   const [isWhatsAppOpen, setIsWhatsAppOpen] = useState(false);
   const [isQrisOpen, setIsQrisOpen] = useState(false);
   const [isCardModalOpen, setIsCardModalOpen] = useState(false);
+  const [isOutletConfigOpen, setIsOutletConfigOpen] = useState(false);
 
   // New Customer Modal
   const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false);
@@ -755,7 +758,7 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
                   <div className="grid grid-cols-3 gap-1.5">
                     {[
                       { id: 'tunai', label: language === 'id' ? 'Tunai (Cash)' : 'Cash (IDR)', icon: <DollarSign className="w-3.5 h-3.5" /> },
-                      { id: 'qris', label: 'QRIS SpeedCash', icon: <QrCode className="w-3.5 h-3.5" /> },
+                      { id: 'qris', label: language === 'id' ? 'QRIS Outlet' : 'Outlet QRIS', icon: <QrCode className="w-3.5 h-3.5" /> },
                       { id: 'card_international', label: language === 'id' ? 'Kartu Luar Negeri' : 'Intl Card (Visa/MC)', icon: <Globe className="w-3.5 h-3.5" /> },
                       { id: 'transfer', label: 'Transfer Bank', icon: <CreditCard className="w-3.5 h-3.5" /> },
                       { id: 'deposit', label: 'Deposit Saldo', icon: <Wallet className="w-3.5 h-3.5" /> },
@@ -775,6 +778,33 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
                       </button>
                     ))}
                   </div>
+
+                  {/* Outlet QRIS Info & Setup Banner */}
+                  {paymentMethod === 'qris' && (
+                    <div className="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-slate-300 flex items-center justify-between mt-2">
+                      <div className="flex items-center gap-2">
+                        <QrCode className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <div>
+                          <span className="text-[11px] block font-semibold text-white">
+                            {language === 'id' ? 'QRIS Penerimaan Warung' : 'Outlet QRIS Direct Receipt'}
+                          </span>
+                          <span className="text-[10px] text-slate-400">
+                            {language === 'id'
+                              ? 'Uang cucian 100% langsung masuk rekening warung Anda'
+                              : 'Laundry payments directly credited to your shop account'}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsOutletConfigOpen(true)}
+                        className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-300 text-[10px] font-bold transition-colors flex items-center gap-1 shrink-0 ml-2"
+                      >
+                        <Settings className="w-3 h-3" />
+                        <span>{language === 'id' ? 'Atur QR' : 'Setup QR'}</span>
+                      </button>
+                    </div>
+                  )}
 
                   {/* Cash input helpers if cash selected */}
                   {paymentMethod === 'tunai' && (
@@ -1202,6 +1232,15 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
           setIsQrisOpen(false);
           executeFinalizeOrder();
         }}
+        isDeveloperTopup={false}
+        outletBranch={activeBranch}
+      />
+
+      {/* Outlet QRIS Configuration Modal */}
+      <OutletQrisConfigModal
+        isOpen={isOutletConfigOpen}
+        onClose={() => setIsOutletConfigOpen(false)}
+        branchName={activeBranch.name}
       />
 
       {/* International Card Modal */}

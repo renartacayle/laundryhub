@@ -358,13 +358,14 @@ export const CoinTopupModal: React.FC<CoinTopupModalProps> = ({ isOpen, onClose 
         </div>
       </div>
 
-      {/* Embedded Real QRIS Modal */}
+      {/* Embedded Real Developer QRIS Modal */}
       <QrisModal
         isOpen={isQrisOpen}
         onClose={() => setIsQrisOpen(false)}
         amount={currentPkg.price}
         invoiceNo={`TOPUP-TOKEN-${Date.now().toString().slice(-6)}`}
         onPaymentSuccess={handleQrisPaymentSuccess}
+        isDeveloperTopup={true}
       />
 
       {/* Embedded International Card Modal */}
