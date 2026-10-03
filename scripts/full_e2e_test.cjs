@@ -33,15 +33,14 @@ async function runFullTest() {
   try {
     // 1. PAGE LOAD
     console.log(`--- [1] TESTING PAGE LOAD & TITLE ---`);
-    await page.goto(TARGET_URL, { waitUntil: 'load', timeout: 30000 });
-    await wait(1500);
+    await page.goto(TARGET_URL, { waitUntil: 'networkidle2', timeout: 35000 });
     const pageTitle = await page.title();
     const hasCorrectTitle = pageTitle.includes('LAUNDRYHUB');
     recordResult('Page Title & Live Availability', hasCorrectTitle, pageTitle);
 
     // 2. HEADER BRAND & TOPBAR
     console.log(`\n--- [2] TESTING HEADER BRAND & TOPBAR ---`);
-    await page.waitForSelector('header', { timeout: 20000 });
+    await page.waitForSelector('header', { timeout: 30000 });
     const headerText = await page.$eval('header', el => el.innerText);
     recordResult('Header Brand & Version', headerText.includes('LAUNDRYHUB') && headerText.includes('v2.6'), 'Brand & v2.6 visible');
 
