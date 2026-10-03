@@ -363,10 +363,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       actorName: currentUser.name,
       actorRole: currentRole,
       action: 'TOPUP_COIN',
-      details: `Top up saldo token +${amount.toLocaleString()} koin`,
+      details: `Top up saldo token +${amount.toLocaleString()} koin via QRIS SpeedCash (RENARTASHOP)`,
       branchId: currentBranchId,
     };
     setAuditLogs((prev) => [newLog, ...prev]);
+
+    const notif: NotificationItem = {
+      id: `notif-${Date.now()}`,
+      title: '💰 Top Up Koin Berhasil Masuk',
+      message: `Dana QRIS masuk ke SpeedCash (RENARTASHOP NMID ID1025407037114). Kuota +${amount.toLocaleString('id-ID')} token aktif.`,
+      timestamp: 'Baru saja',
+      type: 'payment',
+      read: false,
+    };
+    setNotifications((prev) => [notif, ...prev]);
   };
 
   // Create Standard Order

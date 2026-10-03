@@ -21,6 +21,7 @@ import {
   BarChart3,
   Store,
   Truck,
+  Megaphone,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -63,6 +64,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
             badgeColor: 'bg-rose-500/20 text-rose-300 border-rose-500/40',
           },
           { id: 'owner-staff', label: 'Karyawan & Komisi', icon: <Users className="w-4 h-4" /> },
+          {
+            id: 'owner-marketing',
+            label: 'Pusat Marketing & Cuan',
+            icon: <Megaphone className="w-4 h-4" />,
+            badge: 'HOT 🔥',
+            badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+          },
           { id: 'owner-audit', label: 'Riwayat Audit Log', icon: <FileText className="w-4 h-4" /> },
         ];
       case 'agen':

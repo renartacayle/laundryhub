@@ -35,6 +35,14 @@ import {
   Sparkles,
   QrCode,
   Settings,
+  Megaphone,
+  Copy,
+  Send,
+  Smartphone,
+  Share2,
+  MessageSquare,
+  Check,
+  Zap,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -140,7 +148,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
     t,
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'stats' | 'branches' | 'inventory' | 'staff' | 'audit' | 'dropship' | 'supplies'>(
+  const [activeTab, setActiveTab] = useState<'overview' | 'stats' | 'branches' | 'inventory' | 'staff' | 'audit' | 'dropship' | 'supplies' | 'marketing'>(
     currentSubTab === 'owner-stats'
       ? 'stats'
       : currentSubTab === 'owner-branches'
@@ -155,6 +163,8 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
       ? 'dropship'
       : currentSubTab === 'owner-supplies'
       ? 'supplies'
+      : currentSubTab === 'owner-marketing'
+      ? 'marketing'
       : 'overview'
   );
 
@@ -166,6 +176,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
     else if (currentSubTab === 'owner-audit') setActiveTab('audit');
     else if (currentSubTab === 'owner-dropship') setActiveTab('dropship');
     else if (currentSubTab === 'owner-supplies') setActiveTab('supplies');
+    else if (currentSubTab === 'owner-marketing') setActiveTab('marketing');
     else setActiveTab('overview');
   }, [currentSubTab]);
 
@@ -186,6 +197,80 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
   const [isAddAgentOpen, setIsAddAgentOpen] = useState(false);
   const [isOrderSuppliesOpen, setIsOrderSuppliesOpen] = useState(false);
   const [agentLinkCopied, setAgentLinkCopied] = useState<string | null>(null);
+
+  // Marketing & Monetization Hub States
+  const [targetLaundryName, setTargetLaundryName] = useState('Melati Laundry Tembalang');
+  const [targetLaundryPhone, setTargetLaundryPhone] = useState('081234567890');
+  const [pitchTemplateType, setPitchTemplateType] = useState<'hemat' | 'iot' | 'voucher' | 'hotel'>('hemat');
+  const [copiedPitch, setCopiedPitch] = useState(false);
+  const [socialCopyTab, setSocialCopyTab] = useState<'fb' | 'tiktok' | 'wa'>('fb');
+  const [copiedSocial, setCopiedSocial] = useState(false);
+  const [simulatedAlertSent, setSimulatedAlertSent] = useState(false);
+
+  const getPitchMessage = () => {
+    const cleanName = targetLaundryName.trim() || 'Kak';
+    switch (pitchTemplateType) {
+      case 'hemat':
+        return `Halo Kak di ${cleanName}! Mau nanya, sekarang outletnya masih bayar aplikasi kasir bulanan Rp 200rb - 300rb?\n\nDi LAUNDRYHUB ada sistem baru tanpa biaya bulanan sama sekali, cuma Rp 25 per nota!\n✅ 100% uang laundry langsung masuk ke QRIS/rekening Kakak sendiri.\n✅ Nota otomatis terkirim rapi ke WhatsApp pelanggan (tanpa beli kertas thermal).\n✅ Bisa dipakai di HP, Tablet, & Laptop.\n\nKakak bisa coba GRATIS 50 nota pertama tanpa kartu kredit / bayar apapun.\nBuka link ini: https://laundryhub-rho.vercel.app/\n(Gunakan Kode Promo: RENA50)`;
+
+      case 'iot':
+        return `Halo Bos ${cleanName}! Sering was-was kasir nyuci diam-diam tanpa cetak nota?\n\nDi LAUNDRYHUB ada teknologi IoT Otomatis:\n🔌 Mesin cuci hanya bisa berputar jika kasir sudah cetak nota resmi.\n📱 Nota digital WhatsApp otomatis masuk ke HP pelanggan saat baju selesai dicuci.\n💰 Biaya cuma Rp 25 per nota, tanpa biaya langganan bulanan!\n\nCoba gratis demonya sekarang: https://laundryhub-rho.vercel.app/ (Kode Voucher: RENA50)`;
+
+      case 'voucher':
+        return `Halo rekan pengusaha laundry di ${cleanName}! 🎁\n\nKami dari tim LAUNDRYHUB sedang bagi-bagi voucher 50 NOTA GRATIS untuk pemilik laundry di Semarang dan sekitarnya!\nAplikasi kasir terlengkap tanpa biaya bulanan:\n- Uang pembayaran QRIS 100% langsung ke rekening Anda\n- Nota WhatsApp digital otomatis\n- Multi-cabang & manajemen karyawan\n\nKlaim 50 nota gratis Anda di: https://laundryhub-rho.vercel.app/\nKetik Kode Voucher: RENA50`;
+
+      case 'hotel':
+        return `Halo manajemen ${cleanName}!\nApakah outlet Kakak sering melayani wisatawan asing atau laundry linen hotel/villa?\n\nLAUNDRYHUB sudah dilengkapi:\n🌐 Fitur bilingual (English / Bahasa Indonesia 1-Click)\n💵 Konversi mata uang otomatis USD / IDR\n🛵 Tracking kurir antar-jemput hotel secara real-time\n💰 Bebas biaya bulanan (Cuma Rp 25 per transaksi)\n\nCek aplikasinya langsung: https://laundryhub-rho.vercel.app/ (Kode Promo: RENA50)`;
+    }
+  };
+
+  const getSocialCopyText = () => {
+    switch (socialCopyTab) {
+      case 'fb':
+        return `Halo rekan-rekan pengusaha laundry se-Indonesia 👋
+
+Siapa disini yang tiap bulan pusing bayar biaya langganan software kasir Rp 250.000 - Rp 350.000 padahal pas laundry lagi sepi? 😭
+
+Sekarang ada solusinya: LAUNDRYHUB (https://laundryhub-rho.vercel.app/)!
+✨ Sistem token kuota Rp 25 - Rp 50 per nota (Beli sesuai pemakaian, tanpa biaya bulanan).
+✨ Uang pembayaran QRIS pelanggan 100% langsung masuk ke rekening bank / QRIS laundry Anda sendiri.
+✨ Nota WhatsApp digital otomatis terkirim ke HP pelanggan (hemat jutaan rupiah kertas thermal).
+✨ Fitur IoT pengunci mesin cuci pencegah kasir curang.
+✨ Support multi-bahasa & mata uang USD untuk laundry turis/hotel.
+
+Cobain GRATIS 50 nota pertama sekarang dengan kode promo: RENA50
+Langsung buka lewat browser HP/Laptop: https://laundryhub-rho.vercel.app/`;
+
+      case 'tiktok':
+        return `POV: Kamu sadar bayar software kasir laundry 300rb tiap bulan itu buang-buang modal 💸😭
+
+Kenalin LAUNDRYHUB, aplikasi kasir laundry modern NO. 1 di Indonesia yang GAK NARIK BIAYA BULANAN sama sekali! 
+
+Bayarnya cuma Rp 25 per nota cucian!
+👉 100% uang cucian langsung masuk ke rekening kamu
+👉 Nota otomatis masuk WA pelanggan
+👉 Ada pengontrol mesin IoT biar kasir gak nakal
+👉 Bisa rekrut warung tetangga jadi dropship cabang
+
+Cek link di bio atau kunjungi: https://laundryhub-rho.vercel.app/
+(Masukkan kode promo RENA50 buat dapetin 50 nota gratis!) #bisnislaundry #laundrykiloan #laundrysepatu #tipsbisnis`;
+
+      case 'wa':
+        return `*KABAR GEMBIRA UNTUK PEMILIK OUTLET LAUNDRY!* 📢👕
+
+Stop buang-buang uang ratusan ribu per bulan untuk biaya sewa aplikasi kasir!
+Kini hadir *LAUNDRYHUB* — Aplikasi kasir laundry berbasis kuota token:
+🔹 Biaya super murah: Cuma *Rp 25/nota* (Tanpa langganan bulanan!)
+🔹 Pembayaran QRIS pelanggan *100% langsung cair ke rekening Anda*
+🔹 Nota digital terkirim instan ke WhatsApp pelanggan
+🔹 Tracking proses cuci live untuk pelanggan
+
+Klaim *50 NOTA GRATIS* Anda sekarang di:
+👉 https://laundryhub-rho.vercel.app/
+Gunakan Kode Promo: *RENA50*
+Konsultasi Admin WA: 081228263200`;
+    }
+  };
 
   const [newAgentForm, setNewAgentForm] = useState({
     name: '',
@@ -426,6 +511,20 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
           >
             <Truck className="w-4 h-4 text-cyan-400" />
             <span>Pasokan Dropship B2B</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('marketing')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+              activeTab === 'marketing'
+                ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-glow-emerald'
+                : 'bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 border border-emerald-500/30'
+            }`}
+          >
+            <Megaphone className="w-4 h-4 text-emerald-400" />
+            <span>Pusat Marketing & Cuan</span>
+            <span className="px-1.5 py-0.5 rounded-full text-[9px] bg-emerald-500 text-slate-950 font-black">
+              HOT
+            </span>
           </button>
           <button
             onClick={() => setActiveTab('audit')}
@@ -1995,6 +2094,370 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 8. PUSAT MARKETING & MONETISASI TAB */}
+      {activeTab === 'marketing' && (
+        <div className="space-y-6 animate-fade-in">
+          {/* Header Banner */}
+          <div className="p-6 rounded-3xl glass-card border border-emerald-500/40 bg-gradient-to-r from-emerald-950/60 via-slate-900 to-cyan-950/60 flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-glow-emerald">
+            <div>
+              <div className="flex items-center gap-3">
+                <span className="p-2.5 rounded-2xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  <Megaphone className="w-6 h-6 animate-pulse" />
+                </span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-extrabold text-white">
+                      Pusat Pemasaran Otomatis & Mesin Monetisasi
+                    </h3>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-500 text-slate-950">
+                      AUTOPILOT
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-300 mt-1 max-w-2xl">
+                    Strategi digital tanpa keliling fisik. Dapatkan pasif income dari penjualan kuota token (Rp 25 - Rp 50/nota)
+                    yang 100% langsung masuk ke QRIS SpeedCash Anda (<strong>RENARTASHOP</strong>, NMID <strong>ID1025407037114</strong>).
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              <button
+                onClick={() => {
+                  setSimulatedAlertSent(true);
+                  const msg = encodeURIComponent(
+                    '🔔 [LAUNDRYHUB ALERT] Pembayaran Top-up Token Masuk!\n\nOutlet: Laundry Berkah Tembalang\nPaket: Sultan (2.000 Nota)\nNominal: Rp 50.000\nNMID: ID1025407037114 (RENARTASHOP)\nDana telah masuk ke rekening SpeedCash Anda.'
+                  );
+                  window.open(`https://wa.me/6281228263200?text=${msg}`, '_blank');
+                  setTimeout(() => setSimulatedAlertSent(false), 3000);
+                }}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow-glow-emerald transition-all active:scale-95"
+              >
+                <Smartphone className="w-4 h-4" />
+                <span>{simulatedAlertSent ? '✓ Alert Terkirim ke WA' : 'Test Notifikasi WA (081228263200)'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Grid Section: Pitch Generator & QRIS Gateway */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Left 7 Cols: Cold Outreach Generator */}
+            <div className="lg:col-span-7 space-y-4">
+              <div className="p-5 rounded-3xl glass-card border border-slate-800 bg-slate-900/60 space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="w-4 h-4 text-emerald-400" />
+                    <h4 className="text-sm font-bold text-white">Generator Cold Outreach WhatsApp (1-Click)</h4>
+                  </div>
+                  <span className="text-[10px] text-slate-400 font-mono">Hands-off Acquisition</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <label className="block text-slate-400 mb-1 font-semibold">Nama Laundry Target (dari Google Maps):</label>
+                    <input
+                      type="text"
+                      value={targetLaundryName}
+                      onChange={(e) => setTargetLaundryName(e.target.value)}
+                      placeholder="Contoh: Laundry Berkah Tembalang"
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 mb-1 font-semibold">Nomor WhatsApp Target:</label>
+                    <input
+                      type="tel"
+                      value={targetLaundryPhone}
+                      onChange={(e) => setTargetLaundryPhone(e.target.value)}
+                      placeholder="0812xxxxxxxx"
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-mono"
+                    />
+                  </div>
+                </div>
+
+                {/* Pitch Template Pills */}
+                <div>
+                  <label className="block text-slate-400 mb-1.5 text-xs font-semibold">Pilih Angle Penawaran:</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPitchTemplateType('hemat')}
+                      className={`p-2 rounded-xl text-[11px] font-bold border transition-all ${
+                        pitchTemplateType === 'hemat'
+                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50 shadow-glow-emerald'
+                          : 'bg-slate-950/60 text-slate-400 border-slate-800 hover:text-white'
+                      }`}
+                    >
+                      💰 Hemat Biaya
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPitchTemplateType('iot')}
+                      className={`p-2 rounded-xl text-[11px] font-bold border transition-all ${
+                        pitchTemplateType === 'iot'
+                          ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/50 shadow-glow-cyan'
+                          : 'bg-slate-950/60 text-slate-400 border-slate-800 hover:text-white'
+                      }`}
+                    >
+                      🔌 Anti-Curang IoT
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPitchTemplateType('voucher')}
+                      className={`p-2 rounded-xl text-[11px] font-bold border transition-all ${
+                        pitchTemplateType === 'voucher'
+                          ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-glow-amber'
+                          : 'bg-slate-950/60 text-slate-400 border-slate-800 hover:text-white'
+                      }`}
+                    >
+                      🎁 Free Trial 50
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPitchTemplateType('hotel')}
+                      className={`p-2 rounded-xl text-[11px] font-bold border transition-all ${
+                        pitchTemplateType === 'hotel'
+                          ? 'bg-purple-500/20 text-purple-300 border-purple-500/50 shadow-glow-purple'
+                          : 'bg-slate-950/60 text-slate-400 border-slate-800 hover:text-white'
+                      }`}
+                    >
+                      🌐 Hotel / USD
+                    </button>
+                  </div>
+                </div>
+
+                {/* Message Preview Box */}
+                <div className="relative p-3.5 rounded-2xl bg-slate-950 border border-slate-800">
+                  <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center justify-between">
+                    <span>Pratinjau Pesan Siap Kirim</span>
+                    <span className="text-emerald-400 font-mono">Format WhatsApp Otomatis</span>
+                  </div>
+                  <pre className="text-xs text-slate-200 font-sans whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">
+                    {getPitchMessage()}
+                  </pre>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(getPitchMessage());
+                      setCopiedPitch(true);
+                      setTimeout(() => setCopiedPitch(false), 2000);
+                    }}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-all border border-slate-700"
+                  >
+                    {copiedPitch ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedPitch ? 'Tersalin ke Clipboard!' : 'Salin Pesan'}</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      const cleanPhone = targetLaundryPhone.replace(/[^0-9]/g, '');
+                      const formattedPhone = cleanPhone.startsWith('0') ? '62' + cleanPhone.substring(1) : cleanPhone;
+                      const encoded = encodeURIComponent(getPitchMessage());
+                      window.open(`https://wa.me/${formattedPhone}?text=${encoded}`, '_blank');
+                    }}
+                    className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 text-xs font-black transition-all shadow-glow-emerald"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>Kirim WhatsApp Sekarang (1-Click)</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Social Media Copy Pack */}
+              <div className="p-5 rounded-3xl glass-card border border-slate-800 bg-slate-900/60 space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <Share2 className="w-4 h-4 text-cyan-400" />
+                    <h4 className="text-sm font-bold text-white">Paket Materi Promosi Medsos (Tinggal Copas)</h4>
+                  </div>
+                  <span className="text-[10px] text-cyan-400 font-mono">Viral Growth Pack</span>
+                </div>
+
+                <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
+                  <button
+                    onClick={() => setSocialCopyTab('fb')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                      socialCopyTab === 'fb'
+                        ? 'bg-blue-600 text-white shadow-md'
+                        : 'bg-slate-950 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    📘 Grup FB Komunitas Laundry
+                  </button>
+                  <button
+                    onClick={() => setSocialCopyTab('tiktok')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                      socialCopyTab === 'tiktok'
+                        ? 'bg-rose-600 text-white shadow-md'
+                        : 'bg-slate-950 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    🎵 Naskah TikTok / Reels
+                  </button>
+                  <button
+                    onClick={() => setSocialCopyTab('wa')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                      socialCopyTab === 'wa'
+                        ? 'bg-emerald-600 text-white shadow-md'
+                        : 'bg-slate-950 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    🟢 Broadcast WhatsApp
+                  </button>
+                </div>
+
+                <div className="relative p-3.5 rounded-2xl bg-slate-950 border border-slate-800">
+                  <pre className="text-xs text-slate-300 font-sans whitespace-pre-wrap leading-relaxed max-h-40 overflow-y-auto">
+                    {getSocialCopyText()}
+                  </pre>
+                </div>
+
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(getSocialCopyText());
+                      setCopiedSocial(true);
+                      setTimeout(() => setCopiedSocial(false), 2000);
+                    }}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-all border border-slate-700"
+                  >
+                    {copiedSocial ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedSocial ? 'Tersalin!' : 'Salin Materi Medsos'}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Right 5 Cols: Developer Gateway & Passive Income Machine */}
+            <div className="lg:col-span-5 space-y-4">
+              {/* QRIS Developer Box */}
+              <div className="p-5 rounded-3xl glass-card border border-amber-500/40 bg-gradient-to-b from-amber-950/20 to-slate-900/60 space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <QrCode className="w-4 h-4 text-amber-400" />
+                    <h4 className="text-sm font-bold text-white">Gateway Payout Developer (SpeedCash)</h4>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                    LIVE REVENUE
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-950/80 border border-slate-800">
+                  <img
+                    src="/qris_crop.png"
+                    alt="QRIS SpeedCash"
+                    className="w-16 h-16 rounded-xl object-contain bg-white p-1 border border-slate-700"
+                  />
+                  <div className="text-xs space-y-0.5">
+                    <div className="font-extrabold text-white text-sm">RENARTASHOP</div>
+                    <div className="text-slate-400 text-[11px]">Kota: SEMANGAT / SEMARANG</div>
+                    <div className="text-[10px] font-mono text-cyan-300">NMID: ID1025407037114</div>
+                    <div className="text-[10px] text-emerald-400 font-semibold">✓ 100% Top-up masuk langsung</div>
+                  </div>
+                </div>
+
+                {/* Package Price Breakdown */}
+                <div className="space-y-1.5 text-xs">
+                  <div className="text-[11px] font-bold text-slate-400">Katalog Paket Top-up Yang Dijual:</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800">
+                      <div className="text-slate-400 text-[10px]">Starter (200 Nota)</div>
+                      <div className="font-bold text-white">Rp 10.000</div>
+                      <div className="text-[9px] text-cyan-400">Margin 100% Bersih</div>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800">
+                      <div className="text-slate-400 text-[10px]">Bisnis (500 Nota)</div>
+                      <div className="font-bold text-white">Rp 20.000</div>
+                      <div className="text-[9px] text-cyan-400">Margin 100% Bersih</div>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800">
+                      <div className="text-slate-400 text-[10px]">Juragan (1.000 Nota)</div>
+                      <div className="font-bold text-white">Rp 30.000</div>
+                      <div className="text-[9px] text-cyan-400">Margin 100% Bersih</div>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/40">
+                      <div className="text-emerald-300 text-[10px] font-bold">Sultan (2.000 Nota) 🔥</div>
+                      <div className="font-black text-white">Rp 50.000</div>
+                      <div className="text-[9px] text-emerald-400 font-bold">Paling Laris!</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Simulated Recent Inflows */}
+                <div className="space-y-2 pt-2 border-t border-slate-800 text-xs">
+                  <div className="text-[11px] font-bold text-slate-400 flex items-center justify-between">
+                    <span>Aktivitas Pembayaran Masuk:</span>
+                    <span className="text-[10px] text-emerald-400 font-mono">Live Stream</span>
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="p-2 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between">
+                      <div>
+                        <div className="font-bold text-white text-[11px]">Laundry Berkah Tembalang</div>
+                        <div className="text-[10px] text-slate-400">Beli Paket Sultan (2.000 Nota)</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-mono font-bold text-emerald-400">+Rp 50.000</div>
+                        <div className="text-[9px] text-slate-500">SpeedCash QRIS</div>
+                      </div>
+                    </div>
+
+                    <div className="p-2 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between">
+                      <div>
+                        <div className="font-bold text-white text-[11px]">Klin Fresh Laundry</div>
+                        <div className="text-[10px] text-slate-400">Beli Paket Juragan (1.000 Nota)</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-mono font-bold text-emerald-400">+Rp 30.000</div>
+                        <div className="text-[9px] text-slate-500">SpeedCash QRIS</div>
+                      </div>
+                    </div>
+
+                    <div className="p-2 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between">
+                      <div>
+                        <div className="font-bold text-white text-[11px]">Mahasiswa Express Laundry</div>
+                        <div className="text-[10px] text-slate-400">Klaim Promo RENA50 (Free Trial)</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-mono font-bold text-cyan-400">+50 Nota</div>
+                        <div className="text-[9px] text-slate-500">Lead Baru</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 5-Step Playbook Summary */}
+              <div className="p-5 rounded-3xl glass-card border border-slate-800 bg-slate-900/60 space-y-3">
+                <h4 className="text-xs font-bold text-white flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-amber-400" />
+                  Cara Kerja Cuan Autopilot (Tanpa Modal):
+                </h4>
+                <ol className="space-y-2 text-[11px] text-slate-300 list-decimal list-inside leading-relaxed">
+                  <li>
+                    <strong className="text-white">Buka Google Maps:</strong> Ketik &ldquo;Laundry Semarang&rdquo; atau daerah Anda. Ambil 10-20 nomor WA outlet.
+                  </li>
+                  <li>
+                    <strong className="text-white">Generate Pitch:</strong> Masukkan nomor ke tool WhatsApp di samping, klik tombol Kirim.
+                  </li>
+                  <li>
+                    <strong className="text-white">Lead Magnet 50 Nota:</strong> Mereka coba gratis pakai kode <code className="text-emerald-300 font-mono">RENA50</code> tanpa resiko.
+                  </li>
+                  <li>
+                    <strong className="text-white">Keterikatan Operasional:</strong> Dalam 2-3 hari nota gratis habis dan data cucian sudah ada di dalam sistem.
+                  </li>
+                  <li>
+                    <strong className="text-white">Pasif Income Mengalir:</strong> Mereka beli token Rp 30.000 - Rp 50.000 langsung ke QRIS SpeedCash Anda berulang kali!
+                  </li>
+                </ol>
               </div>
             </div>
           </div>

@@ -16,9 +16,11 @@ import {
   X,
   Globe,
   DollarSign,
+  Sparkles,
 } from 'lucide-react';
 import { CoinTopupModal } from './CoinTopupModal';
 import { IotMachineControlModal } from './IotMachineControlModal';
+import { LandingPageModal } from './LandingPageModal';
 
 export const Navbar: React.FC = () => {
   const {
@@ -46,6 +48,7 @@ export const Navbar: React.FC = () => {
   const [isIotModalOpen, setIsIotModalOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isBranchMenuOpen, setIsBranchMenuOpen] = useState(false);
+  const [isLandingOpen, setIsLandingOpen] = useState(false);
 
   const activeBranch = branches.find((b) => b.id === currentBranchId) || branches[0];
   const runningMachinesCount = machines.filter((m) => m.status === 'running').length;
@@ -142,6 +145,17 @@ export const Navbar: React.FC = () => {
               {isOnline ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
               <span>{isOnline ? 'Cloud Sync Online' : 'Offline Cache'}</span>
             </div>
+
+            {/* Showcase & Promo Button */}
+            <button
+              onClick={() => setIsLandingOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-cyan-500/20 border border-emerald-500/40 hover:border-emerald-400 text-xs font-bold text-emerald-300 transition-all shadow-glow-emerald hover:scale-105"
+              title="Lihat Keunggulan & Promo Rp 25/Nota"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+              <span className="hidden sm:inline">Promo Rp 25</span>
+              <span className="sm:hidden">Rp 25</span>
+            </button>
 
             {/* IoT Machine Trigger Button */}
             <button
@@ -302,6 +316,7 @@ export const Navbar: React.FC = () => {
       {/* Modals */}
       <CoinTopupModal isOpen={isCoinModalOpen} onClose={() => setIsCoinModalOpen(false)} />
       <IotMachineControlModal isOpen={isIotModalOpen} onClose={() => setIsIotModalOpen(false)} />
+      <LandingPageModal isOpen={isLandingOpen} onClose={() => setIsLandingOpen(false)} />
     </>
   );
 };
