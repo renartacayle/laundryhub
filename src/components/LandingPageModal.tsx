@@ -17,6 +17,7 @@ import {
   Gift,
   Coins,
   Cpu,
+  Download,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
@@ -118,6 +119,16 @@ export const LandingPageModal: React.FC<LandingPageModalProps> = ({ isOpen, onCl
               </button>
 
               <a
+                href="/laundryhub.apk"
+                download="laundryhub.apk"
+                className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 hover:from-cyan-400 hover:to-blue-400 text-white font-extrabold text-sm transition-all shadow-glow-cyan active:scale-95"
+              >
+                <Smartphone className="w-4 h-4" />
+                <span>Unduh APK Android (4.0 MB)</span>
+                <Download className="w-4 h-4" />
+              </a>
+
+              <a
                 href="https://wa.me/6281228263200?text=Halo%20Admin%20LaundryHub%2C%20saya%20tertarik%20menggunakan%20aplikasi%20kasir%20LaundryHub%20untuk%20outlet%20laundry%20saya"
                 target="_blank"
                 rel="noreferrer"
@@ -127,6 +138,41 @@ export const LandingPageModal: React.FC<LandingPageModalProps> = ({ isOpen, onCl
                 <span>Konsultasi WA: 081228263200</span>
               </a>
             </div>
+          </div>
+
+          {/* Native Android APK Direct Download Card */}
+          <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-blue-950/70 via-slate-900 to-cyan-950/70 border border-cyan-500/40 shadow-glow-cyan flex flex-col md:flex-row items-center justify-between gap-5">
+            <div className="flex items-start gap-4">
+              <div className="p-3 rounded-2xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 flex-shrink-0">
+                <Smartphone className="w-7 h-7" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-base sm:text-lg font-bold text-white">
+                    Aplikasi Android Kasir Resmi (.APK)
+                  </h3>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    GRATIS & NATIVE
+                  </span>
+                </div>
+                <p className="text-xs text-slate-300 mt-1 max-w-xl">
+                  Pasang langsung di HP atau tablet kasir Android tanpa perlu Play Store. Lebih cepat, hemat kuota, mendukung Printer Thermal Bluetooth 58mm/80mm, scan QR kamera, dan tetap sinkron offline!
+                </p>
+                <div className="flex flex-wrap gap-3 mt-2.5 text-[11px] text-cyan-300 font-medium">
+                  <span className="flex items-center gap-1">✓ Ringan Cuma 4.0 MB</span>
+                  <span className="flex items-center gap-1">✓ Android 5.1 s/d Android 16 Ready</span>
+                  <span className="flex items-center gap-1">✓ Bebas Biaya Langganan</span>
+                </div>
+              </div>
+            </div>
+            <a
+              href="/laundryhub.apk"
+              download="laundryhub.apk"
+              className="w-full md:w-auto flex-shrink-0 flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500 hover:opacity-95 text-slate-950 font-black text-sm transition-all shadow-xl active:scale-95 cursor-pointer"
+            >
+              <Download className="w-4 h-4" />
+              <span>Download APK (4 MB)</span>
+            </a>
           </div>
 
           {/* Interactive ROI Calculator */}

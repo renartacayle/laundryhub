@@ -18,6 +18,8 @@ import {
   DollarSign,
   Sparkles,
   Search,
+  Smartphone,
+  Download,
 } from 'lucide-react';
 import { CoinTopupModal } from './CoinTopupModal';
 import { IotMachineControlModal } from './IotMachineControlModal';
@@ -193,6 +195,18 @@ export const Navbar: React.FC = () => {
               <span className="hidden sm:inline">Promo Rp 25</span>
               <span className="sm:hidden">Rp 25</span>
             </button>
+
+            {/* Android APK Direct Download Button */}
+            <a
+              href="/laundryhub.apk"
+              download="laundryhub.apk"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/40 text-xs font-bold text-cyan-300 transition-all cursor-pointer shadow-sm hover:scale-105"
+              title="Unduh Aplikasi Android Resmi (APK 4 MB)"
+            >
+              <Smartphone className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="hidden sm:inline">Unduh APK</span>
+              <span className="sm:hidden">APK</span>
+            </a>
 
             {/* IoT Machine Trigger Button */}
             <button
