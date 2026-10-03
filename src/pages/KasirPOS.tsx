@@ -55,6 +55,7 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
     updateOrderStatus,
     addCustomer,
     topupCustomerDeposit,
+    tokenCoins,
   } = useApp();
 
   const [activeSubView, setActiveSubView] = useState<'pos' | 'orders' | 'customers'>(
@@ -225,6 +226,14 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
 
     if (cartItems.length === 0) {
       alert('Keranjang masih kosong! Silakan pilih layanan terlebih dahulu.');
+      return;
+    }
+
+    // Token quota check (Fee platform Rp 100 per nota)
+    if (tokenCoins <= 0) {
+      alert(
+        'PERINGATAN KUOTA TOKEN NOTA HABIS (0 Koin):\n\nSistem membutuhkan 1 Token Koin per penerbitan nota transaksi (Fee platform Rp 100/nota).\nSilakan lakukan Top Up Token via QRIS di menu Owner untuk menerbitkan nota baru.'
+      );
       return;
     }
 

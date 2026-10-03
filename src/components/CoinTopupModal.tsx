@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import confetti from 'canvas-confetti';
-import { Coins, X, CheckCircle, Zap, Shield, Sparkles } from 'lucide-react';
+import { Coins, X, CheckCircle, Zap, Shield, Sparkles, QrCode } from 'lucide-react';
+import { QrisModal } from './QrisModal';
 
 interface CoinTopupModalProps {
   isOpen: boolean;
@@ -12,29 +13,33 @@ export const CoinTopupModal: React.FC<CoinTopupModalProps> = ({ isOpen, onClose 
   const { tokenCoins, topupCoins } = useApp();
   const [selectedPackage, setSelectedPackage] = useState<number>(1200);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isQrisOpen, setIsQrisOpen] = useState(false);
 
   if (!isOpen) return null;
 
   const packages = [
-    { coins: 500, price: 50000, label: 'Starter Hub', bonus: '0 Bonus', popular: false },
-    { coins: 1200, price: 100000, label: 'Bisnis Ramai', bonus: '+200 Bonus Koin', popular: true },
-    { coins: 3000, price: 200000, label: 'Multi-Outlet Pro', bonus: '+1.000 Bonus Koin', popular: false },
-    { coins: 10000, price: 500000, label: 'Sultan Laundromat', bonus: '+5.000 Bonus Koin', popular: false },
+    { coins: 500, price: 50000, label: 'Starter Hub', bonus: 'Rp 100/nota (0 Bonus)', popular: false },
+    { coins: 1200, price: 100000, label: 'Bisnis Ramai', bonus: 'Rp 83/nota (+200 Bonus Koin)', popular: true },
+    { coins: 3000, price: 200000, label: 'Multi-Outlet Pro', bonus: 'Rp 66/nota (+1.000 Bonus Koin)', popular: false },
+    { coins: 10000, price: 500000, label: 'Sultan Laundromat', bonus: 'Rp 50/nota (+5.000 Bonus Koin)', popular: false },
   ];
 
-  const handleTopup = () => {
-    setIsProcessing(true);
-    const chosen = packages.find((p) => p.coins === selectedPackage) || packages[1];
-    setTimeout(() => {
-      topupCoins(chosen.coins);
-      setIsProcessing(false);
-      confetti({
-        particleCount: 70,
-        spread: 70,
-        origin: { y: 0.6 },
-      });
-      onClose();
-    }, 600);
+  const currentPkg = packages.find((p) => p.coins === selectedPackage) || packages[1];
+
+  const handleOpenQris = () => {
+    setIsQrisOpen(true);
+  };
+
+  const handleQrisPaymentSuccess = () => {
+    topupCoins(currentPkg.coins);
+    setIsQrisOpen(false);
+    confetti({
+      particleCount: 80,
+      spread: 70,
+      origin: { y: 0.6 },
+    });
+    alert(`Top-up Berhasil! Saldo bertambah ${currentPkg.coins.toLocaleString('id-ID')} koin token nota.`);
+    onClose();
   };
 
   return (
@@ -112,23 +117,28 @@ export const CoinTopupModal: React.FC<CoinTopupModalProps> = ({ isOpen, onClose 
         </div>
 
         {/* Action Button */}
-        <div className="p-5 bg-slate-900 border-t border-slate-800">
+        <div className="p-5 bg-slate-900 border-t border-slate-800 space-y-2">
           <button
-            onClick={handleTopup}
-            disabled={isProcessing}
-            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs transition-all shadow-glow-amber disabled:opacity-50"
+            onClick={handleOpenQris}
+            className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs transition-all shadow-glow-amber"
           >
-            {isProcessing ? (
-              <span>Mengisi ulang saldo...</span>
-            ) : (
-              <>
-                <Zap className="w-4 h-4" />
-                <span>Beli Sekarang via Instant Virtual Account / QRIS</span>
-              </>
-            )}
+            <QrCode className="w-4 h-4" />
+            <span>Bayar Rp {currentPkg.price.toLocaleString('id-ID')} via QRIS (Dapatkan {currentPkg.coins.toLocaleString('id-ID')} Koin)</span>
           </button>
+          <p className="text-[10px] text-center text-slate-500">
+            Pembayaran langsung diverifikasi realtime ke QRIS SPEEDCASH RENARTASHOP
+          </p>
         </div>
       </div>
+
+      {/* Embedded Real QRIS Modal */}
+      <QrisModal
+        isOpen={isQrisOpen}
+        onClose={() => setIsQrisOpen(false)}
+        amount={currentPkg.price}
+        invoiceNo={`TOPUP-TOKEN-${Date.now().toString().slice(-6)}`}
+        onPaymentSuccess={handleQrisPaymentSuccess}
+      />
     </div>
   );
 };
