@@ -654,6 +654,10 @@ export const INITIAL_ORDERS: Order[] = [
     paidAmount: 73000,
     changeAmount: 0,
     isExpress: true,
+    hasClaimedGamification: true,
+    gamificationRewardClaimed: 'Voucher Rp 5.000',
+    gamificationClaimedAt: '2026-10-03 14:42:15',
+    appliedPromoReward: 'Voucher Rp 5.000',
   },
   {
     id: 'ord-003',
@@ -1946,6 +1950,10 @@ export const DEFAULT_GAMIFICATION_SETTINGS: GamificationSettings = {
   gameType: 'both',
   triggerEvent: 'after_payment',
   minSpendAmount: 25000,
+  oneSpinPerOrder: true, // 1 Nota = 1x Spin
+  hasPeriodLimit: true, // Batas Periode Promo Tertentu
+  startDate: '2026-10-01',
+  endDate: '2026-10-31',
   prizes: [
     {
       id: 'prz-1',

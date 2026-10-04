@@ -76,6 +76,7 @@ import { CoinTopupModal } from '../components/CoinTopupModal';
 import { OutletQrisConfigModal } from '../components/OutletQrisConfigModal';
 import { getOutletQrisConfig, OutletQrisConfig } from '../utils/outletQris';
 import { formatCurrency } from '../utils/currency';
+import { checkGamificationPeriod, formatDateIndo } from '../utils/gamification';
 
 interface OwnerDashboardProps {
   currentSubTab?: string;
@@ -3792,6 +3793,167 @@ Konsultasi Admin WA: 081228263200`;
                   <p className="text-[10px] text-slate-400">
                     Pelanggan dapat memilih mode game favoritnya jika diset &lsquo;Dua-duanya&rsquo;.
                   </p>
+                </div>
+              </div>
+
+              {/* 4. ATURAN LIMITASI NOTA & BATAS PERIODE PROMO TERTENTU */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-slate-950/80 via-slate-900/90 to-amber-950/20 border border-amber-500/30 space-y-4">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="p-1.5 rounded-lg bg-amber-500/20 text-amber-400">
+                      <CalendarDays className="w-4 h-4" />
+                    </span>
+                    <div>
+                      <h5 className="text-xs sm:text-sm font-extrabold text-white">
+                        Aturan Limitasi 1 Nota & Batas Periode Promo
+                      </h5>
+                      <p className="text-[11px] text-slate-400">
+                        Kontrol batas 1x spin per transaksi nota dan rentang tanggal berlakunya event promo.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Realtime Period Status Badge */}
+                  {(() => {
+                    const periodStatus = checkGamificationPeriod(localGamification);
+                    return (
+                      <span className={`px-3 py-1 rounded-full text-xs font-black border flex items-center gap-1.5 ${periodStatus.badgeColor}`}>
+                        <span className={`w-2 h-2 rounded-full ${periodStatus.isActive ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'}`} />
+                        <span>{periodStatus.label}</span>
+                      </span>
+                    );
+                  })()}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                  {/* Toggle 1 Nota = 1x Spin */}
+                  <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-200">
+                        Batas 1 Nota = Maksimal 1x Spin
+                      </label>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={localGamification.oneSpinPerOrder}
+                          onChange={(e) =>
+                            setLocalGamification({
+                              ...localGamification,
+                              oneSpinPerOrder: e.target.checked,
+                            })
+                          }
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+                      </label>
+                    </div>
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      {localGamification.oneSpinPerOrder ? (
+                        <span className="text-amber-300 font-semibold">
+                          ✓ Aktif (Ketat): Setiap nomor nota hanya berhak memutar 1 kali. Mencegah kecurangan atau perputaran ulang.
+                        </span>
+                      ) : (
+                        <span className="text-slate-400">
+                          Nonaktif: Pelanggan/kasir dapat memutar roda berulang kali pada nomor nota yang sama.
+                        </span>
+                      )}
+                    </p>
+                  </div>
+
+                  {/* Toggle Periode Promo Tertentu */}
+                  <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-200">
+                        Batas Periode Promo Tertentu (Tanggal)
+                      </label>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={localGamification.hasPeriodLimit}
+                          onChange={(e) =>
+                            setLocalGamification({
+                              ...localGamification,
+                              hasPeriodLimit: e.target.checked,
+                            })
+                          }
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                      </label>
+                    </div>
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      {localGamification.hasPeriodLimit ? (
+                        <span className="text-emerald-300 font-semibold">
+                          ✓ Terjadwal: Lucky Spin HANYA dapat dimainkan pada rentang tanggal mulai s.d tanggal selesai di bawah.
+                        </span>
+                      ) : (
+                        <span className="text-slate-400">
+                          Bebas Tanggal: Promo aktif setiap saat selama status gamifikasi utama diaktifkan.
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Date Inputs if hasPeriodLimit is True */}
+                {localGamification.hasPeriodLimit && (
+                  <div className="p-4 rounded-xl bg-slate-900/90 border border-amber-500/30 grid grid-cols-1 sm:grid-cols-2 gap-4 animate-in fade-in">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                        Tanggal Mulai Promo (Start Date)
+                      </label>
+                      <input
+                        type="date"
+                        value={localGamification.startDate || ''}
+                        onChange={(e) =>
+                          setLocalGamification({
+                            ...localGamification,
+                            startDate: e.target.value,
+                          })
+                        }
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500 font-mono font-bold"
+                      />
+                      <span className="text-[10px] text-slate-400 mt-1 block">
+                        Format: {formatDateIndo(localGamification.startDate || '')}
+                      </span>
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                        Tanggal Berakhir Promo (End Date)
+                      </label>
+                      <input
+                        type="date"
+                        value={localGamification.endDate || ''}
+                        onChange={(e) =>
+                          setLocalGamification({
+                            ...localGamification,
+                            endDate: e.target.value,
+                          })
+                        }
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500 font-mono font-bold"
+                      />
+                      <span className="text-[10px] text-slate-400 mt-1 block">
+                        Format: {formatDateIndo(localGamification.endDate || '')}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Live Statistics & Quota Info */}
+                <div className="p-3 bg-slate-950/60 rounded-xl border border-slate-800/80 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-300">
+                  <div className="flex items-center gap-2">
+                    <Award className="w-4 h-4 text-amber-400" />
+                    <span>
+                      Total Nota Terklaim Spin:{' '}
+                      <strong className="text-white font-mono">
+                        {orders.filter((o) => o.hasClaimedGamification).length} dari {orders.length} nota
+                      </strong>
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-slate-400">
+                    Sistem otomatis mengunci nota setelah roda berhenti berputar.
+                  </div>
                 </div>
               </div>
 

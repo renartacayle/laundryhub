@@ -47,6 +47,7 @@ import { InternationalCardModal } from '../components/InternationalCardModal';
 import { OutletQrisConfigModal } from '../components/OutletQrisConfigModal';
 import { ClothesDetailModal } from '../components/ClothesDetailModal';
 import { formatCurrency } from '../utils/currency';
+import { checkGamificationPeriod } from '../utils/gamification';
 import { dbService } from '../services/api';
 
 interface KasirPOSProps {
@@ -343,13 +344,16 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
 
       // Trigger owner-configured gamification promo reward if eligible
       if (gamificationSettings.isEnabled && gamificationSettings.triggerEvent === 'after_payment') {
-        setTimeout(() => {
-          triggerGamification({
-            orderId: newOrder.id,
-            customerName: newOrder.customerName,
-            finalPrice: newOrder.finalPrice,
-          });
-        }, 800);
+        const periodStatus = checkGamificationPeriod(gamificationSettings);
+        if (periodStatus.isActive) {
+          setTimeout(() => {
+            triggerGamification({
+              orderId: newOrder.id,
+              customerName: newOrder.customerName,
+              finalPrice: newOrder.finalPrice,
+            });
+          }, 800);
+        }
       }
     } finally {
       setTimeout(() => setIsSubmittingOrder(false), 800);

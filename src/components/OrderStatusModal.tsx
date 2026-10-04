@@ -318,11 +318,21 @@ export const OrderStatusModal: React.FC<OrderStatusModalProps> = ({
                       finalPrice: currentOrder.finalPrice,
                     })
                   }
-                  className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 text-xs font-black transition flex items-center gap-1.5 shadow-sm"
-                  title="Putar Roda Keberuntungan / Gosok Kartu Hadiah"
+                  className={`px-2.5 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 shadow-sm ${
+                    currentOrder.hasClaimedGamification
+                      ? 'bg-slate-800 text-amber-300 border border-amber-500/40 hover:bg-slate-700'
+                      : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950'
+                  }`}
+                  title={
+                    currentOrder.hasClaimedGamification
+                      ? `Spin sudah diklaim: ${currentOrder.gamificationRewardClaimed || '1x Terpakai'}`
+                      : 'Putar Roda Keberuntungan / Gosok Kartu Hadiah'
+                  }
                 >
                   <span>🎡</span>
-                  <span className="hidden sm:inline">Lucky Spin</span>
+                  <span className="hidden sm:inline">
+                    {currentOrder.hasClaimedGamification ? 'Spin Terklaim' : 'Lucky Spin'}
+                  </span>
                 </button>
               )}
 

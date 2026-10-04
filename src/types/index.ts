@@ -223,6 +223,9 @@ export interface Order {
   aiInspection?: AiGarmentInspection;
   // Gamification promo applied
   appliedPromoReward?: string;
+  hasClaimedGamification?: boolean;
+  gamificationRewardClaimed?: string;
+  gamificationClaimedAt?: string;
   // Digital scale verified
   isScaleVerified?: boolean;
 }
@@ -399,6 +402,12 @@ export interface GamificationSettings {
   triggerEvent: 'after_payment' | 'after_review' | 'min_spend' | 'manual';
   minSpendAmount: number; // e.g. Rp 30.000
   prizes: GamificationPrize[];
+  // Limit 1 Nota = 1x Spin
+  oneSpinPerOrder: boolean; // limit 1 nota 1 kali spin
+  // Periode Promo Tertentu
+  hasPeriodLimit: boolean; // toggle apakah promo dibatasi periode tanggal tertentu
+  startDate?: string; // Format YYYY-MM-DD (e.g. '2026-10-01')
+  endDate?: string; // Format YYYY-MM-DD (e.g. '2026-10-31')
 }
 
 // Digital Scale USB / Bluetooth Reading

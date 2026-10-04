@@ -12,10 +12,15 @@ import {
   DollarSign,
   AlertCircle,
   HelpCircle,
+  Lock,
+  Calendar,
+  ShieldAlert,
+  Check,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { GamificationPrize } from '../types';
 import { soundEngine } from '../utils/audio';
+import { checkGamificationPeriod, checkOrderSpinEligibility, formatDateIndo } from '../utils/gamification';
 
 interface PromoGamificationModalProps {
   isOpen: boolean;
@@ -30,7 +35,18 @@ export const PromoGamificationModal: React.FC<PromoGamificationModalProps> = ({
     gamificationSettings,
     gamificationContext,
     applyGamificationReward,
+    recordOrderSpin,
+    orders,
   } = useApp();
+
+  const targetOrder = gamificationContext?.orderId
+    ? orders.find(
+        (o) => o.id === gamificationContext.orderId || o.invoiceNo === gamificationContext.orderId
+      ) || null
+    : null;
+
+  const periodStatus = checkGamificationPeriod(gamificationSettings);
+  const eligibility = checkOrderSpinEligibility(gamificationSettings, targetOrder);
 
   const [activeTab, setActiveTab] = useState<'wheel' | 'scratch'>('wheel');
   const [isSpinning, setIsSpinning] = useState(false);
@@ -170,7 +186,7 @@ export const PromoGamificationModal: React.FC<PromoGamificationModalProps> = ({
 
   // Spin the wheel with natural easing & tick sounds
   const handleStartSpin = () => {
-    if (isSpinning || prizes.length === 0) return;
+    if (isSpinning || prizes.length === 0 || !eligibility.canSpin) return;
     setIsSpinning(true);
     setWonPrize(null);
     setShowCelebration(false);
@@ -228,6 +244,10 @@ export const PromoGamificationModal: React.FC<PromoGamificationModalProps> = ({
         setIsSpinning(false);
         setWonPrize(chosenPrize);
         setShowCelebration(true);
+        // Enforce 1 nota 1 spin: immediately record on target order
+        if (targetOrder) {
+          recordOrderSpin(targetOrder.id, chosenPrize.label);
+        }
         if (chosenPrize.type !== 'zonk') {
           soundEngine.playDopamineJackpot();
         } else {
@@ -290,6 +310,7 @@ export const PromoGamificationModal: React.FC<PromoGamificationModalProps> = ({
 
   // Handle Scratch Action
   const scratch = (clientX: number, clientY: number) => {
+    if (!eligibility.canSpin) return;
     const canvas = scratchCanvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -339,6 +360,10 @@ export const PromoGamificationModal: React.FC<PromoGamificationModalProps> = ({
         setShowCelebration(true);
         // Clear remaining foil
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // Record 1-spin usage on target order
+        if (targetOrder && wonPrize) {
+          recordOrderSpin(targetOrder.id, wonPrize.label);
+        }
         if (wonPrize && wonPrize.type !== 'zonk') {
           soundEngine.playDopamineJackpot();
         } else {
@@ -411,6 +436,37 @@ export const PromoGamificationModal: React.FC<PromoGamificationModalProps> = ({
           </button>
         </div>
 
+        {/* Promo Period & 1-Spin Rule Banner */}
+        <div className="bg-slate-950/90 border-b border-slate-800 px-4 py-2 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+          <div className="flex items-center gap-1.5 text-slate-300">
+            <Calendar className="w-3.5 h-3.5 text-amber-400" />
+            <span>
+              {gamificationSettings.hasPeriodLimit ? (
+                <>
+                  Periode Promo:{' '}
+                  <strong className="text-white font-mono">
+                    {formatDateIndo(gamificationSettings.startDate || '')} - {formatDateIndo(gamificationSettings.endDate || '')}
+                  </strong>
+                </>
+              ) : (
+                <>Periode: <strong className="text-white">Promo Aktif Terus</strong></>
+              )}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${periodStatus.badgeColor}`}>
+              {periodStatus.label}
+            </span>
+
+            {gamificationSettings.oneSpinPerOrder && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                1 Nota = 1x Spin
+              </span>
+            )}
+          </div>
+        </div>
+
         {/* Game Mode Tabs if configured 'both' */}
         {gamificationSettings.gameType === 'both' && (
           <div className="flex border-b border-slate-800 bg-slate-950/60 p-1.5 gap-2 px-4">
@@ -444,6 +500,41 @@ export const PromoGamificationModal: React.FC<PromoGamificationModalProps> = ({
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col items-center">
           
+          {/* Eligibility Blocked Alert */}
+          {!eligibility.canSpin && (
+            <div className="w-full mb-4 p-3.5 rounded-2xl bg-amber-950/60 border border-amber-500/40 text-amber-200 text-xs flex items-start gap-3 shadow-lg">
+              <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 shrink-0">
+                <Lock className="w-5 h-5" />
+              </div>
+              <div className="space-y-1 flex-1">
+                <div className="flex items-center justify-between gap-2">
+                  <h5 className="font-extrabold text-white text-sm">
+                    {eligibility.isClaimedBlocked
+                      ? 'Jatah Spin Nota Ini Sudah Terpakai'
+                      : 'Promo Sedang Tidak Aktif'}
+                  </h5>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white uppercase tracking-wider">
+                    TERKUNCI
+                  </span>
+                </div>
+                <p className="text-slate-300 leading-relaxed">
+                  {eligibility.reason}
+                </p>
+                {eligibility.prizeClaimed && (
+                  <div className="mt-2 p-2 rounded-xl bg-slate-900/90 border border-amber-500/30 flex items-center justify-between text-xs">
+                    <span className="text-slate-400">Hadiah yang Diperoleh:</span>
+                    <span className="font-black text-amber-300">🎁 {eligibility.prizeClaimed}</span>
+                  </div>
+                )}
+                {eligibility.claimedAt && (
+                  <p className="text-[10px] text-slate-400">
+                    Dicatat pada sistem: {eligibility.claimedAt}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* TAB 1: LUCKY SPIN WHEEL */}
           {activeTab === 'wheel' && (
             <div className="flex flex-col items-center w-full">
@@ -467,15 +558,33 @@ export const PromoGamificationModal: React.FC<PromoGamificationModalProps> = ({
               <div className="w-full mt-4">
                 <button
                   onClick={handleStartSpin}
-                  disabled={isSpinning}
+                  disabled={isSpinning || !eligibility.canSpin}
                   className={`w-full py-3.5 px-6 rounded-2xl font-black text-base uppercase tracking-wider shadow-xl transition-all duration-300 flex items-center justify-center space-x-2 ${
-                    isSpinning
+                    isSpinning || !eligibility.canSpin
                       ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
                       : 'bg-gradient-to-r from-amber-400 via-orange-500 to-yellow-400 hover:from-amber-300 hover:to-orange-400 text-slate-950 hover:scale-[1.02] active:scale-[0.98] shadow-amber-500/25 ring-2 ring-yellow-400/50'
                   }`}
                 >
-                  <Sparkles className="w-5 h-5 text-slate-950" />
-                  <span>{isSpinning ? 'Sedang Memutar Roda...' : 'PUTAR RODA SEKARANG (GRATIS)'}</span>
+                  {!eligibility.canSpin ? (
+                    <>
+                      <Lock className="w-5 h-5 text-slate-500" />
+                      <span>
+                        {eligibility.isClaimedBlocked
+                          ? '1X SPIN NOTA TELAH DIGUNAKAN (LOCKED)'
+                          : 'PROMO DI LUAR PERIODE AKTIF'}
+                      </span>
+                    </>
+                  ) : isSpinning ? (
+                    <>
+                      <Sparkles className="w-5 h-5 text-slate-500" />
+                      <span>Sedang Memutar Roda...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-5 h-5 text-slate-950" />
+                      <span>PUTAR RODA SEKARANG (1 KESEMPATAN)</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>
@@ -536,6 +645,21 @@ export const PromoGamificationModal: React.FC<PromoGamificationModalProps> = ({
                     if (touch) scratch(touch.clientX, touch.clientY);
                   }}
                 />
+
+                {/* Ineligible Lock Overlay */}
+                {!eligibility.canSpin && (
+                  <div className="absolute inset-0 z-20 bg-slate-950/85 backdrop-blur-xs flex flex-col items-center justify-center text-center p-4">
+                    <Lock className="w-8 h-8 text-amber-400 mb-1.5" />
+                    <span className="font-extrabold text-xs text-white">
+                      {eligibility.isClaimedBlocked
+                        ? 'Jatah Gosok Kartu Nota Sudah Digunakan'
+                        : 'Promo Gosok Kartu Sedang Tidak Aktif'}
+                    </span>
+                    <span className="text-[10px] text-slate-400 mt-1 max-w-[240px]">
+                      {eligibility.reason}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Reset button for testing scratch */}
@@ -603,22 +727,24 @@ export const PromoGamificationModal: React.FC<PromoGamificationModalProps> = ({
           )}
 
           {/* Owner Notice Badge */}
-          <div className="mt-4 w-full p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+          <div className="mt-4 w-full p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-400">
             <div className="flex items-center space-x-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className={`w-2 h-2 rounded-full ${periodStatus.isActive ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'}`} />
               <span>
-                Trigger Owner:{' '}
+                Aturan:{' '}
                 <strong className="text-slate-200">
-                  {gamificationSettings.triggerEvent === 'after_payment'
-                    ? 'Setelah Pembayaran'
-                    : gamificationSettings.triggerEvent === 'min_spend'
-                    ? `Min Belanja Rp ${gamificationSettings.minSpendAmount.toLocaleString('id-ID')}`
-                    : 'Manual / Setelah Review'}
+                  {gamificationSettings.oneSpinPerOrder ? '1 Nota = 1x Spin' : 'Bebas Re-spin'}
+                </strong>{' '}
+                • Periode:{' '}
+                <strong className="text-slate-200">
+                  {gamificationSettings.hasPeriodLimit
+                    ? `${formatDateIndo(gamificationSettings.startDate || '')} s.d ${formatDateIndo(gamificationSettings.endDate || '')}`
+                    : 'Aktif Terus'}
                 </strong>
               </span>
             </div>
-            <span className="text-amber-400 font-medium">
-              {gamificationSettings.isEnabled ? 'Aktif' : 'Nonaktif'}
+            <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold ${periodStatus.badgeColor}`}>
+              {periodStatus.label}
             </span>
           </div>
 

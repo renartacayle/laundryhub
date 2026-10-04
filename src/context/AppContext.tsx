@@ -231,6 +231,7 @@ interface AppContextType {
   setIsGamificationModalOpen: (open: boolean) => void;
   gamificationContext: { orderId?: string; customerName?: string; finalPrice?: number } | null;
   triggerGamification: (context?: { orderId?: string; customerName?: string; finalPrice?: number }) => void;
+  recordOrderSpin: (orderId: string, rewardText: string) => void;
   applyGamificationReward: (orderId: string, rewardText: string, discountAmount?: number) => void;
 
   // 4. Digital Scale USB / Bluetooth Auto-Read
@@ -1683,7 +1684,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const saved = localStorage.getItem('lh_gamification_settings');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        return {
+          ...DEFAULT_GAMIFICATION_SETTINGS,
+          ...parsed,
+        };
       } catch {
         // fallback
       }
@@ -1714,8 +1719,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     soundEngine.playSpinClick();
   };
 
+  const recordOrderSpin = (orderId: string, rewardText: string) => {
+    if (!orderId) return;
+    const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 19);
+    setOrders((prev) =>
+      prev.map((o) => {
+        if (o.id === orderId || o.invoiceNo === orderId) {
+          return {
+            ...o,
+            hasClaimedGamification: true,
+            gamificationRewardClaimed: rewardText,
+            gamificationClaimedAt: nowStr,
+            appliedPromoReward: rewardText,
+          };
+        }
+        return o;
+      })
+    );
+  };
+
   const applyGamificationReward = (orderId: string, rewardText: string, discountAmount?: number) => {
     if (!orderId) return;
+    const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 19);
     setOrders((prev) =>
       prev.map((o) => {
         if (o.id === orderId || o.invoiceNo === orderId) {
@@ -1723,6 +1748,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           const newFinalPrice = Math.max(0, o.finalPrice - discount);
           return {
             ...o,
+            hasClaimedGamification: true,
+            gamificationRewardClaimed: rewardText,
+            gamificationClaimedAt: o.gamificationClaimedAt || nowStr,
             appliedPromoReward: rewardText,
             discount: o.discount + discount,
             finalPrice: newFinalPrice,
@@ -2125,6 +2153,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setIsGamificationModalOpen,
         gamificationContext,
         triggerGamification,
+        recordOrderSpin,
         applyGamificationReward,
         digitalScaleReading,
         readDigitalScale,
