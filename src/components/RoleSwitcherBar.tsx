@@ -89,9 +89,25 @@ export const RoleSwitcherBar: React.FC = () => {
     },
   ];
 
+  const [isBarVisible, setIsBarVisible] = useState(true);
+
+  if (!isBarVisible) {
+    return (
+      <div className="hidden md:flex justify-end max-w-7xl mx-auto px-4 pt-1">
+        <button
+          onClick={() => setIsBarVisible(true)}
+          className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200/70 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-all shadow-xs"
+          title="Tampilkan kembali bilah ganti role"
+        >
+          🔁 Switch Role ({currentRole})
+        </button>
+      </div>
+    );
+  }
+
   return (
     <>
-      <div className="hidden md:block w-full bg-slate-900/95 border-b border-slate-700/60 backdrop-blur-md px-3 py-1.5 sticky top-0 z-40">
+      <div className="hidden md:block w-full bg-white/90 dark:bg-slate-950/90 border-b border-slate-200/80 dark:border-slate-800/80 backdrop-blur-md px-3 py-1.5 transition-colors">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
           {/* Roles Segment Bar */}
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
@@ -106,8 +122,8 @@ export const RoleSwitcherBar: React.FC = () => {
                   onClick={() => handleRoleClick(r.id)}
                   className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold transition-all whitespace-nowrap active:scale-95 ${
                     isActive
-                      ? `${r.bgActive} shadow-sm ring-1 ring-white/10`
-                      : 'bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                      ? `${r.bgActive} shadow-xs ring-1 ring-white/10`
+                      : 'bg-white/80 dark:bg-slate-900/60 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-800/60 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   <span className={r.color}>{r.icon}</span>
@@ -126,7 +142,7 @@ export const RoleSwitcherBar: React.FC = () => {
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold border transition-all active:scale-95 ${
                 activeGmailAccount
                   ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-700 dark:text-cyan-300'
-                  : 'bg-slate-800/60 border-slate-700/60 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                  : 'bg-white/80 dark:bg-slate-900/60 border-slate-200/80 dark:border-slate-800/60 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
               }`}
               title="Kelola Akun Google Karyawan"
             >
@@ -137,7 +153,7 @@ export const RoleSwitcherBar: React.FC = () => {
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
               </svg>
               <span className="truncate max-w-[120px]">
-                {activeGmailAccount ? activeGmailAccount.split('@')[0] : 'Gmail Karyawan'}
+                {activeGmailAccount ? activeGmailAccount.split('@')[0] : 'Gmail'}
               </span>
             </button>
 
@@ -163,6 +179,15 @@ export const RoleSwitcherBar: React.FC = () => {
                   <span>Mode Demo</span>
                 </>
               )}
+            </button>
+
+            {/* Minimize / Hide bar button */}
+            <button
+              onClick={() => setIsBarVisible(false)}
+              className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+              title="Sembunyikan bilah role bar"
+            >
+              <span className="text-xs">✕</span>
             </button>
           </div>
         </div>
