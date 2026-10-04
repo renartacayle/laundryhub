@@ -173,6 +173,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
     calculateStaffSalarySlip,
     setIsAttendanceModalOpen,
     openDopaminePayday,
+    openSalarySlipModal,
     gamificationSettings,
     updateGamificationSettings,
     triggerGamification,
@@ -2383,15 +2384,12 @@ Konsultasi Admin WA: 081228263200`;
                           <div className="flex items-center justify-center gap-1.5">
                             <button
                               type="button"
-                              onClick={() => {
-                                setSelectedSlipStaffId(u.id);
-                                setIsSalarySlipModalOpen(true);
-                              }}
-                              className="px-2 py-1 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 font-bold text-[10px] border border-emerald-500/30 transition-all flex items-center gap-1"
-                              title="Lihat & Cetak Slip Gaji"
+                              onClick={() => openSalarySlipModal(u.id)}
+                              className="px-2.5 py-1 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 font-bold text-[10px] border border-emerald-500/30 transition-all flex items-center gap-1"
+                              title="Lihat & Cetak Nota Gaji Resmi (Dokumen / Thermal)"
                             >
                               <FileText className="w-3 h-3" />
-                              <span>Slip</span>
+                              <span>Nota Gaji</span>
                             </button>
                             <button
                               type="button"
@@ -2412,142 +2410,7 @@ Konsultasi Admin WA: 081228263200`;
             </div>
           </div>
 
-          {/* MODAL: Cetak Slip Gaji Thermal / Karyawan */}
-          {isSalarySlipModalOpen && selectedSlipStaffId && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in">
-              <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full p-6 shadow-2xl relative space-y-4">
-                <button
-                  type="button"
-                  onClick={() => setIsSalarySlipModalOpen(false)}
-                  className="absolute top-4 right-4 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
 
-                {(() => {
-                  const slip = calculateStaffSalarySlip(selectedSlipStaffId);
-                  const staffUser = users.find((u) => u.id === selectedSlipStaffId);
-                  const branch = branches.find((b) => b.id === staffUser?.branchId);
-
-                  return (
-                    <div className="space-y-4">
-                      {/* Printable Receipt Paper Container */}
-                      <div id="salary-slip-print" className="p-5 rounded-2xl bg-white text-slate-900 font-mono text-xs shadow-inner space-y-3">
-                        <div className="text-center pb-2 border-b border-dashed border-slate-400">
-                          <h3 className="font-black text-base tracking-wider">LAUNDRYHUB</h3>
-                          <p className="text-[10px] text-slate-600">{branch?.name || 'Workshop Kemang Central'}</p>
-                          <p className="text-[10px] text-slate-500">SLIP GAJI BORONGAN & PRESENSI</p>
-                          <p className="text-[10px] font-bold text-slate-700">Periode: {slip.period}</p>
-                        </div>
-
-                        <div className="space-y-0.5 text-[11px]">
-                          <div className="flex justify-between">
-                            <span className="text-slate-600">Nama Staf:</span>
-                            <span className="font-bold">{slip.userName}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-600">Role / Jabatan:</span>
-                            <span className="font-bold uppercase">{slip.role}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-600">Presensi:</span>
-                            <span>{slip.daysPresent} Hadir | {slip.daysAbsent} Alpha | {slip.daysLate} Telat</span>
-                          </div>
-                        </div>
-
-                        <div className="pt-2 border-t border-dashed border-slate-300 space-y-1">
-                          <p className="font-bold text-[10px] uppercase text-slate-700">Rincian Pendapatan:</p>
-                          <div className="flex justify-between">
-                            <span>Gaji Pokok ({slip.daysPresent}x):</span>
-                            <span>Rp {slip.baseSalaryTotal.toLocaleString('id-ID')}</span>
-                          </div>
-                          {slip.stationCommissions.filter(s => s.count > 0).map(st => (
-                            <div key={st.station} className="flex justify-between text-[10px]">
-                              <span className="capitalize">Borongan {st.station} ({st.count} nota):</span>
-                              <span>+Rp {st.totalEarned.toLocaleString('id-ID')}</span>
-                            </div>
-                          ))}
-                          {slip.customerTipsTotal > 0 && (
-                            <div className="flex justify-between text-emerald-700 font-bold">
-                              <span>Tip Pelanggan:</span>
-                              <span>+Rp {slip.customerTipsTotal.toLocaleString('id-ID')}</span>
-                            </div>
-                          )}
-                        </div>
-
-                        {(slip.absenceDeductionsTotal > 0 || slip.lateDeductionsTotal > 0) && (
-                          <div className="pt-2 border-t border-dashed border-slate-300 space-y-1 text-rose-700">
-                            <p className="font-bold text-[10px] uppercase">Rincian Potongan:</p>
-                            {slip.absenceDeductionsTotal > 0 && (
-                              <div className="flex justify-between text-[10px]">
-                                <span>Potongan Alpha ({slip.daysAbsent}x):</span>
-                                <span>-Rp {slip.absenceDeductionsTotal.toLocaleString('id-ID')}</span>
-                              </div>
-                            )}
-                            {slip.lateDeductionsTotal > 0 && (
-                              <div className="flex justify-between text-[10px]">
-                                <span>Potongan Terlambat ({slip.daysLate}x):</span>
-                                <span>-Rp {slip.lateDeductionsTotal.toLocaleString('id-ID')}</span>
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        <div className="pt-2 border-t-2 border-slate-900 flex justify-between font-black text-sm">
-                          <span>TAKE HOME PAY:</span>
-                          <span className="text-emerald-700">Rp {slip.netTakeHomePay.toLocaleString('id-ID')}</span>
-                        </div>
-
-                        <div className="pt-4 flex justify-between text-[9px] text-center text-slate-500">
-                          <div>
-                            <p>Penerima,</p>
-                            <div className="h-8" />
-                            <p className="font-bold">({slip.userName})</p>
-                          </div>
-                          <div>
-                            <p>Owner Laundry,</p>
-                            <div className="h-8" />
-                            <p className="font-bold">(Management)</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Modal Actions */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsSalarySlipModalOpen(false);
-                          openDopaminePayday(selectedSlipStaffId);
-                        }}
-                        className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-400 to-emerald-500 hover:from-amber-400 hover:to-emerald-400 text-slate-950 font-black text-xs shadow-glow-amber transition-all flex items-center justify-center gap-2 animate-pulse"
-                      >
-                        <Coins className="w-4 h-4 text-slate-950" />
-                        <span>🎰 Cairkan Gaji & Kirim Sensasi Dopamine Cuan ke Staf! 💸</span>
-                      </button>
-
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => window.print()}
-                          className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black text-xs shadow-glow-emerald transition-all flex items-center justify-center gap-1.5"
-                        >
-                          <FileText className="w-4 h-4" />
-                          <span>Cetak Thermal / Print</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setIsSalarySlipModalOpen(false)}
-                          className="py-2.5 px-4 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold"
-                        >
-                          Tutup
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })()}
-              </div>
-            </div>
-          )}
 
           {/* MODAL: Tambah Karyawan Baru via Gmail */}
           {isAddWorkerModalOpen && (

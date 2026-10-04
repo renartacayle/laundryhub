@@ -24,6 +24,7 @@ import { DopaminePaydayModal } from './components/DopaminePaydayModal';
 import { AiGarmentScannerModal } from './components/AiGarmentScannerModal';
 import { PromoGamificationModal } from './components/PromoGamificationModal';
 import { WhatsAppBotModal } from './components/WhatsAppBotModal';
+import { SalarySlipModal } from './components/SalarySlipModal';
 
 const MainLayout: React.FC = () => {
   const {
@@ -53,6 +54,9 @@ const MainLayout: React.FC = () => {
     isWhatsAppBotOpen,
     setIsWhatsAppBotOpen,
     whatsAppBotOrder,
+    isSalarySlipModalOpen,
+    closeSalarySlipModal,
+    salarySlipStaffId,
   } = useApp();
 
   // Active sub-tab state for Desktop Sidebar
@@ -328,6 +332,13 @@ const MainLayout: React.FC = () => {
         isOpen={isWhatsAppBotOpen}
         onClose={() => setIsWhatsAppBotOpen(false)}
         order={whatsAppBotOrder}
+      />
+
+      {/* 4. Official & Thermal Salary Slip (Nota Gaji Karyawan) */}
+      <SalarySlipModal
+        isOpen={isSalarySlipModalOpen}
+        onClose={closeSalarySlipModal}
+        staffId={salarySlipStaffId}
       />
     </div>
   );

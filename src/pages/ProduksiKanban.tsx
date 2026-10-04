@@ -27,6 +27,7 @@ import {
   ChevronRight,
   BadgeCheck,
   AlertCircle,
+  FileText,
 } from 'lucide-react';
 import { IotMachineControlModal } from '../components/IotMachineControlModal';
 import { StationPhotoProofModal } from '../components/StationPhotoProofModal';
@@ -90,6 +91,7 @@ export const ProduksiKanban: React.FC<ProduksiKanbanProps> = ({ currentSubTab = 
     unclaimStationTask,
     openTrackingModal,
     openDopaminePayday,
+    openSalarySlipModal,
     calculateStaffSalarySlip,
     setIsAttendanceModalOpen,
     openAiScanner,
@@ -198,6 +200,16 @@ export const ProduksiKanban: React.FC<ProduksiKanbanProps> = ({ currentSubTab = 
         >
           <Coins className="w-3.5 h-3.5" />
           💰 Dompet: Rp {mySlip.netTakeHomePay.toLocaleString('id-ID')}
+        </button>
+
+        {/* Nota Gaji Resmi */}
+        <button
+          onClick={() => openSalarySlipModal(currentUser.id)}
+          className="px-3.5 py-2 rounded-2xl text-xs font-bold flex items-center gap-1.5 bg-emerald-600/20 hover:bg-emerald-600/35 text-emerald-300 border border-emerald-500/30 transition-colors"
+          title="Buka & Cetak Nota Gaji Resmi (Dokumen / Thermal)"
+        >
+          <FileText className="w-3.5 h-3.5 text-emerald-400" />
+          <span>Nota Gaji</span>
         </button>
 
         {/* AI Scanner */}

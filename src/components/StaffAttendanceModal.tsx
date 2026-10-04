@@ -71,6 +71,7 @@ export const StaffAttendanceModal: React.FC<StaffAttendanceModalProps> = ({ isOp
     recordAbsence,
     calculateStaffSalarySlip,
     openDopaminePayday,
+    openSalarySlipModal,
     currentBranchId,
   } = useApp();
 
@@ -511,14 +512,29 @@ export const StaffAttendanceModal: React.FC<StaffAttendanceModalProps> = ({ isOp
                     )}
                   </div>
 
-                  {/* Dopamine Payday Button */}
-                  <button
-                    onClick={() => openDopaminePayday(activeStaff.id)}
-                    className="mt-3 w-full py-2.5 px-3 bg-gradient-to-r from-amber-500 via-yellow-400 to-emerald-500 hover:from-amber-400 hover:to-emerald-400 text-slate-950 font-black text-xs rounded-2xl shadow-glow-amber transition-all flex items-center justify-center gap-1.5 animate-pulse"
-                  >
-                    <span>🎰 Sensasi Gaji Dopamine Cuan!</span>
-                    <Sparkles className="w-3.5 h-3.5 text-slate-950" />
-                  </button>
+                  {/* Salary Slip & Dopamine Buttons */}
+                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        openSalarySlipModal(activeStaff.id);
+                      }}
+                      className="w-full py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-2xl shadow-sm transition-all flex items-center justify-center gap-1.5 active:scale-95"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>Nota Gaji Resmi</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => openDopaminePayday(activeStaff.id)}
+                      className="w-full py-2.5 px-3 bg-gradient-to-r from-amber-500 via-yellow-400 to-emerald-500 hover:from-amber-400 hover:to-emerald-400 text-slate-950 font-black text-xs rounded-2xl shadow-glow-amber transition-all flex items-center justify-center gap-1.5 animate-pulse"
+                    >
+                      <span>🎰 Sensasi Cuan!</span>
+                      <Sparkles className="w-3.5 h-3.5 text-slate-950" />
+                    </button>
+                  </div>
                 </div>
               </div>
 

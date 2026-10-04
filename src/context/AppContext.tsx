@@ -204,6 +204,13 @@ interface AppContextType {
   openDopaminePayday: (staffId?: string) => void;
   closeDopaminePayday: () => void;
 
+  // Salary Slip (Nota Gaji) Modal
+  isSalarySlipModalOpen: boolean;
+  setIsSalarySlipModalOpen: (open: boolean) => void;
+  salarySlipStaffId: string | null;
+  openSalarySlipModal: (staffId?: string) => void;
+  closeSalarySlipModal: () => void;
+
   // 1. AI Garment & Stain Scanner
   isAiScannerOpen: boolean;
   setIsAiScannerOpen: (open: boolean) => void;
@@ -1620,6 +1627,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsDopaminePaydayOpen(false);
   };
 
+  // Salary Slip (Nota Gaji) Modal State
+  const [isSalarySlipModalOpen, setIsSalarySlipModalOpen] = useState(false);
+  const [salarySlipStaffId, setSalarySlipStaffId] = useState<string | null>(null);
+
+  const openSalarySlipModal = (staffId?: string) => {
+    setSalarySlipStaffId(staffId || currentUser.id);
+    setIsSalarySlipModalOpen(true);
+  };
+
+  const closeSalarySlipModal = () => {
+    setIsSalarySlipModalOpen(false);
+    setSalarySlipStaffId(null);
+  };
+
   // 1. AI Garment & Stain Scanner State
   const [isAiScannerOpen, setIsAiScannerOpen] = useState(false);
   const [aiScannerTargetOrderId, setAiScannerTargetOrderId] = useState<string | null>(null);
@@ -2084,6 +2105,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         dopaminePaydayStaffId,
         openDopaminePayday,
         closeDopaminePayday,
+        isSalarySlipModalOpen,
+        setIsSalarySlipModalOpen,
+        salarySlipStaffId,
+        openSalarySlipModal,
+        closeSalarySlipModal,
         isAiScannerOpen,
         setIsAiScannerOpen,
         aiScannerTargetOrderId,
