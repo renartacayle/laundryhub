@@ -355,13 +355,13 @@ export const Navbar: React.FC = () => {
               )}
             </div>
 
-            {/* Dark Mode Toggle */}
+            {/* Dark / Pastel Light Mode Toggle */}
             <button
               onClick={toggleDarkMode}
-              className="hidden md:flex p-2 rounded-xl bg-slate-800/70 border border-slate-700/80 text-slate-300 hover:text-amber-300 hover:bg-slate-800 transition-colors"
-              title="Ganti Tema Gelap / Terang"
+              className="flex p-2 rounded-xl bg-slate-800/80 border border-slate-700/80 hover:scale-105 active:scale-95 transition-all shadow-sm"
+              title={isDarkMode ? 'Ganti ke Mode Pastel Terang' : 'Ganti ke Mode Midnight Gelap'}
             >
-              {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-violet-600 dark:text-cyan-400" />}
             </button>
 
             {/* Reset Demo Data Button */}

@@ -21,6 +21,7 @@ import {
   Unlock,
   Coins,
   CheckCircle2,
+  Palette,
 } from 'lucide-react';
 import { OutletQrisConfigModal } from './OutletQrisConfigModal';
 import { IotMachineControlModal } from './IotMachineControlModal';
@@ -37,6 +38,7 @@ export const MobileSettingsView: React.FC = () => {
     setIsGoogleAuthModalOpen,
     tokenCoins,
     isDarkMode,
+    setIsDarkMode,
     toggleDarkMode,
     language,
     setLanguage,
@@ -277,29 +279,83 @@ export const MobileSettingsView: React.FC = () => {
           <ChevronRight className="w-4 h-4 text-slate-400" />
         </button>
 
-        {/* Theme & Language row */}
-        <div className="grid grid-cols-2 gap-2.5 pt-1">
-          <button
-            onClick={toggleDarkMode}
-            className="flex items-center justify-center gap-2 py-2.5 rounded-2xl bg-slate-800/80 border border-slate-700 text-xs font-bold text-slate-200"
-          >
-            {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-cyan-400" />}
-            <span>{isDarkMode ? 'Mode Terang' : 'Mode Gelap'}</span>
-          </button>
+        {/* Theme Switcher: Pastel Light vs Midnight Dark */}
+        <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/80 space-y-2.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Palette className="w-4 h-4 text-emerald-400" />
+              <span className="text-xs font-bold text-slate-100">Tema Warna Tampilan</span>
+            </div>
+            <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-slate-700 text-slate-300">
+              {isDarkMode ? '🌙 Midnight Dark' : '🌸 Pastel Light'}
+            </span>
+          </div>
 
-          <button
-            onClick={() => {
-              const nextLang = language === 'id' ? 'en' : 'id';
-              setLanguage(nextLang);
-              if (nextLang === 'en') setCurrency('USD');
-              else setCurrency('IDR');
-            }}
-            className="flex items-center justify-center gap-2 py-2.5 rounded-2xl bg-slate-800/80 border border-slate-700 text-xs font-bold text-slate-200"
-          >
-            <Globe className="w-4 h-4 text-cyan-400" />
-            <span>{language === 'id' ? '🇮🇩 ID' : '🇬🇧 EN'}</span>
-          </button>
+          <div className="grid grid-cols-2 gap-2 pt-0.5">
+            {/* Pastel Light Mode Option */}
+            <button
+              onClick={() => setIsDarkMode(false)}
+              className={`p-2.5 rounded-xl border text-left transition-all ${
+                !isDarkMode
+                  ? 'bg-amber-500/15 border-amber-400 text-slate-900 shadow-sm ring-1 ring-amber-400'
+                  : 'bg-slate-900/60 border-slate-700/60 text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <div className="flex items-center gap-1.5 mb-1 font-bold text-xs">
+                <Sun className="w-4 h-4 text-amber-500" />
+                <span className={!isDarkMode ? 'font-black' : ''}>Pastel Light</span>
+              </div>
+              <div className="text-[10px] text-slate-500">Lembut & Estetik</div>
+              <div className="flex gap-1 mt-1.5">
+                <span className="w-3 h-3 rounded-full bg-emerald-300 inline-block"></span>
+                <span className="w-3 h-3 rounded-full bg-violet-300 inline-block"></span>
+                <span className="w-3 h-3 rounded-full bg-sky-300 inline-block"></span>
+                <span className="w-3 h-3 rounded-full bg-amber-300 inline-block"></span>
+              </div>
+            </button>
+
+            {/* Midnight Dark Mode Option */}
+            <button
+              onClick={() => setIsDarkMode(true)}
+              className={`p-2.5 rounded-xl border text-left transition-all ${
+                isDarkMode
+                  ? 'bg-cyan-500/20 border-cyan-400 text-cyan-200 shadow-sm ring-1 ring-cyan-400'
+                  : 'bg-slate-900/60 border-slate-700/60 text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <div className="flex items-center gap-1.5 mb-1 font-bold text-xs">
+                <Moon className="w-4 h-4 text-cyan-400" />
+                <span className={isDarkMode ? 'font-black' : ''}>Midnight Dark</span>
+              </div>
+              <div className="text-[10px] text-slate-400">OLED & Neon Glow</div>
+              <div className="flex gap-1 mt-1.5">
+                <span className="w-3 h-3 rounded-full bg-slate-900 border border-slate-700 inline-block"></span>
+                <span className="w-3 h-3 rounded-full bg-cyan-500 inline-block"></span>
+                <span className="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>
+                <span className="w-3 h-3 rounded-full bg-amber-500 inline-block"></span>
+              </div>
+            </button>
+          </div>
         </div>
+
+        {/* Language & Currency Quick Toggle */}
+        <button
+          onClick={() => {
+            const nextLang = language === 'id' ? 'en' : 'id';
+            setLanguage(nextLang);
+            if (nextLang === 'en') setCurrency('USD');
+            else setCurrency('IDR');
+          }}
+          className="w-full flex items-center justify-between p-3 rounded-2xl bg-slate-800/80 border border-slate-700 text-xs font-bold text-slate-200"
+        >
+          <div className="flex items-center gap-2.5">
+            <Globe className="w-4 h-4 text-cyan-400" />
+            <span>Bahasa & Mata Uang</span>
+          </div>
+          <span className="text-[11px] font-bold px-2 py-0.5 rounded-lg bg-slate-700/80 text-cyan-300">
+            {language === 'id' ? '🇮🇩 Bahasa Indonesia (IDR)' : '🇬🇧 English (USD)'}
+          </span>
+        </button>
 
         {/* Reset Demo Data Button */}
         <button

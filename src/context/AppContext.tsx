@@ -47,6 +47,7 @@ interface AppContextType {
   currentBranchId: string;
   setCurrentBranchId: (branchId: string) => void;
   isDarkMode: boolean;
+  setIsDarkMode: (val: boolean) => void;
   toggleDarkMode: () => void;
   isOnline: boolean;
 
@@ -1362,6 +1363,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         currentBranchId,
         setCurrentBranchId,
         isDarkMode,
+        setIsDarkMode,
         toggleDarkMode,
         isOnline,
         language,

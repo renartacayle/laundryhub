@@ -2,6 +2,66 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* =========================================================
+     PASTEL LIGHT MODE COLOR SCHEME
+     Soft, soothing, modern aesthetic with high contrast & legibility
+     ========================================================= */
+  --color-slate-950: 246 248 253; /* Page canvas background: #F6F8FD (Soft Pastel Periwinkle Mist) */
+  --color-slate-900: 255 255 255; /* Cards, panels, dropdowns, modals: #FFFFFF */
+  --color-slate-850: 248 250 252; /* Elevated pills & button bars: #F8FAFC */
+  --color-slate-800: 241 245 249; /* Secondary containers, inputs, tab backdrops: #F1F5F9 */
+  --color-slate-700: 226 232 240; /* Input borders, active highlights: #E2E8F0 */
+  --color-slate-600: 148 163 184; /* Muted icons & borders: #94A3B8 */
+  --color-slate-500: 100 116 139; /* Muted text / placeholders: #64748B */
+  --color-slate-400: 71 85 105;   /* Secondary subtext: #475569 */
+  --color-slate-300: 51 65 85;    /* Body paragraph text: #334155 */
+  --color-slate-200: 30 41 59;    /* Prominent labels & bold text: #1E293B */
+  --color-slate-100: 15 23 42;    /* Primary headings & titles: #0F172A */
+  --color-slate-50: 15 23 42;     /* High contrast titles */
+
+  --glass-panel-bg: rgba(255, 255, 255, 0.90);
+  --glass-panel-border: rgba(226, 232, 240, 0.9);
+  --glass-card-bg: rgba(255, 255, 255, 0.96);
+  --glass-card-border: rgba(226, 232, 240, 0.85);
+  --glass-shadow: 0 10px 25px -5px rgba(100, 116, 139, 0.08), 0 8px 10px -6px rgba(100, 116, 139, 0.04);
+  --glass-card-shadow: 0 4px 15px -2px rgba(100, 116, 139, 0.06), 0 2px 4px -2px rgba(100, 116, 139, 0.03);
+
+  --scrollbar-track: rgba(241, 245, 249, 0.8);
+  --scrollbar-thumb: rgba(203, 213, 225, 0.9);
+  --scrollbar-thumb-hover: rgba(148, 163, 184, 0.9);
+}
+
+html.dark {
+  /* =========================================================
+     MIDNIGHT SLATE DARK MODE
+     High performance, OLED-friendly, neon glow accents
+     ========================================================= */
+  --color-slate-950: 2 6 23;      /* #020617 */
+  --color-slate-900: 15 23 42;    /* #0f172a */
+  --color-slate-850: 23 32 54;    /* #172036 */
+  --color-slate-800: 30 41 59;    /* #1e293b */
+  --color-slate-700: 51 65 85;    /* #334155 */
+  --color-slate-600: 71 85 105;   /* #475569 */
+  --color-slate-500: 100 116 139; /* #64748b */
+  --color-slate-400: 148 163 184; /* #94a3b8 */
+  --color-slate-300: 203 213 225; /* #cbd5e1 */
+  --color-slate-200: 226 232 240; /* #e2e8f0 */
+  --color-slate-100: 241 245 249; /* #f1f5f9 */
+  --color-slate-50: 248 250 252;  /* #f8fafc */
+
+  --glass-panel-bg: rgba(15, 23, 42, 0.75);
+  --glass-panel-border: rgba(255, 255, 255, 0.08);
+  --glass-card-bg: rgba(30, 41, 59, 0.55);
+  --glass-card-border: rgba(255, 255, 255, 0.06);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  --glass-card-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.25);
+
+  --scrollbar-track: rgba(15, 23, 42, 0.6);
+  --scrollbar-thumb: rgba(51, 65, 85, 0.8);
+  --scrollbar-thumb-hover: rgba(71, 85, 105, 1);
+}
+
 @layer base {
   * {
     @apply border-slate-800;
@@ -27,10 +87,11 @@
 
 /* Glassmorphism custom utilities */
 .glass-panel {
-  background: rgba(15, 23, 42, 0.75);
+  background: var(--glass-panel-bg);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--glass-panel-border);
+  box-shadow: var(--glass-shadow);
 }
 
 .glass-panel-light {
@@ -41,10 +102,11 @@
 }
 
 .glass-card {
-  background: rgba(30, 41, 59, 0.55);
+  background: var(--glass-card-bg);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--glass-card-border);
+  box-shadow: var(--glass-card-shadow);
 }
 
 /* Gradient accents */
@@ -64,20 +126,79 @@
   -webkit-text-fill-color: transparent;
 }
 
+/* =========================================================
+   LIGHT MODE TEXT & HEADING CONTRAST SAFEGUARDS
+   ========================================================= */
+html:not(.dark) h1,
+html:not(.dark) h2,
+html:not(.dark) h3,
+html:not(.dark) h4,
+html:not(.dark) h5,
+html:not(.dark) h6 {
+  color: #0f172a;
+}
+
+/* In Light Mode: Any text-white defaults to high-contrast dark text #0f172a */
+html:not(.dark) .text-white {
+  color: #0f172a !important;
+}
+
+/* Ensure intentional text-slate-950 and text-slate-900 are always crisp dark text */
+html:not(.dark) .text-slate-950 {
+  color: #020617 !important;
+}
+html:not(.dark) .text-slate-900 {
+  color: #0f172a !important;
+}
+
+/* Only solid saturated action buttons & badges retain crisp white text */
+html:not(.dark) button.bg-emerald-500,
+html:not(.dark) button.bg-emerald-600,
+html:not(.dark) button.bg-cyan-500,
+html:not(.dark) button.bg-cyan-600,
+html:not(.dark) button.bg-amber-500,
+html:not(.dark) button.bg-orange-500,
+html:not(.dark) button.bg-violet-600,
+html:not(.dark) button.bg-indigo-600,
+html:not(.dark) button.bg-rose-500,
+html:not(.dark) button.bg-rose-600,
+html:not(.dark) button.bg-red-500,
+html:not(.dark) button.bg-red-600,
+html:not(.dark) button.bg-brand-500,
+html:not(.dark) button.bg-brand-600,
+html:not(.dark) a.bg-cyan-500,
+html:not(.dark) a.bg-emerald-500,
+html:not(.dark) button.bg-emerald-500 *,
+html:not(.dark) button.bg-emerald-600 *,
+html:not(.dark) button.bg-cyan-500 *,
+html:not(.dark) button.bg-cyan-600 *,
+html:not(.dark) button.bg-amber-500 *,
+html:not(.dark) button.bg-orange-500 *,
+html:not(.dark) button.bg-violet-600 *,
+html:not(.dark) button.bg-indigo-600 *,
+html:not(.dark) button.bg-rose-500 *,
+html:not(.dark) button.bg-rose-600 *,
+html:not(.dark) button.bg-red-500 *,
+html:not(.dark) button.bg-red-600 *,
+html:not(.dark) button.bg-brand-500 *,
+html:not(.dark) button.bg-brand-600 * {
+  color: #ffffff !important;
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.6);
+  background: var(--scrollbar-track);
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(51, 65, 85, 0.8);
+  background: var(--scrollbar-thumb);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(71, 85, 105, 1);
+  background: var(--scrollbar-thumb-hover);
 }
 
 /* Receipt Print Styling */

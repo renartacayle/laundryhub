@@ -511,8 +511,8 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
                   onClick={() => setCategoryFilter('all')}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                     categoryFilter === 'all'
-                      ? 'bg-slate-700 text-white'
-                      : 'text-slate-400 hover:text-white bg-slate-800/50'
+                      ? 'bg-cyan-500 text-slate-950 font-black shadow-sm'
+                      : 'text-slate-400 hover:text-cyan-400 bg-slate-800/80 border border-slate-700/60'
                   }`}
                 >
                   Semua Layanan
