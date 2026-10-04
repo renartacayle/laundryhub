@@ -15,3 +15,5 @@ dist-ssr
 *.keystore
 android/local.properties
 android/.gradle
+*.apk
+public/*.apk

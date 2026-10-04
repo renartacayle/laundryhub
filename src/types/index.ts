@@ -106,6 +106,11 @@ export interface StaffAttendance {
   status: 'hadir' | 'terlambat' | 'izin' | 'alpha';
   notes?: string;
   locationAddress?: string;
+  latitude?: number;
+  longitude?: number;
+  distanceMeters?: number;
+  gpsAccuracy?: number;
+  isGpsVerified?: boolean;
 }
 
 export interface PayrollSettings {

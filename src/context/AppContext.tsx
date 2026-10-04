@@ -174,12 +174,31 @@ interface AppContextType {
   attendances: StaffAttendance[];
   payrollSettings: PayrollSettings;
   updatePayrollSettings: (settings: PayrollSettings) => void;
-  recordClockIn: (userId: string, selfieUrl?: string, notes?: string) => { success: boolean; message: string };
+  recordClockIn: (
+    userId: string,
+    selfieUrl?: string,
+    notes?: string,
+    gpsData?: {
+      latitude: number;
+      longitude: number;
+      distanceMeters: number;
+      gpsAccuracy: number;
+      isGpsVerified: boolean;
+      locationAddress?: string;
+    }
+  ) => { success: boolean; message: string };
   recordClockOut: (userId: string) => { success: boolean; message: string };
   recordAbsence: (userId: string, date: string, status: 'alpha' | 'izin', notes?: string) => void;
   calculateStaffSalarySlip: (userId: string, period?: string) => StaffSalarySlip;
   isAttendanceModalOpen: boolean;
   setIsAttendanceModalOpen: (open: boolean) => void;
+
+  // Dopamine Payday Jackpot Experience
+  isDopaminePaydayOpen: boolean;
+  setIsDopaminePaydayOpen: (open: boolean) => void;
+  dopaminePaydayStaffId: string | null;
+  openDopaminePayday: (staffId?: string) => void;
+  closeDopaminePayday: () => void;
 }
 
 export const DEFAULT_STATION_RATES: StationCommissionRates = {
@@ -1557,7 +1576,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     soundEngine.playStationDing();
   };
 
-  const recordClockIn = (userId: string, selfieUrl?: string, notes?: string): { success: boolean; message: string } => {
+  // Dopamine Payday Jackpot Experience State
+  const [isDopaminePaydayOpen, setIsDopaminePaydayOpen] = useState(false);
+  const [dopaminePaydayStaffId, setDopaminePaydayStaffId] = useState<string | null>(null);
+
+  const openDopaminePayday = (staffId?: string) => {
+    setDopaminePaydayStaffId(staffId || currentUser.id);
+    setIsDopaminePaydayOpen(true);
+    soundEngine.playPaydayCoinShower();
+  };
+
+  const closeDopaminePayday = () => {
+    setIsDopaminePaydayOpen(false);
+  };
+
+  const recordClockIn = (
+    userId: string,
+    selfieUrl?: string,
+    notes?: string,
+    gpsData?: {
+      latitude: number;
+      longitude: number;
+      distanceMeters: number;
+      gpsAccuracy: number;
+      isGpsVerified: boolean;
+      locationAddress?: string;
+    }
+  ): { success: boolean; message: string } => {
     const targetUser = users.find((u) => u.id === userId) || currentUser;
     const todayStr = new Date().toISOString().split('T')[0];
     const nowTime = new Date().toLocaleTimeString('id-ID', { hour12: false });
@@ -1578,6 +1623,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const defaultSelfie = 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300&auto=format&fit=crop&q=80';
 
+    const locationLabel = gpsData
+      ? (gpsData.locationAddress || `Outlet LaundryHub (GPS: ${gpsData.distanceMeters}m - ${gpsData.isGpsVerified ? 'Valid' : 'Luar Radius'})`)
+      : 'Outlet LaundryHub (GPS Satelit: 8m - Valid)';
+
     const newAttendance: StaffAttendance = {
       id: `att-${Date.now()}`,
       userId: targetUser.id,
@@ -1589,7 +1638,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       selfieUrl: selfieUrl || defaultSelfie,
       status,
       notes: notes || (isLate ? 'Terlambat masuk kerja (> 08:15)' : 'Hadir on-time shift pagi'),
-      locationAddress: 'Outlet LaundryHub (Radius GPS 8m - Valid)',
+      locationAddress: locationLabel,
+      latitude: gpsData?.latitude,
+      longitude: gpsData?.longitude,
+      distanceMeters: gpsData?.distanceMeters,
+      gpsAccuracy: gpsData?.gpsAccuracy,
+      isGpsVerified: gpsData?.isGpsVerified ?? true,
     };
 
     if (existing) {
@@ -1881,6 +1935,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         calculateStaffSalarySlip,
         isAttendanceModalOpen,
         setIsAttendanceModalOpen,
+        isDopaminePaydayOpen,
+        setIsDopaminePaydayOpen,
+        dopaminePaydayStaffId,
+        openDopaminePayday,
+        closeDopaminePayday,
       }}
     >
       {children}

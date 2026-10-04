@@ -170,6 +170,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
     payrollSettings,
     calculateStaffSalarySlip,
     setIsAttendanceModalOpen,
+    openDopaminePayday,
   } = useApp();
 
   // Add Worker Modal State
@@ -2298,17 +2299,29 @@ Konsultasi Admin WA: 081228263200`;
                           Rp {slip.netTakeHomePay.toLocaleString('id-ID')}
                         </td>
                         <td className="p-3 text-center">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedSlipStaffId(u.id);
-                              setIsSalarySlipModalOpen(true);
-                            }}
-                            className="px-2.5 py-1 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 font-bold text-[11px] border border-emerald-500/30 transition-all flex items-center gap-1 mx-auto"
-                          >
-                            <FileText className="w-3.5 h-3.5" />
-                            <span>Slip Gaji</span>
-                          </button>
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedSlipStaffId(u.id);
+                                setIsSalarySlipModalOpen(true);
+                              }}
+                              className="px-2 py-1 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 font-bold text-[10px] border border-emerald-500/30 transition-all flex items-center gap-1"
+                              title="Lihat & Cetak Slip Gaji"
+                            >
+                              <FileText className="w-3 h-3" />
+                              <span>Slip</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => openDopaminePayday(u.id)}
+                              className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-amber-500 to-emerald-500 hover:from-amber-400 hover:to-emerald-400 text-slate-950 font-black text-[10px] shadow-glow-amber transition-all flex items-center gap-1 animate-pulse"
+                              title="Bayar Gaji & Buka Sensasi Dopamine Maxwin"
+                            >
+                              <Coins className="w-3 h-3 text-slate-950" />
+                              <span>🎰 Bayar Cuan!</span>
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -2419,6 +2432,18 @@ Konsultasi Admin WA: 081228263200`;
                       </div>
 
                       {/* Modal Actions */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsSalarySlipModalOpen(false);
+                          openDopaminePayday(selectedSlipStaffId);
+                        }}
+                        className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-400 to-emerald-500 hover:from-amber-400 hover:to-emerald-400 text-slate-950 font-black text-xs shadow-glow-amber transition-all flex items-center justify-center gap-2 animate-pulse"
+                      >
+                        <Coins className="w-4 h-4 text-slate-950" />
+                        <span>🎰 Cairkan Gaji & Kirim Sensasi Dopamine Cuan ke Staf! 💸</span>
+                      </button>
+
                       <div className="flex gap-2">
                         <button
                           type="button"

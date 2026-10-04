@@ -46,7 +46,12 @@ export const ProduksiKanban: React.FC<ProduksiKanbanProps> = ({ currentSubTab = 
     claimStationTask,
     unclaimStationTask,
     openTrackingModal,
+    openDopaminePayday,
+    calculateStaffSalarySlip,
+    setIsAttendanceModalOpen,
   } = useApp();
+
+  const mySlip = calculateStaffSalarySlip(currentUser.id);
 
   const [activeTab, setActiveTab] = useState<'kanban' | 'iot' | 'productivity'>(
     currentSubTab === 'prod-iot' ? 'iot' : currentSubTab === 'prod-productivity' ? 'productivity' : 'kanban'
@@ -198,6 +203,14 @@ export const ProduksiKanban: React.FC<ProduksiKanbanProps> = ({ currentSubTab = 
           >
             <WashingMachine className="w-4 h-4 text-cyan-400" />
             <span>Panel Kontrol IoT Mesin ({machines.filter((m) => m.status === 'running').length} ON)</span>
+          </button>
+          <button
+            onClick={() => openDopaminePayday(currentUser.id)}
+            className="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 bg-gradient-to-r from-amber-500 via-yellow-400 to-emerald-500 hover:from-amber-400 hover:to-emerald-400 text-slate-950 shadow-glow-amber animate-pulse"
+            title="Lihat Dompet Komisi & Sensasi Dopamine Gaji"
+          >
+            <Coins className="w-4 h-4 text-slate-950" />
+            <span>Dompet: Rp {mySlip.netTakeHomePay.toLocaleString('id-ID')}</span>
           </button>
         </div>
 

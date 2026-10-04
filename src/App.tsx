@@ -20,6 +20,7 @@ import { TutorialGuideBanner } from './components/TutorialGuideBanner';
 import { OrderStatusModal } from './components/OrderStatusModal';
 import { QrScannerModal } from './components/QrScannerModal';
 import { StaffAttendanceModal } from './components/StaffAttendanceModal';
+import { DopaminePaydayModal } from './components/DopaminePaydayModal';
 
 const MainLayout: React.FC = () => {
   const {
@@ -38,6 +39,9 @@ const MainLayout: React.FC = () => {
     setIsQrScannerOpen,
     isAttendanceModalOpen,
     setIsAttendanceModalOpen,
+    isDopaminePaydayOpen,
+    closeDopaminePayday,
+    dopaminePaydayStaffId,
   } = useApp();
 
   // Active sub-tab state for Desktop Sidebar
@@ -286,6 +290,13 @@ const MainLayout: React.FC = () => {
       <StaffAttendanceModal
         isOpen={isAttendanceModalOpen}
         onClose={() => setIsAttendanceModalOpen(false)}
+      />
+
+      {/* Dopamine Payday Jackpot Experience Modal */}
+      <DopaminePaydayModal
+        isOpen={isDopaminePaydayOpen}
+        onClose={closeDopaminePayday}
+        staffId={dopaminePaydayStaffId}
       />
     </div>
   );

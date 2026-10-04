@@ -18,6 +18,12 @@ import {
   FileText,
   User,
   Coffee,
+  Navigation,
+  Compass,
+  Radio,
+  RotateCcw,
+  RefreshCw,
+  Flame,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { StaffAttendance } from '../types';
@@ -27,6 +33,29 @@ interface StaffAttendanceModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
+
+// Outlet Geofence Coordinates per Branch
+const OUTLET_COORDINATES: Record<string, { name: string; lat: number; lng: number }> = {
+  'br-kemang': { name: 'Outlet Workshop Kemang (HQ)', lat: -6.260718, lng: 106.815610 },
+  'br-tebet': { name: 'Outlet Tebet Express Hub', lat: -6.226830, lng: 106.858200 },
+  'br-bintaro': { name: 'Outlet Bintaro Sektor 9', lat: -6.281850, lng: 106.721400 },
+};
+
+// Haversine Distance Formula in Meters
+const calculateDistanceMeters = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const R = 6371e3; // Earth radius in metres
+  const phi1 = (lat1 * Math.PI) / 180;
+  const phi2 = (lat2 * Math.PI) / 180;
+  const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
+  const deltaLambda = ((lon2 - lon1) * Math.PI) / 180;
+
+  const a =
+    Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+    Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return Math.round(R * c);
+};
 
 export const StaffAttendanceModal: React.FC<StaffAttendanceModalProps> = ({ isOpen, onClose }) => {
   const {
@@ -40,6 +69,8 @@ export const StaffAttendanceModal: React.FC<StaffAttendanceModalProps> = ({ isOp
     recordClockOut,
     recordAbsence,
     calculateStaffSalarySlip,
+    openDopaminePayday,
+    currentBranchId,
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'absen' | 'riwayat' | 'aturan'>('absen');
@@ -50,6 +81,18 @@ export const StaffAttendanceModal: React.FC<StaffAttendanceModalProps> = ({ isOp
   const [currentTime, setCurrentTime] = useState<string>('');
   const [currentDate, setCurrentDate] = useState<string>('');
 
+  // GPS Geolocation States
+  const [gpsMode, setGpsMode] = useState<'device' | 'simulated_in' | 'simulated_out'>('simulated_in');
+  const [gpsStatus, setGpsStatus] = useState<'locating' | 'valid' | 'out_of_range' | 'denied' | 'error'>('valid');
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number; accuracy: number }>({
+    lat: -6.260760,
+    lng: 106.815660,
+    accuracy: 4,
+  });
+  const [distanceMeters, setDistanceMeters] = useState<number>(8);
+  const [isLocating, setIsLocating] = useState<boolean>(false);
+  const [ownerOverrideGps, setOwnerOverrideGps] = useState<boolean>(false);
+
   // Editable settings for owner
   const [baseSalaryInput, setBaseSalaryInput] = useState<number>(payrollSettings.dailyBaseSalary);
   const [absenceDeductionInput, setAbsenceDeductionInput] = useState<number>(payrollSettings.absenceDeductionPerDay);
@@ -57,6 +100,12 @@ export const StaffAttendanceModal: React.FC<StaffAttendanceModalProps> = ({ isOp
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+
+  // Target Outlet for Geofencing
+  const targetOutlet =
+    OUTLET_COORDINATES[currentUser.branchId] ||
+    OUTLET_COORDINATES[currentBranchId] ||
+    OUTLET_COORDINATES['br-kemang'];
 
   // Live clock
   useEffect(() => {
@@ -81,6 +130,77 @@ export const StaffAttendanceModal: React.FC<StaffAttendanceModalProps> = ({ isOp
   useEffect(() => {
     setSelectedStaffId(currentUser.id);
   }, [currentUser.id]);
+
+  // Recalculate distance whenever mode or target outlet changes
+  const updateGpsLocation = (mode: 'device' | 'simulated_in' | 'simulated_out') => {
+    setGpsMode(mode);
+
+    if (mode === 'simulated_in') {
+      const simulatedLat = targetOutlet.lat + 0.00004;
+      const simulatedLng = targetOutlet.lng + 0.00003;
+      const dist = calculateDistanceMeters(simulatedLat, simulatedLng, targetOutlet.lat, targetOutlet.lng);
+      setUserCoords({ lat: simulatedLat, lng: simulatedLng, accuracy: 4 });
+      setDistanceMeters(dist || 6);
+      setGpsStatus('valid');
+      setIsLocating(false);
+    } else if (mode === 'simulated_out') {
+      const simulatedLat = targetOutlet.lat + 0.0042;
+      const simulatedLng = targetOutlet.lng + 0.0035;
+      const dist = calculateDistanceMeters(simulatedLat, simulatedLng, targetOutlet.lat, targetOutlet.lng);
+      setUserCoords({ lat: simulatedLat, lng: simulatedLng, accuracy: 14 });
+      setDistanceMeters(dist || 520);
+      setGpsStatus('out_of_range');
+      setIsLocating(false);
+    } else if (mode === 'device') {
+      fetchRealDeviceGps();
+    }
+  };
+
+  const fetchRealDeviceGps = () => {
+    if (typeof window === 'undefined' || !navigator.geolocation) {
+      setGpsStatus('error');
+      alert('Browser atau perangkat ini tidak mendukung sensor GPS Geolocation.');
+      return;
+    }
+
+    setIsLocating(true);
+    setGpsStatus('locating');
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        const acc = Math.round(pos.coords.accuracy);
+        const dist = calculateDistanceMeters(lat, lng, targetOutlet.lat, targetOutlet.lng);
+
+        setUserCoords({ lat, lng, accuracy: acc });
+        setDistanceMeters(dist);
+        setIsLocating(false);
+
+        if (dist <= 50) {
+          setGpsStatus('valid');
+        } else {
+          setGpsStatus('out_of_range');
+        }
+      },
+      (err) => {
+        setIsLocating(false);
+        console.warn('GPS Geolocation error:', err);
+        if (err.code === 1) {
+          setGpsStatus('denied');
+          alert('Izin akses lokasi GPS ditolak oleh browser. Silakan aktifkan izin lokasi di pengaturan browser.');
+        } else {
+          setGpsStatus('error');
+          alert('Gagal mendeteksi sinyal GPS satelit. Menggunakan mode simulasi outlet.');
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
+  };
 
   // Camera handling for selfie
   const startCamera = async () => {
@@ -137,8 +257,31 @@ export const StaffAttendanceModal: React.FC<StaffAttendanceModalProps> = ({ isOp
   const todayRecord = attendances.find((a) => a.userId === activeStaff.id && a.date === todayStr);
   const salarySlip = calculateStaffSalarySlip(activeStaff.id);
 
+  const isGpsValid = distanceMeters <= 50;
+  const canClockIn = isGpsValid || (currentRole === 'owner' && ownerOverrideGps);
+
   const handleClockIn = () => {
-    const res = recordClockIn(activeStaff.id, capturedPhoto || undefined, notes);
+    if (!canClockIn) {
+      alert(
+        `Lokasi GPS Ditolak: Anda berjarak ${distanceMeters} meter dari outlet ${targetOutlet.name}! Batas radius adalah 50 meter.`
+      );
+      return;
+    }
+
+    const res = recordClockIn(
+      activeStaff.id,
+      capturedPhoto || undefined,
+      notes,
+      {
+        latitude: userCoords.lat,
+        longitude: userCoords.lng,
+        distanceMeters,
+        gpsAccuracy: userCoords.accuracy,
+        isGpsVerified: isGpsValid,
+        locationAddress: `${targetOutlet.name} (GPS ${distanceMeters}m - ${isGpsValid ? 'Valid' : 'Bypass Owner'})`,
+      }
+    );
+
     if (!res.success) {
       alert(res.message);
     } else {
@@ -175,13 +318,14 @@ export const StaffAttendanceModal: React.FC<StaffAttendanceModalProps> = ({ isOp
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-bold text-lg leading-tight">Absen Online & Slip Gaji Borongan</h3>
-                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-white/20 text-emerald-100">
-                  Live GPS Verified
+                <h3 className="font-bold text-lg leading-tight">Absen Online GPS & Slip Gaji Borongan</h3>
+                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-white/20 text-emerald-100 flex items-center gap-1">
+                  <Navigation className="w-3 h-3" />
+                  Live Satelit GPS
                 </span>
               </div>
               <p className="text-xs text-emerald-100">
-                Pencatatan kehadiran, potongan tidak masuk, & kalkulasi komisi per stasiun nota
+                Pencatatan presensi radius 50m outlet, denda alpha/telat, & komisi borongan 5 stasiun
               </p>
             </div>
           </div>
@@ -263,7 +407,7 @@ export const StaffAttendanceModal: React.FC<StaffAttendanceModalProps> = ({ isOp
                 </div>
               )}
 
-              {/* Live Clock Card */}
+              {/* Live Clock & Worker Card */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="md:col-span-2 p-5 bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl text-white shadow-lg relative overflow-hidden flex flex-col justify-between">
                   <div className="flex items-center justify-between">
@@ -274,11 +418,17 @@ export const StaffAttendanceModal: React.FC<StaffAttendanceModalProps> = ({ isOp
                       </h2>
                     </div>
                     <div className="text-right">
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                        <MapPin className="w-3.5 h-3.5 text-emerald-400" />
-                        Radius GPS: Valid (8m)
+                      <span
+                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border transition-all ${
+                          isGpsValid
+                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                            : 'bg-rose-500/20 text-rose-300 border-rose-500/30 animate-pulse'
+                        }`}
+                      >
+                        <MapPin className="w-3.5 h-3.5" />
+                        Radius GPS: {isGpsValid ? `Valid (${distanceMeters}m)` : `Luar Area (${distanceMeters}m)`}
                       </span>
-                      <p className="text-[11px] text-slate-400 mt-1">Outlet Workshop Kemang</p>
+                      <p className="text-[11px] text-slate-400 mt-1">{targetOutlet.name}</p>
                     </div>
                   </div>
 
@@ -325,10 +475,10 @@ export const StaffAttendanceModal: React.FC<StaffAttendanceModalProps> = ({ isOp
                   </div>
                 </div>
 
-                {/* Quick Monthly Take-Home Pay Preview */}
+                {/* Quick Monthly Take-Home Pay Preview with Dopamine Trigger */}
                 <div className="p-4 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-slate-800 dark:to-slate-800/60 rounded-3xl border border-emerald-100 dark:border-slate-700 flex flex-col justify-between">
                   <div>
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center justify-between mb-1">
                       <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
                         <TrendingUp className="w-3.5 h-3.5" />
                         Slip Gaji Borongan
@@ -338,34 +488,182 @@ export const StaffAttendanceModal: React.FC<StaffAttendanceModalProps> = ({ isOp
                     <div className="text-2xl font-black text-slate-900 dark:text-white">
                       Rp {salarySlip.netTakeHomePay.toLocaleString('id-ID')}
                     </div>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
                       Estimasi bersih setelah potongan & borongan
                     </p>
                   </div>
 
-                  <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700 text-xs space-y-1">
+                  <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700 text-[11px] space-y-1">
                     <div className="flex justify-between text-slate-600 dark:text-slate-300">
                       <span>Gaji Pokok ({salarySlip.daysPresent}x hadir):</span>
                       <span className="font-semibold">Rp {salarySlip.baseSalaryTotal.toLocaleString('id-ID')}</span>
                     </div>
                     <div className="flex justify-between text-teal-600 dark:text-teal-400 font-medium">
-                      <span>Komisi Borongan Stasiun:</span>
+                      <span>Borongan 5 Stasiun:</span>
                       <span className="font-bold">+Rp {salarySlip.totalStationEarnings.toLocaleString('id-ID')}</span>
                     </div>
-                    {salarySlip.absenceDeductionsTotal > 0 && (
-                      <div className="flex justify-between text-rose-500 font-medium">
-                        <span>Potongan Alpha ({salarySlip.daysAbsent}x):</span>
-                        <span className="font-bold">-Rp {salarySlip.absenceDeductionsTotal.toLocaleString('id-ID')}</span>
-                      </div>
-                    )}
-                    {salarySlip.lateDeductionsTotal > 0 && (
-                      <div className="flex justify-between text-amber-500 font-medium">
-                        <span>Potongan Terlambat ({salarySlip.daysLate}x):</span>
-                        <span className="font-bold">-Rp {salarySlip.lateDeductionsTotal.toLocaleString('id-ID')}</span>
+                    {salarySlip.customerTipsTotal > 0 && (
+                      <div className="flex justify-between text-pink-600 dark:text-pink-400 font-medium">
+                        <span>Tip Pelanggan:</span>
+                        <span className="font-bold">+Rp {salarySlip.customerTipsTotal.toLocaleString('id-ID')}</span>
                       </div>
                     )}
                   </div>
+
+                  {/* Dopamine Payday Button */}
+                  <button
+                    onClick={() => openDopaminePayday(activeStaff.id)}
+                    className="mt-3 w-full py-2.5 px-3 bg-gradient-to-r from-amber-500 via-yellow-400 to-emerald-500 hover:from-amber-400 hover:to-emerald-400 text-slate-950 font-black text-xs rounded-2xl shadow-glow-amber transition-all flex items-center justify-center gap-1.5 animate-pulse"
+                  >
+                    <span>🎰 Sensasi Gaji Dopamine Cuan!</span>
+                    <Sparkles className="w-3.5 h-3.5 text-slate-950" />
+                  </button>
                 </div>
+              </div>
+
+              {/* Real GPS Geolocation & Radar Card */}
+              <div
+                className={`p-4 rounded-3xl border transition-all ${
+                  isGpsValid
+                    ? 'bg-emerald-50/70 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800'
+                    : 'bg-rose-50/80 dark:bg-rose-950/20 border-rose-300 dark:border-rose-800'
+                }`}
+              >
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-700/60">
+                  <div className="flex items-center gap-2.5">
+                    <div
+                      className={`p-2 rounded-xl relative ${
+                        isGpsValid ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'
+                      }`}
+                    >
+                      <Navigation className="w-4 h-4" />
+                      <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-yellow-400 animate-ping" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                        <span>Verifikasi Titik Lokasi GPS Geofencing</span>
+                        <span
+                          className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full ${
+                            isGpsValid
+                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200'
+                              : 'bg-rose-100 text-rose-800 dark:bg-rose-900/60 dark:text-rose-200'
+                          }`}
+                        >
+                          {isGpsValid ? '● DALAM RADIUS OUTLET (VALID)' : '● DI LUAR RADIUS (TERTOLAK)'}
+                        </span>
+                      </h4>
+                      <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5">
+                        Target: <span className="font-semibold">{targetOutlet.name}</span> • Toleransi: Maksimal 50 Meter
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Mode GPS Selector (Satelit Asli vs Simulasi Toko vs Luar Toko) */}
+                  <div className="flex items-center gap-1.5 flex-wrap self-end sm:self-auto">
+                    <button
+                      type="button"
+                      onClick={() => updateGpsLocation('simulated_in')}
+                      className={`px-2.5 py-1 rounded-xl text-[10px] font-bold transition-all ${
+                        gpsMode === 'simulated_in'
+                          ? 'bg-emerald-600 text-white shadow'
+                          : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
+                      }`}
+                      title="Simulasi staf berada tepat di dalam toko laundry (8m)"
+                    >
+                      🟢 Demo: Di Toko (8m)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => updateGpsLocation('simulated_out')}
+                      className={`px-2.5 py-1 rounded-xl text-[10px] font-bold transition-all ${
+                        gpsMode === 'simulated_out'
+                          ? 'bg-rose-600 text-white shadow'
+                          : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
+                      }`}
+                      title="Simulasi staf mencoba absen dari luar area / rumah (480m)"
+                    >
+                      🔴 Demo: Luar (480m)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => updateGpsLocation('device')}
+                      className={`px-2.5 py-1 rounded-xl text-[10px] font-bold transition-all flex items-center gap-1 ${
+                        gpsMode === 'device'
+                          ? 'bg-cyan-600 text-white shadow'
+                          : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
+                      }`}
+                      title="Gunakan koordinat satelit GPS asli dari perangkat HP / Laptop"
+                    >
+                      <Radio className={`w-3 h-3 ${isLocating ? 'animate-spin' : ''}`} />
+                      <span>🛰️ Satelit Asli</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Radar Metrics & Coordinates Bar */}
+                <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                  <div className="p-2.5 rounded-2xl bg-white/70 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700/60">
+                    <p className="text-[10px] text-slate-500 uppercase font-bold">Jarak ke Outlet</p>
+                    <div className="flex items-baseline gap-1 mt-0.5">
+                      <span
+                        className={`text-xl font-black font-mono ${
+                          isGpsValid ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+                        }`}
+                      >
+                        {distanceMeters}
+                      </span>
+                      <span className="text-xs text-slate-500 font-semibold">meter (Maks: 50m)</span>
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 rounded-2xl bg-white/70 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700/60">
+                    <p className="text-[10px] text-slate-500 uppercase font-bold">Koordinat Satelit Perangkat</p>
+                    <p className="text-[11px] font-mono font-bold text-slate-800 dark:text-slate-200 mt-0.5 truncate">
+                      {userCoords.lat.toFixed(6)}, {userCoords.lng.toFixed(6)}
+                    </p>
+                    <p className="text-[9px] text-slate-400">Akurasi Sinyal: ±{userCoords.accuracy} meter</p>
+                  </div>
+
+                  <div className="p-2.5 rounded-2xl bg-white/70 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700/60 flex flex-col justify-between">
+                    <p className="text-[10px] text-slate-500 uppercase font-bold">Status Geofence Toko</p>
+                    <div className="flex items-center justify-between mt-0.5">
+                      <span
+                        className={`text-xs font-bold ${
+                          isGpsValid ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+                        }`}
+                      >
+                        {isGpsValid ? '✓ Berada di Toko' : '✗ Terlalu Jauh'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => updateGpsLocation(gpsMode)}
+                        className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-500"
+                        title="Perbarui Sinyal GPS"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 ${isLocating ? 'animate-spin' : ''}`} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Owner Override Option if outside area */}
+                {!isGpsValid && currentRole === 'owner' && (
+                  <div className="mt-2.5 p-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-800 rounded-xl flex items-center justify-between text-xs text-amber-900 dark:text-amber-200">
+                    <span className="flex items-center gap-1.5 font-medium">
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Owner Mode: Izinkan absen darurat di luar radius GPS?</span>
+                    </span>
+                    <label className="flex items-center gap-1.5 font-bold cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={ownerOverrideGps}
+                        onChange={(e) => setOwnerOverrideGps(e.target.checked)}
+                        className="rounded text-emerald-600 focus:ring-emerald-500"
+                      />
+                      <span>Bypass GPS</span>
+                    </label>
+                  </div>
+                )}
               </div>
 
               {/* Action Buttons & Selfie Verification Section */}
@@ -424,11 +722,23 @@ export const StaffAttendanceModal: React.FC<StaffAttendanceModalProps> = ({ isOp
                     <div className="flex flex-wrap gap-3">
                       <button
                         onClick={handleClockIn}
-                        disabled={!!todayRecord && todayRecord.clockInTime !== '-'}
-                        className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-2xl font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2"
+                        disabled={(!canClockIn && !todayRecord) || (!!todayRecord && todayRecord.clockInTime !== '-')}
+                        className={`flex-1 py-3 px-4 rounded-2xl font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2 ${
+                          todayRecord && todayRecord.clockInTime !== '-'
+                            ? 'bg-slate-400 text-white cursor-not-allowed'
+                            : !canClockIn
+                            ? 'bg-rose-600/70 text-white cursor-not-allowed hover:bg-rose-600'
+                            : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                        }`}
                       >
                         <UserCheck className="w-4 h-4" />
-                        <span>{todayRecord ? 'Sudah Absen Masuk' : 'Absen Masuk Sekarang'}</span>
+                        <span>
+                          {todayRecord && todayRecord.clockInTime !== '-'
+                            ? 'Sudah Absen Masuk Hari Ini'
+                            : !canClockIn
+                            ? `Di Luar Radius GPS (${distanceMeters}m > 50m)`
+                            : 'Absen Masuk Sekarang'}
+                        </span>
                       </button>
 
                       <button
@@ -442,7 +752,7 @@ export const StaffAttendanceModal: React.FC<StaffAttendanceModalProps> = ({ isOp
                     </div>
 
                     <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                      * Toleransi keterlambatan pukul 08:15 WIB. Melebihi jam tersebut dikenakan potongan keterlambatan otomatis.
+                      * Toleransi keterlambatan pukul 08:15 WIB. Radius geofence GPS wajib berada &lt; 50m dari outlet.
                     </p>
                   </div>
                 </div>
@@ -450,13 +760,13 @@ export const StaffAttendanceModal: React.FC<StaffAttendanceModalProps> = ({ isOp
             </div>
           )}
 
-          {/* TAB 2: RIWAYAT & LOG KEHADIRAN */}
+          {/* TAB 2: RIWAYAT & LOG KEHADIRAN DENGAN GPS BADGE */}
           {activeTab === 'riwayat' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h4 className="font-bold text-sm text-slate-800 dark:text-slate-100 flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-emerald-600" />
-                  Daftar Presensi Karyawan LaundryHub
+                  Daftar Presensi Karyawan LaundryHub (GPS Terverifikasi)
                 </h4>
                 {currentRole === 'owner' && (
                   <button
@@ -485,6 +795,7 @@ export const StaffAttendanceModal: React.FC<StaffAttendanceModalProps> = ({ isOp
                       <th className="p-3">Jam Masuk</th>
                       <th className="p-3">Jam Pulang</th>
                       <th className="p-3">Status</th>
+                      <th className="p-3">Lokasi GPS</th>
                       <th className="p-3">Foto Bukti</th>
                       <th className="p-3">Keterangan</th>
                     </tr>
@@ -512,6 +823,18 @@ export const StaffAttendanceModal: React.FC<StaffAttendanceModalProps> = ({ isOp
                             }`}
                           >
                             {item.status}
+                          </span>
+                        </td>
+                        <td className="p-3">
+                          <span
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                              item.isGpsVerified !== false
+                                ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300/40'
+                                : 'bg-rose-50 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-300/40'
+                            }`}
+                          >
+                            <MapPin className="w-2.5 h-2.5" />
+                            <span>{item.distanceMeters ? `${item.distanceMeters}m` : '8m'} GPS</span>
                           </span>
                         </td>
                         <td className="p-3">

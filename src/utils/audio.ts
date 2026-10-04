@@ -250,6 +250,97 @@ class SoundEngine {
       // ignore
     }
   }
+
+  /**
+   * Cascading Coin Shower & Money Rain for Payday
+   */
+  public playPaydayCoinShower() {
+    if (!this.isEnabled) return;
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    try {
+      const now = ctx.currentTime;
+
+      // Bass boom to start the payday
+      const sub = ctx.createOscillator();
+      const subGain = ctx.createGain();
+      sub.type = 'sine';
+      sub.frequency.setValueAtTime(120, now);
+      sub.frequency.exponentialRampToValueAtTime(45, now + 0.35);
+      subGain.gain.setValueAtTime(0.4, now);
+      subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      sub.connect(subGain);
+      subGain.connect(ctx.destination);
+      sub.start(now);
+      sub.stop(now + 0.35);
+
+      // Cascading 14 coin clinks (staggered pitch & timing)
+      const pitches = [1975, 2349, 2637, 2093, 2793, 3135, 2349, 2637, 3520, 2093, 3135, 2637, 3951, 4186];
+      pitches.forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        const t = now + 0.08 + idx * 0.07;
+        osc.frequency.setValueAtTime(freq, t);
+
+        gain.gain.setValueAtTime(0.2, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(t);
+        osc.stop(t + 0.18);
+      });
+
+      // Triple cash register bells
+      [0.25, 0.6, 1.0].forEach((delay) => {
+        const bell = ctx.createOscillator();
+        const bGain = ctx.createGain();
+        bell.type = 'sine';
+        bell.frequency.setValueAtTime(1318.51, now + delay);
+        bGain.gain.setValueAtTime(0.25, now + delay);
+        bGain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.4);
+        bell.connect(bGain);
+        bGain.connect(ctx.destination);
+        bell.start(now + delay);
+        bell.stop(now + delay + 0.4);
+      });
+    } catch {
+      // ignore
+    }
+  }
+
+  /**
+   * Slot Sirens / High Dopamine Alarm
+   */
+  public playJackpotSirens() {
+    if (!this.isEnabled) return;
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    try {
+      const now = ctx.currentTime;
+      for (let i = 0; i < 4; i++) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const t = now + i * 0.15;
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(i % 2 === 0 ? 880 : 1320, t);
+        osc.frequency.exponentialRampToValueAtTime(i % 2 === 0 ? 1100 : 1760, t + 0.12);
+
+        gain.gain.setValueAtTime(0.12, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(t);
+        osc.stop(t + 0.12);
+      }
+    } catch {
+      // ignore
+    }
+  }
 }
 
 export const soundEngine = new SoundEngine();
