@@ -453,7 +453,7 @@ Konsultasi Admin WA: 081228263200`;
     <div className="space-y-6">
       {/* Top Owner Header & Sub-nav */}
       <div className="flex items-center justify-between gap-4 border-b border-slate-800 pb-3 flex-wrap">
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar flex-nowrap md:flex-wrap pb-1 max-w-full">
           <button
             onClick={() => setActiveTab('overview')}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${

@@ -7,6 +7,7 @@ export interface Branch {
   phone: string;
   code: string;
   isPusat?: boolean;
+  image?: string;
 }
 
 export interface User {

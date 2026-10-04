@@ -1,91 +1,113 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
 import {
-  TrendingUp,
-  ShoppingCart,
-  LayoutDashboard,
-  Bike,
-  Sparkles,
-  Package,
-  FileText,
-  WashingMachine,
-  MapPin,
-  Wallet,
   BarChart3,
+  Users,
+  WashingMachine,
+  ShoppingCart,
+  Settings,
 } from 'lucide-react';
 
+export type MobileTab = 'stats' | 'staff' | 'progress' | 'kasir' | 'settings';
+
 interface BottomNavProps {
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
+  activeMobileTab: MobileTab;
+  setActiveMobileTab: (tab: MobileTab) => void;
+  // Backward compatibility
+  activeTab?: string;
+  setActiveTab?: (tab: string) => void;
 }
 
-export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab }) => {
-  const { currentRole } = useApp();
+export const BottomNav: React.FC<BottomNavProps> = ({
+  activeMobileTab,
+  setActiveMobileTab,
+}) => {
+  const { orders } = useApp();
 
-  const getMobileTabs = () => {
-    switch (currentRole) {
-      case 'owner':
-        return [
-          { id: 'owner-overview', label: 'Overview', icon: <TrendingUp className="w-5 h-5" /> },
-          { id: 'owner-stats', label: 'Statistik', icon: <BarChart3 className="w-5 h-5" /> },
-          { id: 'owner-branches', label: 'Cabang', icon: <FileText className="w-5 h-5" /> },
-          { id: 'owner-inventory', label: 'Stok', icon: <Package className="w-5 h-5" /> },
-        ];
-      case 'agen':
-        return [
-          { id: 'agen-pos', label: 'POS Agen', icon: <ShoppingCart className="w-5 h-5" /> },
-          { id: 'agen-manifest', label: 'Manifest', icon: <Package className="w-5 h-5" /> },
-          { id: 'agen-wallet', label: 'Komisi', icon: <Wallet className="w-5 h-5" /> },
-        ];
-      case 'kasir':
-        return [
-          { id: 'kasir-pos', label: 'POS Kasir', icon: <ShoppingCart className="w-5 h-5" /> },
-          { id: 'kasir-orders', label: 'Transaksi', icon: <FileText className="w-5 h-5" /> },
-          { id: 'kasir-customers', label: 'Member', icon: <Wallet className="w-5 h-5" /> },
-        ];
-      case 'produksi':
-        return [
-          { id: 'prod-kanban', label: 'Kanban', icon: <LayoutDashboard className="w-5 h-5" /> },
-          { id: 'prod-iot', label: 'Mesin IoT', icon: <WashingMachine className="w-5 h-5" /> },
-          { id: 'prod-productivity', label: 'Produktivitas', icon: <TrendingUp className="w-5 h-5" /> },
-        ];
-      case 'kurir':
-        return [
-          { id: 'kurir-tasks', label: 'Tugas', icon: <Bike className="w-5 h-5" /> },
-          { id: 'kurir-map', label: 'Rute', icon: <MapPin className="w-5 h-5" /> },
-          { id: 'kurir-history', label: 'Riwayat', icon: <FileText className="w-5 h-5" /> },
-        ];
-      case 'pelanggan':
-        return [
-          { id: 'cust-tracking', label: 'Lacak', icon: <Sparkles className="w-5 h-5" /> },
-          { id: 'cust-wallet', label: 'Dompet', icon: <Wallet className="w-5 h-5" /> },
-          { id: 'cust-history', label: 'Nota', icon: <FileText className="w-5 h-5" /> },
-          { id: 'cust-pickup-request', label: 'Jemput', icon: <Bike className="w-5 h-5" /> },
-        ];
-      default:
-        return [];
-    }
-  };
+  const activeOrdersCount = orders.filter((o) => o.currentStatus !== 'selesai').length;
 
-  const tabs = getMobileTabs();
+  const tabs: {
+    id: MobileTab;
+    label: string;
+    icon: React.ReactNode;
+    badge?: number | string;
+    badgeColor?: string;
+  }[] = [
+    {
+      id: 'stats',
+      label: 'Statistik',
+      icon: <BarChart3 className="w-5 h-5" />,
+    },
+    {
+      id: 'staff',
+      label: 'Karyawan',
+      icon: <Users className="w-5 h-5" />,
+    },
+    {
+      id: 'progress',
+      label: 'Progress',
+      icon: <WashingMachine className="w-5 h-5" />,
+      badge: activeOrdersCount > 0 ? activeOrdersCount : undefined,
+      badgeColor: 'bg-orange-500 text-white',
+    },
+    {
+      id: 'kasir',
+      label: 'Kasir POS',
+      icon: <ShoppingCart className="w-5 h-5" />,
+    },
+    {
+      id: 'settings',
+      label: 'Setting',
+      icon: <Settings className="w-5 h-5" />,
+    },
+  ];
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 border-t border-slate-800 backdrop-blur-lg px-2 py-2">
-      <div className="flex items-center justify-around">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 border-t border-slate-800/90 backdrop-blur-xl px-2 py-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.5)]">
+      <div className="flex items-center justify-around max-w-lg mx-auto">
         {tabs.map((tab) => {
-          const isActive = activeTab === tab.id;
+          const isActive = activeMobileTab === tab.id;
           return (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all ${
+              onClick={() => setActiveMobileTab(tab.id)}
+              className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-2xl transition-all duration-200 relative select-none active:scale-95 ${
                 isActive
-                  ? 'text-cyan-400 font-bold scale-105'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'text-cyan-400 font-extrabold'
+                  : 'text-slate-400 hover:text-slate-200 font-medium'
               }`}
             >
-              {tab.icon}
-              <span className="text-[10px] mt-1">{tab.label}</span>
+              {/* Icon Container with Badge */}
+              <div className="relative">
+                <div
+                  className={`transition-all duration-200 ${
+                    isActive ? 'scale-110 drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]' : ''
+                  }`}
+                >
+                  {tab.icon}
+                </div>
+
+                {/* Badge if available */}
+                {tab.badge !== undefined && (
+                  <span
+                    className={`absolute -top-1.5 -right-2 px-1.5 py-0.2 min-w-[16px] text-[9px] font-black rounded-full flex items-center justify-center shadow-md animate-pulse ${
+                      tab.badgeColor || 'bg-cyan-500 text-slate-950'
+                    }`}
+                  >
+                    {tab.badge}
+                  </span>
+                )}
+              </div>
+
+              {/* Label */}
+              <span className={`text-[10px] mt-1 leading-tight tracking-tight ${isActive ? 'text-cyan-300' : 'text-slate-400'}`}>
+                {tab.label}
+              </span>
+
+              {/* Active Indicator bar */}
+              {isActive && (
+                <div className="w-4 h-1 bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 rounded-full mt-0.5 shadow-glow-cyan animate-in fade-in zoom-in-50 duration-200" />
+              )}
             </button>
           );
         })}

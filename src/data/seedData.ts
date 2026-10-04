@@ -23,6 +23,7 @@ export const INITIAL_BRANCHES: Branch[] = [
     phone: '0812-8899-7701',
     code: 'KMG',
     isPusat: true,
+    image: 'https://images.unsplash.com/photo-1545173168-9f1947eebb7f?auto=format&fit=crop&w=300&q=80',
   },
   {
     id: 'br-bintaro',
@@ -31,6 +32,7 @@ export const INITIAL_BRANCHES: Branch[] = [
     phone: '0812-8899-7702',
     code: 'BTR',
     isPusat: false,
+    image: 'https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?auto=format&fit=crop&w=300&q=80',
   },
   {
     id: 'br-tebet',
@@ -39,6 +41,7 @@ export const INITIAL_BRANCHES: Branch[] = [
     phone: '0812-8899-7703',
     code: 'TBT',
     isPusat: false,
+    image: 'https://images.unsplash.com/photo-1521656693074-0ef32e80a5d5?auto=format&fit=crop&w=300&q=80',
   },
 ];
 

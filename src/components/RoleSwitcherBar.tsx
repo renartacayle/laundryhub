@@ -91,7 +91,7 @@ export const RoleSwitcherBar: React.FC = () => {
 
   return (
     <>
-      <div className="w-full bg-slate-900/95 border-b border-slate-800/80 backdrop-blur-md px-2 sm:px-3 py-1 sm:py-1.5 sticky top-0 z-40 overflow-hidden">
+      <div className="hidden md:block w-full bg-slate-900/95 border-b border-slate-800/80 backdrop-blur-md px-2 sm:px-3 py-1 sm:py-1.5 sticky top-0 z-40 overflow-hidden">
       <div className="max-w-7xl mx-auto flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar scroll-smooth flex-nowrap py-0.5">
         {/* Google Auth button in switcher */}
         <button

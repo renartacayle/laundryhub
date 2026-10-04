@@ -22,12 +22,14 @@ import {
   Download,
   HelpCircle,
   Menu,
+  Store,
 } from 'lucide-react';
 import { CoinTopupModal } from './CoinTopupModal';
 import { IotMachineControlModal } from './IotMachineControlModal';
 import { LandingPageModal } from './LandingPageModal';
 import { CommandPaletteModal } from './CommandPaletteModal';
 import { GoogleAuthModal } from './GoogleAuthModal';
+import { BranchSwitcherModal } from './BranchSwitcherModal';
 
 export const Navbar: React.FC = () => {
   const {
@@ -58,6 +60,12 @@ export const Navbar: React.FC = () => {
   const [isIotModalOpen, setIsIotModalOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isBranchMenuOpen, setIsBranchMenuOpen] = useState(false);
+  const [isBranchModalOpen, setIsBranchModalOpen] = useState(() => {
+    if (typeof window !== 'undefined' && window.location.search.includes('branchModal')) {
+      return true;
+    }
+    return false;
+  });
   const [isLandingOpen, setIsLandingOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -91,7 +99,49 @@ export const Navbar: React.FC = () => {
       <header className="sticky top-0 z-30 w-full glass-panel border-b border-slate-800/80 px-4 py-2.5 transition-colors">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
           {/* Left: Brand & Branch */}
-          <div className="flex items-center gap-3">
+          {/* Mobile Left: Foto Laundry + Nama Laundry + Pindah Laundry */}
+          <div
+            id="mobile-branch-switcher"
+            onClick={() => setIsBranchModalOpen(true)}
+            className="flex md:hidden items-center gap-2.5 max-w-[62vw] cursor-pointer group active:scale-[0.98] transition-transform select-none"
+            title="Klik untuk pindah cabang laundry"
+          >
+            {/* Foto Laundry */}
+            <div className="relative shrink-0 w-9 h-9 rounded-xl overflow-hidden bg-gradient-to-br from-cyan-950 to-slate-800 border border-cyan-500/40 shadow-glow-cyan group-hover:border-cyan-400 transition-colors flex items-center justify-center">
+              <Store className="w-4 h-4 text-cyan-400 absolute" />
+              <img
+                src={activeBranch.image || 'https://images.unsplash.com/photo-1545173168-9f1947eebb7f?auto=format&fit=crop&w=150&q=80'}
+                alt={activeBranch.name}
+                className="w-full h-full object-cover relative z-10"
+                onError={(e) => {
+                  (e.currentTarget as HTMLElement).style.display = 'none';
+                }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none z-10" />
+            </div>
+
+            {/* Nama Laundry & Pindah Laundry */}
+            <div className="flex flex-col min-w-0 text-left">
+              <div className="flex items-center gap-1.5">
+                <span className="font-extrabold text-xs sm:text-sm text-white truncate leading-tight group-hover:text-cyan-300 transition-colors">
+                  {activeBranch.name}
+                </span>
+                {activeBranch.isPusat && (
+                  <span className="text-[8px] px-1 py-0.2 rounded font-black bg-amber-500/20 text-amber-300 shrink-0">
+                    PUSAT
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-1 text-[10px] text-cyan-400 font-bold mt-0.5">
+                <Store className="w-3 h-3 text-cyan-400" />
+                <span>Pindah Laundry</span>
+                <ChevronDown className="w-3 h-3 text-slate-400 group-hover:translate-y-0.5 transition-transform" />
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop Left: Brand Logo + Laundry Branch Dropdown */}
+          <div className="hidden md:flex items-center gap-3">
             <div className="flex items-center gap-2.5 group cursor-pointer">
               <div className="relative p-2 rounded-2xl bg-gradient-to-tr from-emerald-500 via-teal-500 to-cyan-500 text-slate-950 shadow-glow-cyan transition-transform group-hover:scale-105">
                 <WashingMachine className="w-5 h-5 animate-spin-slow" />
@@ -111,51 +161,23 @@ export const Navbar: React.FC = () => {
               </div>
             </div>
 
-            {/* Branch Selector (Custom Dropdown) */}
-            <div className="relative ml-2 hidden md:block">
+            {/* Desktop Branch Selector */}
+            <div className="relative ml-2">
               <button
-                onClick={() => setIsBranchMenuOpen(!isBranchMenuOpen)}
+                onClick={() => setIsBranchModalOpen(true)}
                 className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800/70 border border-slate-700/80 text-xs text-slate-200 hover:bg-slate-800 hover:border-slate-600 transition-all"
               >
-                <Building2 className="w-3.5 h-3.5 text-cyan-400" />
+                <img
+                  src={activeBranch.image || 'https://images.unsplash.com/photo-1545173168-9f1947eebb7f?auto=format&fit=crop&w=150&q=80'}
+                  alt={activeBranch.name}
+                  className="w-4 h-4 rounded object-cover border border-slate-600"
+                />
                 <span className="font-semibold">{activeBranch.name}</span>
                 <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
               </button>
-
-              {isBranchMenuOpen && (
-                <div className="absolute left-0 mt-2 w-64 bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95">
-                  <div className="px-2.5 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    Pilih Outlet Aktif:
-                  </div>
-                  {branches.map((b) => (
-                    <button
-                      key={b.id}
-                      onClick={() => {
-                        setCurrentBranchId(b.id);
-                        setIsBranchMenuOpen(false);
-                      }}
-                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-medium flex items-center justify-between transition-colors ${
-                        b.id === currentBranchId
-                          ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
-                          : 'text-slate-300 hover:bg-slate-800'
-                      }`}
-                    >
-                      <div>
-                        <div className="font-bold">{b.name}</div>
-                        <div className="text-[10px] text-slate-400">{b.code} • {b.phone}</div>
-                      </div>
-                      {b.isPusat && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold">
-                          PUSAT
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
 
-            {/* Quick Command Palette Button (Ctrl+K / Google & Linear style) */}
+            {/* Quick Command Palette Button */}
             <button
               onClick={() => setIsCommandPaletteOpen(true)}
               className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-700/80 hover:border-cyan-500/40 text-xs text-slate-400 hover:text-slate-200 transition-all cursor-pointer shadow-inner ml-1"
@@ -626,6 +648,10 @@ export const Navbar: React.FC = () => {
       <GoogleAuthModal
         isOpen={isGoogleAuthModalOpen}
         onClose={() => setIsGoogleAuthModalOpen(false)}
+      />
+      <BranchSwitcherModal
+        isOpen={isBranchModalOpen}
+        onClose={() => setIsBranchModalOpen(false)}
       />
     </>
   );
