@@ -15,6 +15,8 @@ import {
   DropshipSupplyItem,
   DropshipSupplyOrder,
   WithdrawalRequest,
+  StationCommissionRates,
+  StationClaim,
 } from '../types';
 import { Language, Translations, translations } from '../utils/i18n';
 import { Currency } from '../utils/currency';
@@ -112,7 +114,27 @@ interface AppContextType {
   addWorker: (workerData: Omit<User, 'id' | 'totalCommissionEarned'>) => User;
   removeWorker: (userId: string) => void;
   updateWorker: (userId: string, data: Partial<User>) => void;
+
+  // Multi-Worker Station Claim & Piece-Rate System
+  stationRates: StationCommissionRates;
+  updateStationRates: (rates: StationCommissionRates) => void;
+  claimStationTask: (orderId: string, station: OrderStatus, worker?: User) => void;
+  unclaimStationTask: (orderId: string) => void;
+  completeStationTask: (
+    orderId: string,
+    station: OrderStatus,
+    worker: User,
+    photoProof: string,
+    notes?: string
+  ) => { success: boolean; commissionEarned: number; message: string };
 }
+
+export const DEFAULT_STATION_RATES: StationCommissionRates = {
+  cuci: 300,
+  kering: 200,
+  setrika: 400,
+  packing: 200,
+};
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
@@ -205,6 +227,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [withdrawalRequests, setWithdrawalRequests] = useState<WithdrawalRequest[]>(() => {
     const saved = localStorage.getItem('lh_withdrawals');
     return saved ? JSON.parse(saved) : INITIAL_WITHDRAWAL_REQUESTS;
+  });
+
+  const [stationRates, setStationRates] = useState<StationCommissionRates>(() => {
+    const saved = localStorage.getItem('lh_station_rates');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        // fallback
+      }
+    }
+    return DEFAULT_STATION_RATES;
   });
 
   const [currentAgentId, setCurrentAgentId] = useState<string>('agent-01');
@@ -333,6 +367,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     localStorage.setItem('lh_withdrawals', JSON.stringify(withdrawalRequests));
   }, [withdrawalRequests]);
+
+  useEffect(() => {
+    localStorage.setItem('lh_station_rates', JSON.stringify(stationRates));
+  }, [stationRates]);
 
   // IoT Machine Countdown Timer
   useEffect(() => {
@@ -639,6 +677,169 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       branchId: currentBranchId,
     };
     setAuditLogs((prev) => [newLog, ...prev]);
+  };
+
+  // Station Rates & Multi-Worker Piece-Rate Methods
+  const updateStationRates = (newRates: StationCommissionRates) => {
+    setStationRates(newRates);
+    const log: AuditLog = {
+      id: `log-${Date.now()}`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      actorName: currentUser.name,
+      actorRole: currentRole,
+      action: 'UPDATE_STATION_RATES',
+      details: `Update tarif borongan station: Cuci Rp ${newRates.cuci}/kg, Kering Rp ${newRates.kering}/kg, Setrika Rp ${newRates.setrika}/kg, Packing Rp ${newRates.packing}/kg`,
+      branchId: currentBranchId,
+    };
+    setAuditLogs((prev) => [log, ...prev]);
+  };
+
+  const claimStationTask = (orderId: string, station: OrderStatus, worker?: User) => {
+    const targetWorker = worker || currentUser;
+    const now = new Date();
+    const dateStr = now.toISOString().replace('T', ' ').substring(0, 19);
+
+    setOrders((prevOrders) =>
+      prevOrders.map((ord) => {
+        if (ord.id === orderId) {
+          return {
+            ...ord,
+            currentClaim: {
+              station,
+              workerId: targetWorker.id,
+              workerName: targetWorker.name,
+              claimedAt: dateStr,
+            },
+          };
+        }
+        return ord;
+      })
+    );
+
+    const log: AuditLog = {
+      id: `log-${Date.now()}`,
+      timestamp: dateStr,
+      actorName: targetWorker.name,
+      actorRole: targetWorker.role,
+      action: 'CLAIM_STATION',
+      details: `${targetWorker.name} mengklaim pengerjaan station ${station.toUpperCase()} untuk order #${orderId}`,
+      branchId: currentBranchId,
+    };
+    setAuditLogs((prev) => [log, ...prev]);
+  };
+
+  const unclaimStationTask = (orderId: string) => {
+    setOrders((prevOrders) =>
+      prevOrders.map((ord) => {
+        if (ord.id === orderId) {
+          const { currentClaim, ...rest } = ord;
+          return rest;
+        }
+        return ord;
+      })
+    );
+  };
+
+  const completeStationTask = (
+    orderId: string,
+    station: OrderStatus,
+    worker: User,
+    photoProof: string,
+    notes?: string
+  ): { success: boolean; commissionEarned: number; message: string } => {
+    if (!photoProof || photoProof.trim() === '') {
+      return {
+        success: false,
+        commissionEarned: 0,
+        message: 'Foto bukti pengerjaan wajib disertakan sebelum menyelesaikan station!',
+      };
+    }
+
+    const order = orders.find((o) => o.id === orderId);
+    if (!order) {
+      return { success: false, commissionEarned: 0, message: 'Pesanan tidak ditemukan' };
+    }
+
+    // Sequence for advance
+    const sequence: OrderStatus[] = ['antrean', 'cuci', 'kering', 'setrika', 'packing', 'siap'];
+    const curIdx = sequence.indexOf(station);
+    const nextStatus: OrderStatus = curIdx >= 0 && curIdx < sequence.length - 1 ? sequence[curIdx + 1] : 'siap';
+
+    // Calculate commission by station rate
+    const ratePerKg = stationRates[station as keyof StationCommissionRates] || 300;
+    const rawCommission = order.weightKg > 0
+      ? Math.round(order.weightKg * ratePerKg)
+      : Math.round(order.itemCount * (ratePerKg * 1.5));
+    const commissionEarned = Math.max(500, rawCommission);
+
+    const now = new Date();
+    const dateStr = now.toISOString().replace('T', ' ').substring(0, 19);
+
+    // Update order with photo proof & clear claim
+    setOrders((prevOrders) =>
+      prevOrders.map((o) => {
+        if (o.id === orderId) {
+          const updatedTimestamps = {
+            ...o.statusTimestamps,
+            [station]: {
+              time: dateStr,
+              picName: worker.name,
+              picId: worker.id,
+              photoProof,
+              commissionEarned,
+              stationNotes: notes,
+              claimedAt: o.currentClaim?.claimedAt,
+            },
+          };
+          const { currentClaim, ...rest } = o;
+          return {
+            ...rest,
+            currentStatus: nextStatus,
+            statusTimestamps: updatedTimestamps,
+          };
+        }
+        return o;
+      })
+    );
+
+    // Credit commission to worker
+    setUsers((prevUsers) =>
+      prevUsers.map((u) =>
+        u.id === worker.id
+          ? { ...u, totalCommissionEarned: (u.totalCommissionEarned || 0) + commissionEarned }
+          : u
+      )
+    );
+
+    // Audit log
+    const log: AuditLog = {
+      id: `log-${Date.now()}`,
+      timestamp: dateStr,
+      actorName: worker.name,
+      actorRole: worker.role,
+      action: 'COMPLETE_STATION',
+      details: `${worker.name} menyelesaikan station ${station.toUpperCase()} order #${order.invoiceNo} (+Rp ${commissionEarned.toLocaleString('id-ID')}) dengan foto bukti valid`,
+      branchId: order.branchId,
+    };
+    setAuditLogs((prev) => [log, ...prev]);
+
+    // Notification
+    const notif: NotificationItem = {
+      id: `notif-${Date.now()}`,
+      title: `📸 Bukti Foto ${station.toUpperCase()} Diterima`,
+      message: `${worker.name} menyelesaikan ${station.toUpperCase()} untuk #${order.invoiceNo}. Komisi +Rp ${commissionEarned.toLocaleString('id-ID')} masuk saldo.`,
+      timestamp: 'Baru saja',
+      type: 'order',
+      read: false,
+      orderId: order.id,
+    };
+    setNotifications((prev) => [notif, ...prev]);
+
+    return {
+      success: true,
+      commissionEarned,
+      message: `Berhasil menyelesaikan station ${station.toUpperCase()}! Komisi Rp ${commissionEarned.toLocaleString('id-ID')} telah dikreditkan ke ${worker.name}.`,
+    };
   };
 
   // Start IoT Machine (Anti-fraud validation!)
@@ -1164,6 +1365,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addWorker,
         removeWorker,
         updateWorker,
+        stationRates,
+        updateStationRates,
+        claimStationTask,
+        unclaimStationTask,
+        completeStationTask,
       }}
     >
       {children}

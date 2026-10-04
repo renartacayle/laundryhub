@@ -84,10 +84,28 @@ export type PaymentStatus = 'lunas' | 'belum_lunas' | 'piutang';
 
 export type PaymentMethod = 'tunai' | 'transfer' | 'qris' | 'deposit' | 'piutang' | 'card_international';
 
+export interface StationCommissionRates {
+  cuci: number;    // Rp per kg (e.g. 300)
+  kering: number;  // Rp per kg (e.g. 200)
+  setrika: number; // Rp per kg (e.g. 400)
+  packing: number; // Rp per kg (e.g. 200)
+}
+
 export interface StatusTimestamp {
   time: string;
   picName?: string;
   picId?: string;
+  photoProof?: string;          // Photo proof URL or data URL
+  commissionEarned?: number;    // Commission credited for this station
+  stationNotes?: string;        // Optional notes from worker
+  claimedAt?: string;           // Timestamp when task was claimed
+}
+
+export interface StationClaim {
+  station: OrderStatus;
+  workerId: string;
+  workerName: string;
+  claimedAt: string;
 }
 
 export interface Order {
@@ -115,6 +133,7 @@ export interface Order {
   createdAt: string;
   estReadyDate: string;
   statusTimestamps: Partial<Record<OrderStatus, StatusTimestamp>>;
+  currentClaim?: StationClaim;
   paidAmount: number;
   changeAmount: number;
   assignedMachineId?: string;

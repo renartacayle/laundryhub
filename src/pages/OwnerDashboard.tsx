@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { DropshipSupplyItem, Role } from '../types';
+import { DropshipSupplyItem, Role, StationCommissionRates } from '../types';
 import {
   TrendingUp,
   DollarSign,
@@ -43,8 +43,13 @@ import {
   MessageSquare,
   Check,
   Zap,
-  Mail,
+  Camera,
+  WashingMachine,
+  Flame,
+  Shirt,
+  PackageCheck,
   Trash2,
+  Mail,
   Shield,
   X,
 } from 'lucide-react';
@@ -153,6 +158,8 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
     loginWithGmail,
     setCurrentRole,
     setCurrentUser,
+    stationRates,
+    updateStationRates,
     language,
     currency,
     t,
@@ -171,6 +178,24 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
   const [workerFormSuccess, setWorkerFormSuccess] = useState<string | null>(null);
   const [staffRoleFilter, setStaffRoleFilter] = useState<string>('all');
   const [staffSearchText, setStaffSearchText] = useState<string>('');
+
+  // Station Commission Rates Management State
+  const [editingStationRates, setEditingStationRates] = useState<StationCommissionRates>(stationRates);
+  const [stationRateSaveSuccess, setStationRateSaveSuccess] = useState<boolean>(false);
+  const [stationProofFilter, setStationProofFilter] = useState<string>('all');
+  const [ownerProofPhotoView, setOwnerProofPhotoView] = useState<{
+    url: string;
+    invoiceNo: string;
+    station: string;
+    picName: string;
+    time: string;
+    notes?: string;
+    commission?: number;
+  } | null>(null);
+
+  useEffect(() => {
+    setEditingStationRates(stationRates);
+  }, [stationRates]);
 
   const [activeTab, setActiveTab] = useState<'overview' | 'stats' | 'branches' | 'inventory' | 'staff' | 'audit' | 'dropship' | 'supplies' | 'marketing'>(
     currentSubTab === 'owner-stats'
@@ -1485,6 +1510,359 @@ Konsultasi Admin WA: 081228263200`;
               <UserPlus className="w-4 h-4" />
               <span>+ Tambah Karyawan via Gmail</span>
             </button>
+          </div>
+
+          {/* 1. Pengaturan Komisi Borongan per Stasiun (Kolaborasi Multi-Karyawan) */}
+          <div className="p-5 rounded-3xl glass-card border border-amber-500/30 bg-gradient-to-r from-amber-950/30 via-slate-900/80 to-slate-900/80 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2.5 rounded-2xl bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  <Coins className="w-5 h-5 text-amber-400" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-white flex items-center gap-2 flex-wrap">
+                    <span>Pengaturan Komisi Borongan per Stasiun (1 Nota Dikerjakan Bersama)</span>
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                      Multi-Worker Piece Rate
+                    </span>
+                  </h4>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Owner mengatur tarif borongan per stasiun pengerjaan. Semua karyawan bebas mengambil tugas stasiun yang belum selesai, dan komisi otomatis masuk setelah melampirkan foto bukti.
+                  </p>
+                </div>
+              </div>
+
+              {stationRateSaveSuccess && (
+                <div className="px-3 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center gap-1.5 shrink-0 animate-fade-in">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <span>Tarif berhasil disimpan!</span>
+                </div>
+              )}
+            </div>
+
+            {/* Inputs Grid for 4 Stations */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* Cuci */}
+              <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-cyan-500/30 space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold text-cyan-300">
+                  <span className="flex items-center gap-1.5">
+                    <WashingMachine className="w-4 h-4 text-cyan-400" />
+                    <span>Station 1: Cuci</span>
+                  </span>
+                  <span className="text-[10px] text-slate-500">Washer</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-400 font-mono">Rp</span>
+                  <input
+                    type="number"
+                    step="50"
+                    min="0"
+                    value={editingStationRates.cuci}
+                    onChange={(e) =>
+                      setEditingStationRates((prev) => ({
+                        ...prev,
+                        cuci: Math.max(0, parseInt(e.target.value, 10) || 0),
+                      }))
+                    }
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-cyan-300 font-mono font-bold focus:outline-none focus:border-cyan-500"
+                  />
+                  <span className="text-xs text-slate-400 font-mono">/kg</span>
+                </div>
+                <span className="text-[10px] text-slate-400 block">
+                  Contoh 5 kg = <strong>Rp {(editingStationRates.cuci * 5).toLocaleString('id-ID')}</strong>
+                </span>
+              </div>
+
+              {/* Kering */}
+              <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-orange-500/30 space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold text-orange-300">
+                  <span className="flex items-center gap-1.5">
+                    <Flame className="w-4 h-4 text-orange-400" />
+                    <span>Station 2: Kering</span>
+                  </span>
+                  <span className="text-[10px] text-slate-500">Dryer</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-400 font-mono">Rp</span>
+                  <input
+                    type="number"
+                    step="50"
+                    min="0"
+                    value={editingStationRates.kering}
+                    onChange={(e) =>
+                      setEditingStationRates((prev) => ({
+                        ...prev,
+                        kering: Math.max(0, parseInt(e.target.value, 10) || 0),
+                      }))
+                    }
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-orange-300 font-mono font-bold focus:outline-none focus:border-orange-500"
+                  />
+                  <span className="text-xs text-slate-400 font-mono">/kg</span>
+                </div>
+                <span className="text-[10px] text-slate-400 block">
+                  Contoh 5 kg = <strong>Rp {(editingStationRates.kering * 5).toLocaleString('id-ID')}</strong>
+                </span>
+              </div>
+
+              {/* Setrika */}
+              <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-purple-500/30 space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold text-purple-300">
+                  <span className="flex items-center gap-1.5">
+                    <Shirt className="w-4 h-4 text-purple-400" />
+                    <span>Station 3: Setrika</span>
+                  </span>
+                  <span className="text-[10px] text-slate-500">Steam Press</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-400 font-mono">Rp</span>
+                  <input
+                    type="number"
+                    step="50"
+                    min="0"
+                    value={editingStationRates.setrika}
+                    onChange={(e) =>
+                      setEditingStationRates((prev) => ({
+                        ...prev,
+                        setrika: Math.max(0, parseInt(e.target.value, 10) || 0),
+                      }))
+                    }
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-purple-300 font-mono font-bold focus:outline-none focus:border-purple-500"
+                  />
+                  <span className="text-xs text-slate-400 font-mono">/kg</span>
+                </div>
+                <span className="text-[10px] text-slate-400 block">
+                  Contoh 5 kg = <strong>Rp {(editingStationRates.setrika * 5).toLocaleString('id-ID')}</strong>
+                </span>
+              </div>
+
+              {/* Packing */}
+              <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-amber-500/30 space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold text-amber-300">
+                  <span className="flex items-center gap-1.5">
+                    <PackageCheck className="w-4 h-4 text-amber-400" />
+                    <span>Station 4: Packing</span>
+                  </span>
+                  <span className="text-[10px] text-slate-500">QC & Segel</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-400 font-mono">Rp</span>
+                  <input
+                    type="number"
+                    step="50"
+                    min="0"
+                    value={editingStationRates.packing}
+                    onChange={(e) =>
+                      setEditingStationRates((prev) => ({
+                        ...prev,
+                        packing: Math.max(0, parseInt(e.target.value, 10) || 0),
+                      }))
+                    }
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-amber-300 font-mono font-bold focus:outline-none focus:border-amber-500"
+                  />
+                  <span className="text-xs text-slate-400 font-mono">/kg</span>
+                </div>
+                <span className="text-[10px] text-slate-400 block">
+                  Contoh 5 kg = <strong>Rp {(editingStationRates.packing * 5).toLocaleString('id-ID')}</strong>
+                </span>
+              </div>
+            </div>
+
+            {/* Total Summary & Save Button */}
+            <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-slate-800">
+              <div className="text-xs text-slate-300 flex items-center gap-2 flex-wrap">
+                <span className="text-slate-400">Total Borongan per kg (4 Stasiun):</span>
+                <span className="text-base font-black font-mono text-emerald-400 bg-emerald-950/60 px-3 py-1 rounded-xl border border-emerald-500/30">
+                  Rp {(editingStationRates.cuci + editingStationRates.kering + editingStationRates.setrika + editingStationRates.packing).toLocaleString('id-ID')} / kg
+                </span>
+                <span className="text-[11px] text-slate-400">
+                  (Nota 7 kg = total upah borongan tim Rp {((editingStationRates.cuci + editingStationRates.kering + editingStationRates.setrika + editingStationRates.packing) * 7).toLocaleString('id-ID')})
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  updateStationRates(editingStationRates);
+                  setStationRateSaveSuccess(true);
+                  setTimeout(() => setStationRateSaveSuccess(false), 2500);
+                }}
+                className="py-2.5 px-5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs shadow-glow-amber transition-all flex items-center justify-center gap-2 shrink-0 active:scale-95"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Simpan Tarif Stasiun</span>
+              </button>
+            </div>
+          </div>
+
+          {/* 2. Log Bukti Foto Pengerjaan Stasiun Karyawan (Audit Kualitas & Transparansi) */}
+          <div className="p-5 rounded-3xl glass-card border border-slate-800 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2.5 rounded-2xl bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                  <Camera className="w-5 h-5 text-cyan-400" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                    <span>Log Bukti Foto Pengerjaan Stasiun Karyawan</span>
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+                      Audit Anti-Fraud & Quality Control
+                    </span>
+                  </h4>
+                  <p className="text-xs text-slate-400">
+                    Setiap pengerjaan stasiun yang diselesaikan wajib menyertakan foto pengerjaan aktual sebelum komisi masuk ke dompet karyawan.
+                  </p>
+                </div>
+              </div>
+
+              {/* Station filter pills */}
+              <div className="flex gap-1 flex-wrap">
+                {[
+                  { id: 'all', label: 'Semua Stasiun' },
+                  { id: 'cuci', label: '🫧 Cuci' },
+                  { id: 'kering', label: '🔥 Kering' },
+                  { id: 'setrika', label: '💨 Setrika' },
+                  { id: 'packing', label: '📦 Packing' },
+                ].map((f) => (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => setStationProofFilter(f.id)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                      stationProofFilter === f.id
+                        ? 'bg-cyan-500 text-slate-950 font-bold shadow-glow-cyan'
+                        : 'bg-slate-800/80 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* List / Grid of Photo Proofs */}
+            {(() => {
+              const completedStationEntries: {
+                orderId: string;
+                invoiceNo: string;
+                customerName: string;
+                station: string;
+                picName: string;
+                time: string;
+                photoProof?: string;
+                commissionEarned?: number;
+                stationNotes?: string;
+              }[] = [];
+
+              orders.forEach((ord) => {
+                if (ord.statusTimestamps) {
+                  Object.entries(ord.statusTimestamps).forEach(([stKey, ts]) => {
+                    if (stKey === 'cuci' || stKey === 'kering' || stKey === 'setrika' || stKey === 'packing') {
+                      if (stationProofFilter === 'all' || stationProofFilter === stKey) {
+                        completedStationEntries.push({
+                          orderId: ord.id,
+                          invoiceNo: ord.invoiceNo,
+                          customerName: ord.customerName,
+                          station: stKey,
+                          picName: ts?.picName || 'Operator',
+                          time: ts?.time || ord.createdAt,
+                          photoProof: ts?.photoProof,
+                          commissionEarned: ts?.commissionEarned || (stationRates[stKey as keyof StationCommissionRates] || 300) * (ord.weightKg || 5),
+                          stationNotes: ts?.stationNotes,
+                        });
+                      }
+                    }
+                  });
+                }
+              });
+
+              if (completedStationEntries.length === 0) {
+                return (
+                  <div className="p-8 text-center text-slate-500 text-xs italic">
+                    Belum ada bukti foto pengerjaan stasiun untuk filter ini.
+                  </div>
+                );
+              }
+
+              return (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                  {completedStationEntries.map((entry, idx) => (
+                    <div
+                      key={idx}
+                      className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 hover:border-slate-700 transition-all space-y-2.5 flex flex-col justify-between"
+                    >
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-mono font-bold text-orange-400">
+                            {entry.invoiceNo}
+                          </span>
+                          <span className="capitalize font-bold px-2 py-0.5 rounded-full text-[9px] bg-slate-800 text-cyan-300 border border-slate-700">
+                            {entry.station === 'cuci' ? '🫧 Cuci' : entry.station === 'kering' ? '🔥 Kering' : entry.station === 'setrika' ? '💨 Setrika' : '📦 Packing'}
+                          </span>
+                        </div>
+
+                        <div className="text-xs text-white font-medium">
+                          {entry.customerName}
+                        </div>
+
+                        {/* Photo Thumbnail */}
+                        {entry.photoProof ? (
+                          <div
+                            onClick={() =>
+                              setOwnerProofPhotoView({
+                                url: entry.photoProof!,
+                                invoiceNo: entry.invoiceNo,
+                                station: entry.station,
+                                picName: entry.picName,
+                                time: entry.time,
+                                notes: entry.stationNotes,
+                                commission: entry.commissionEarned,
+                              })
+                            }
+                            className="relative h-28 rounded-xl overflow-hidden border border-slate-700 cursor-pointer group bg-black"
+                          >
+                            <img
+                              src={entry.photoProof}
+                              alt="Bukti Stasiun"
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                            />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1">
+                              <Camera className="w-4 h-4" />
+                              <span>Lihat Detail Foto</span>
+                            </div>
+                            <span className="absolute bottom-1 right-1 text-[8px] bg-black/80 px-1.5 py-0.5 rounded text-emerald-400 font-mono font-bold">
+                              ✓ Terverifikasi
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="h-20 rounded-xl bg-slate-900 border border-dashed border-slate-800 flex items-center justify-center text-[10px] text-slate-500">
+                            Foto bukti tervalidasi di outlet
+                          </div>
+                        )}
+
+                        {entry.stationNotes && (
+                          <p className="text-[10px] text-amber-300/80 italic bg-slate-900/60 p-1.5 rounded-lg line-clamp-2">
+                            "{entry.stationNotes}"
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px]">
+                        <div>
+                          <span className="text-slate-400 block">Dikerjakan oleh:</span>
+                          <strong className="text-slate-200 font-sans">{entry.picName}</strong>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-slate-400 block">Komisi:</span>
+                          <span className="text-emerald-400 font-mono font-bold text-xs">
+                            +Rp {entry.commissionEarned?.toLocaleString('id-ID')}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Search & Role Filter Bar */}
@@ -3264,6 +3642,76 @@ Konsultasi Admin WA: 081228263200`;
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Photo Proof Lightbox Modal for Owner Inspection */}
+      {ownerProofPhotoView && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md animate-fade-in">
+          <div className="relative w-full max-w-lg bg-slate-900 border border-slate-700 rounded-3xl shadow-2xl overflow-hidden space-y-3">
+            {/* Top Bar */}
+            <div className="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-950/60">
+              <div>
+                <span className="font-mono text-xs font-bold text-orange-400">
+                  {ownerProofPhotoView.invoiceNo}
+                </span>
+                <h4 className="text-sm font-bold text-white capitalize">
+                  Audit Bukti Pengerjaan: Station {ownerProofPhotoView.station}
+                </h4>
+              </div>
+              <button
+                onClick={() => setOwnerProofPhotoView(null)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Photo with Watermark overlay */}
+            <div className="relative bg-black px-4 flex justify-center">
+              <div className="relative rounded-2xl overflow-hidden border border-slate-800 w-full max-h-[360px]">
+                <img
+                  src={ownerProofPhotoView.url}
+                  alt="Bukti Foto Full"
+                  className="w-full h-full object-contain max-h-[360px]"
+                />
+                <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/95 via-black/80 to-transparent text-[10px] font-mono text-slate-200">
+                  <div className="flex items-center justify-between text-orange-400 font-bold">
+                    <span>LAUNDRYHUB BUKTI RESMI</span>
+                    <span>{ownerProofPhotoView.invoiceNo}</span>
+                  </div>
+                  <div className="text-slate-300 flex items-center justify-between mt-0.5">
+                    <span>PIC: {ownerProofPhotoView.picName}</span>
+                    <span>{ownerProofPhotoView.time}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Details Footer */}
+            <div className="p-4 pt-1 space-y-2 text-xs">
+              <div className="flex items-center justify-between bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+                <span className="text-slate-400">Komisi Borongan Dikreditkan:</span>
+                <span className="font-mono text-emerald-400 font-black text-sm">
+                  +Rp {(ownerProofPhotoView.commission || 0).toLocaleString('id-ID')}
+                </span>
+              </div>
+              {ownerProofPhotoView.notes && (
+                <div className="text-amber-300 bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-[11px]">
+                  <strong>Catatan Karyawan:</strong> {ownerProofPhotoView.notes}
+                </div>
+              )}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setOwnerProofPhotoView(null)}
+                  className="w-full py-2 rounded-xl bg-slate-800 text-slate-200 hover:bg-slate-700 font-semibold text-xs"
+                >
+                  Tutup Audit Foto
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

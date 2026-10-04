@@ -14,6 +14,8 @@ import {
   ShieldCheck,
   Award,
   ChevronRight,
+  Camera,
+  X,
 } from 'lucide-react';
 import { ReceiptModal } from '../components/ReceiptModal';
 import { WhatsAppSimulatorModal } from '../components/WhatsAppSimulatorModal';
@@ -59,6 +61,13 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
   const [selectedOrderWhatsApp, setSelectedOrderWhatsApp] = useState<Order | null>(null);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [isWhatsAppOpen, setIsWhatsAppOpen] = useState(false);
+  const [customerPhotoView, setCustomerPhotoView] = useState<{
+    url: string;
+    stepName: string;
+    picName: string;
+    time: string;
+    notes?: string;
+  } | null>(null);
 
   // Pickup request form state
   const [pickupAddress, setPickupAddress] = useState(currentCustomer.address);
@@ -243,10 +252,12 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
                     const isPassed = currentIdx >= idx;
                     const isCurrent = activeOrder.currentStatus === step.id;
 
+                    const stepTs = activeOrder.statusTimestamps?.[step.id];
+
                     return (
                       <div
                         key={step.id}
-                        className={`p-3.5 rounded-2xl border transition-all ${
+                        className={`p-3.5 rounded-2xl border transition-all flex flex-col justify-between ${
                           isCurrent
                             ? 'bg-emerald-500/20 border-emerald-500 shadow-glow-emerald scale-105'
                             : isPassed
@@ -254,16 +265,46 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
                             : 'bg-slate-950/40 border-slate-900 text-slate-600 opacity-60'
                         }`}
                       >
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-mono font-bold text-slate-500">
-                            0{idx + 1}
-                          </span>
-                          {isPassed && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-mono font-bold text-slate-500">
+                              0{idx + 1}
+                            </span>
+                            {isPassed && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
+                          </div>
+                          <div className={`text-xs font-extrabold mt-2 ${isCurrent ? 'text-emerald-300' : 'text-white'}`}>
+                            {step.label}
+                          </div>
+                          <div className="text-[10px] text-slate-400 mt-0.5">{step.desc}</div>
                         </div>
-                        <div className={`text-xs font-extrabold mt-2 ${isCurrent ? 'text-emerald-300' : 'text-white'}`}>
-                          {step.label}
+
+                        <div className="pt-2">
+                          {stepTs?.photoProof && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setCustomerPhotoView({
+                                  url: stepTs.photoProof!,
+                                  stepName: step.label,
+                                  picName: stepTs.picName || 'Operator',
+                                  time: stepTs.time,
+                                  notes: stepTs.stationNotes,
+                                })
+                              }
+                              className="w-full py-1 px-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[9px] font-bold flex items-center justify-center gap-1 transition-all active:scale-95 shadow-sm"
+                              title="Lihat Foto Bukti Pakaian"
+                            >
+                              <Camera className="w-3 h-3 text-emerald-400" />
+                              <span>Foto Bukti</span>
+                            </button>
+                          )}
+
+                          {stepTs?.picName && (
+                            <div className="text-[8px] font-mono text-slate-500 truncate mt-1 text-center">
+                              PIC: {stepTs.picName.split(' ')[0]}
+                            </div>
+                          )}
                         </div>
-                        <div className="text-[10px] text-slate-400 mt-0.5">{step.desc}</div>
                       </div>
                     );
                   })}
@@ -597,6 +638,63 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Customer Photo Proof Lightbox Modal */}
+      {customerPhotoView && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md animate-fade-in">
+          <div className="relative w-full max-w-md bg-slate-900 border border-slate-700 rounded-3xl shadow-2xl overflow-hidden space-y-3">
+            <div className="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-950/60">
+              <div className="flex items-center gap-2">
+                <Camera className="w-4 h-4 text-emerald-400" />
+                <h4 className="text-sm font-bold text-white">
+                  Bukti Pengerjaan: {customerPhotoView.stepName}
+                </h4>
+              </div>
+              <button
+                onClick={() => setCustomerPhotoView(null)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="relative bg-black px-4 flex justify-center">
+              <div className="relative rounded-2xl overflow-hidden border border-slate-800 w-full max-h-[340px]">
+                <img
+                  src={customerPhotoView.url}
+                  alt="Bukti Pakaian Pelanggan"
+                  className="w-full h-full object-contain max-h-[340px]"
+                />
+                <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/95 via-black/80 to-transparent text-[10px] font-mono text-slate-200">
+                  <div className="text-emerald-400 font-bold flex items-center justify-between">
+                    <span>LAUNDRYHUB REALTIME ASSURANCE</span>
+                    <span>✓ QC PASS</span>
+                  </div>
+                  <div className="text-slate-300 flex items-center justify-between mt-0.5">
+                    <span>Petugas: {customerPhotoView.picName}</span>
+                    <span>{customerPhotoView.time}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 pt-1 space-y-2 text-xs">
+              {customerPhotoView.notes && (
+                <div className="text-amber-300 bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-[11px]">
+                  <strong>Catatan Workshop:</strong> {customerPhotoView.notes}
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => setCustomerPhotoView(null)}
+                className="w-full py-2 rounded-xl bg-slate-800 text-slate-200 hover:bg-slate-700 font-semibold text-xs"
+              >
+                Tutup
+              </button>
+            </div>
           </div>
         </div>
       )}

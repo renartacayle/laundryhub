@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { Order, OrderStatus } from '../types';
+import { Order, OrderStatus, StationCommissionRates } from '../types';
 import {
   WashingMachine,
   Flame,
@@ -16,8 +16,14 @@ import {
   Play,
   UserCheck,
   Zap,
+  Camera,
+  Coins,
+  Eye,
+  HandMetal,
+  Check,
 } from 'lucide-react';
 import { IotMachineControlModal } from '../components/IotMachineControlModal';
+import { StationPhotoProofModal } from '../components/StationPhotoProofModal';
 
 interface ProduksiKanbanProps {
   currentSubTab?: string;
@@ -31,6 +37,9 @@ export const ProduksiKanban: React.FC<ProduksiKanbanProps> = ({ currentSubTab = 
     users,
     updateOrderStatus,
     machines,
+    stationRates,
+    claimStationTask,
+    unclaimStationTask,
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'kanban' | 'iot' | 'productivity'>(
@@ -47,6 +56,21 @@ export const ProduksiKanban: React.FC<ProduksiKanbanProps> = ({ currentSubTab = 
   const [selectedOrderForDetail, setSelectedOrderForDetail] = useState<Order | null>(null);
   const [isIotModalOpen, setIsIotModalOpen] = useState(false);
   const [draggedOrderId, setDraggedOrderId] = useState<string | null>(null);
+
+  // Station Photo Proof Modal State
+  const [stationModalOrder, setStationModalOrder] = useState<Order | null>(null);
+  const [stationModalStation, setStationModalStation] = useState<OrderStatus>('cuci');
+
+  // Photo Proof Lightbox Viewer State
+  const [photoViewerData, setPhotoViewerData] = useState<{
+    url: string;
+    invoiceNo: string;
+    station: string;
+    picName: string;
+    time: string;
+    commission?: number;
+    notes?: string;
+  } | null>(null);
 
   // Workflow Columns definitions
   const columns: { id: OrderStatus; title: string; icon: React.ReactNode; color: string; badge: string }[] = [
@@ -215,13 +239,24 @@ export const ProduksiKanban: React.FC<ProduksiKanbanProps> = ({ currentSubTab = 
                   colOrders.map((ord) => {
                     const next = getNextStatus(ord.currentStatus);
                     const latestTimestamp = ord.statusTimestamps?.[ord.currentStatus];
+                    const isProductionStation = ord.currentStatus === 'cuci' || ord.currentStatus === 'kering' || ord.currentStatus === 'setrika' || ord.currentStatus === 'packing';
+                    const currentRate = isProductionStation ? (stationRates[ord.currentStatus as keyof StationCommissionRates] || 300) : 300;
+                    const estCommission = Math.max(500, Math.round(ord.weightKg > 0 ? ord.weightKg * currentRate : ord.itemCount * (currentRate * 1.5)));
+                    const isClaimedByMe = ord.currentClaim?.workerId === currentUser.id;
+
+                    const stationsList: { id: OrderStatus; name: string; shortName: string; icon: string }[] = [
+                      { id: 'cuci', name: 'Cuci', shortName: 'Cuci', icon: '🫧' },
+                      { id: 'kering', name: 'Kering', shortName: 'Kering', icon: '🔥' },
+                      { id: 'setrika', name: 'Setrika', shortName: 'Setrika', icon: '💨' },
+                      { id: 'packing', name: 'Packing', shortName: 'Pack', icon: '📦' },
+                    ];
 
                     return (
                       <div
                         key={ord.id}
                         draggable
                         onDragStart={(e) => handleDragStart(e, ord.id)}
-                        className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-orange-500/50 shadow-md transition-all cursor-grab active:cursor-grabbing space-y-2 group"
+                        className="p-3.5 rounded-2xl bg-slate-900/95 border border-slate-800 hover:border-orange-500/60 shadow-lg transition-all cursor-grab active:cursor-grabbing space-y-2.5 group"
                       >
                         {/* Header: Invoice + Express badge */}
                         <div className="flex items-start justify-between gap-1">
@@ -234,7 +269,7 @@ export const ProduksiKanban: React.FC<ProduksiKanbanProps> = ({ currentSubTab = 
                             </div>
                           </div>
                           {ord.isExpress && (
-                            <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-amber-500 text-slate-950 uppercase flex items-center gap-0.5">
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-amber-500 text-slate-950 uppercase flex items-center gap-0.5 shadow-sm">
                               <Zap className="w-2.5 h-2.5 fill-current" /> Express
                             </span>
                           )}
@@ -242,11 +277,11 @@ export const ProduksiKanban: React.FC<ProduksiKanbanProps> = ({ currentSubTab = 
 
                         {/* Items & Weight info */}
                         <div className="text-[11px] text-slate-300">
-                          <div className="line-clamp-1 font-medium">
+                          <div className="line-clamp-1 font-medium text-slate-200">
                             {ord.items.map((i) => i.serviceName).join(', ')}
                           </div>
                           <div className="flex items-center justify-between text-slate-400 text-[10px] mt-0.5">
-                            <span>
+                            <span className="font-mono font-semibold text-cyan-300">
                               ⚖️ {ord.weightKg > 0 ? `${ord.weightKg} kg` : `${ord.itemCount} pcs`}
                             </span>
                             <span className="text-purple-300">🌸 {ord.perfumeName}</span>
@@ -255,27 +290,183 @@ export const ProduksiKanban: React.FC<ProduksiKanbanProps> = ({ currentSubTab = 
 
                         {/* Notes if any */}
                         {ord.specialNotes && (
-                          <div className="text-[10px] bg-slate-950/80 text-amber-300 p-1.5 rounded border border-amber-500/20 line-clamp-1">
+                          <div className="text-[10px] bg-slate-950/80 text-amber-300 p-1.5 rounded-lg border border-amber-500/20 line-clamp-1">
                             💬 {ord.specialNotes}
                           </div>
                         )}
 
-                        {/* PIC & Timestamp */}
-                        {latestTimestamp && (
-                          <div className="text-[9px] text-slate-400 font-mono flex items-center justify-between pt-1 border-t border-slate-800">
-                            <span>PIC: {latestTimestamp.picName || 'Operator'}</span>
-                            <span>{latestTimestamp.time.substring(11, 16)}</span>
+                        {/* Multi-Worker Station Progress & Photo Proofs */}
+                        <div className="pt-1 border-t border-slate-800/80">
+                          <span className="text-[9px] uppercase tracking-wider text-slate-500 font-bold block mb-1">
+                            Progress Borongan per Stasiun:
+                          </span>
+                          <div className="grid grid-cols-4 gap-1">
+                            {stationsList.map((st) => {
+                              const ts = ord.statusTimestamps?.[st.id];
+                              const isCompleted = !!ts;
+                              const isCurrent = ord.currentStatus === st.id;
+
+                              return (
+                                <div
+                                  key={st.id}
+                                  className={`p-1 rounded-lg text-center transition-all flex flex-col items-center justify-between min-h-[44px] overflow-hidden border ${
+                                    isCompleted
+                                      ? 'bg-emerald-950/50 border-emerald-500/50 text-emerald-300'
+                                      : isCurrent
+                                      ? 'bg-orange-950/40 border-orange-500/50 text-orange-300 ring-1 ring-orange-500/40'
+                                      : 'bg-slate-950/60 border-slate-800/80 text-slate-600'
+                                  }`}
+                                >
+                                  <div className="text-[10px] flex items-center justify-center gap-0.5 truncate w-full">
+                                    <span className="text-[10px] shrink-0">{st.icon}</span>
+                                    <span className="text-[8px] font-bold truncate">{st.shortName}</span>
+                                  </div>
+
+                                  {isCompleted ? (
+                                    ts.photoProof ? (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setPhotoViewerData({
+                                            url: ts.photoProof!,
+                                            invoiceNo: ord.invoiceNo,
+                                            station: st.name,
+                                            picName: ts.picName || 'Operator',
+                                            time: ts.time,
+                                            commission: ts.commissionEarned,
+                                            notes: ts.stationNotes,
+                                          });
+                                        }}
+                                        className="mt-0.5 px-1 py-0.5 rounded bg-emerald-500/20 hover:bg-emerald-500/40 text-[8px] font-black text-emerald-300 border border-emerald-500/30 flex items-center gap-0.5 transition-colors"
+                                        title={`Lihat Foto Bukti (${ts.picName})`}
+                                      >
+                                        <Camera className="w-2.5 h-2.5 text-emerald-400" />
+                                        <span>Foto</span>
+                                      </button>
+                                    ) : (
+                                      <span className="text-[8px] font-mono text-emerald-400 font-bold">
+                                        ✓ Selesai
+                                      </span>
+                                    )
+                                  ) : isCurrent ? (
+                                    <span className="text-[8px] font-bold text-orange-400 animate-pulse">
+                                      ● Aktif
+                                    </span>
+                                  ) : (
+                                    <span className="text-[8px] text-slate-600">-</span>
+                                  )}
+
+                                  {isCompleted && ts.picName && (
+                                    <span className="text-[8px] text-slate-400 truncate max-w-full font-mono mt-0.5 leading-tight">
+                                      {ts.picName.split(' ')[0]}
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Station Task Claim & Photo Proof Action Box */}
+                        {isProductionStation && (
+                          <div className="p-2.5 rounded-xl bg-slate-950/90 border border-orange-500/30 space-y-2">
+                            <div className="flex items-center justify-between text-[10px]">
+                              <span className="text-slate-400 font-medium">
+                                Stasiun <strong className="text-orange-300 uppercase">{ord.currentStatus}</strong>:
+                              </span>
+                              <span className="font-mono text-emerald-400 font-bold flex items-center gap-0.5">
+                                <Coins className="w-3 h-3 text-emerald-400" />
+                                <span>+Rp {estCommission.toLocaleString('id-ID')}</span>
+                              </span>
+                            </div>
+
+                            {/* Claim status details */}
+                            {ord.currentClaim?.station === ord.currentStatus ? (
+                              <div className="flex items-center justify-between text-[9px] bg-slate-900 px-2 py-1 rounded-lg border border-slate-800">
+                                <span className="text-slate-300 flex items-center gap-1 truncate">
+                                  <UserCheck className="w-3 h-3 text-cyan-400 shrink-0" />
+                                  <span>Dikerjakan: <strong>{ord.currentClaim.workerName}</strong></span>
+                                </span>
+                                {(isClaimedByMe || currentUser.role === 'owner') && (
+                                  <button
+                                    type="button"
+                                    onClick={() => unclaimStationTask(ord.id)}
+                                    className="text-[8px] text-rose-400 hover:underline shrink-0 ml-1 font-semibold"
+                                  >
+                                    Lepas Klaim
+                                  </button>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="text-[9px] text-slate-400 flex items-center justify-between">
+                                <span className="text-amber-400/90 font-medium">● Belum ada yang ambil</span>
+                                <span className="text-[9px] text-slate-500 font-mono">Tarif: Rp {currentRate}/kg</span>
+                              </div>
+                            )}
+
+                            {/* Action Buttons for this Station */}
+                            <div className="grid grid-cols-1 gap-1.5 pt-0.5">
+                              {(!ord.currentClaim || ord.currentClaim.station !== ord.currentStatus) && (
+                                <button
+                                  type="button"
+                                  onClick={() => claimStationTask(ord.id, ord.currentStatus, currentUser)}
+                                  className="w-full py-1.5 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 text-[10px] font-bold border border-cyan-500/30 transition-all flex items-center justify-center gap-1 active:scale-95"
+                                  title="Ambil tugas ini agar rekan kerja tahu"
+                                >
+                                  <HandMetal className="w-3 h-3 text-cyan-400" />
+                                  <span>Ambil Tugas (Klaim)</span>
+                                </button>
+                              )}
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setStationModalOrder(ord);
+                                  setStationModalStation(ord.currentStatus);
+                                }}
+                                className="w-full py-1.5 px-2 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-slate-950 font-black text-[10px] transition-all flex items-center justify-center gap-1 shadow-md shadow-orange-500/20 active:scale-95"
+                              >
+                                <Camera className="w-3.5 h-3.5" />
+                                <span>Upload Foto Bukti (+Rp {estCommission.toLocaleString('id-ID')})</span>
+                              </button>
+                            </div>
                           </div>
                         )}
 
-                        {/* Card Actions */}
-                        <div className="pt-2 flex items-center justify-between gap-1.5">
+                        {ord.currentStatus === 'antrean' && (
+                          <div className="p-2 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between">
+                            <span className="text-[10px] text-slate-400">Siap dicuci:</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setStationModalOrder(ord);
+                                setStationModalStation('cuci');
+                              }}
+                              className="py-1 px-2.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-[10px] font-bold transition-all flex items-center gap-1 shadow-sm"
+                            >
+                              <WashingMachine className="w-3 h-3" />
+                              <span>Mulai Cuci (Foto Bukti)</span>
+                            </button>
+                          </div>
+                        )}
+
+                        {ord.currentStatus === 'siap' && (
+                          <div className="p-1.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold flex items-center justify-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                            <span>Semua Stasiun Selesai • Siap Ambil / Antar</span>
+                          </div>
+                        )}
+
+                        {/* Card Bottom Bar: Detail Info & IoT controls */}
+                        <div className="pt-1.5 flex items-center justify-between gap-1.5 border-t border-slate-800">
                           <button
                             onClick={() => setSelectedOrderForDetail(ord)}
-                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
-                            title="Detail Order"
+                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors flex items-center gap-1 text-[10px] font-medium"
+                            title="Detail Order & Riwayat Foto"
                           >
-                            <Info className="w-3.5 h-3.5" />
+                            <Info className="w-3.5 h-3.5 text-slate-400" />
+                            <span>Detail</span>
                           </button>
 
                           {/* Quick IoT trigger if cuci / kering */}
@@ -286,18 +477,18 @@ export const ProduksiKanban: React.FC<ProduksiKanbanProps> = ({ currentSubTab = 
                               title="Sambungkan ke Mesin IoT"
                             >
                               <WashingMachine className="w-3 h-3" />
-                              <span>IoT</span>
+                              <span>IoT Mesin</span>
                             </button>
                           )}
 
-                          {/* 1-Click Advance Button */}
+                          {/* Quick Advance fallback */}
                           {next && (
                             <button
                               onClick={() => handleAdvanceStatus(ord.id, ord.currentStatus)}
-                              className="flex-1 flex items-center justify-center gap-1 py-1 px-2 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-bold text-[10px] transition-colors"
+                              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white text-[10px] transition-colors"
+                              title="Lewati / Majukan status secara manual"
                             >
-                              <span>Lanjut</span>
-                              <ArrowRight className="w-3 h-3" />
+                              <ArrowRight className="w-3.5 h-3.5" />
                             </button>
                           )}
                         </div>
@@ -311,16 +502,16 @@ export const ProduksiKanban: React.FC<ProduksiKanbanProps> = ({ currentSubTab = 
         })}
       </div>
 
-      {/* Order Detail Modal */}
+      {/* Order Detail Modal with Photo Proof Gallery */}
       {selectedOrderForDetail && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="relative w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-6 space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
+          <div className="relative w-full max-w-lg bg-slate-900 border border-slate-700 rounded-3xl shadow-2xl p-6 space-y-4 my-8">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div>
                 <span className="font-mono text-xs font-bold text-orange-400">
                   {selectedOrderForDetail.invoiceNo}
                 </span>
-                <h3 className="text-sm font-bold text-white">Detail Produksi Order</h3>
+                <h3 className="text-sm font-bold text-white">Detail Produksi & Bukti Foto Stasiun</h3>
               </div>
               <button
                 onClick={() => setSelectedOrderForDetail(null)}
@@ -355,24 +546,167 @@ export const ProduksiKanban: React.FC<ProduksiKanbanProps> = ({ currentSubTab = 
                 ))}
               </div>
 
-              {/* Status Timestamps History */}
-              <div className="space-y-1 pt-2 border-t border-slate-800">
-                <span className="font-bold text-slate-400 block text-[10px] uppercase">Riwayat Workflow & PIC:</span>
-                {Object.entries(selectedOrderForDetail.statusTimestamps || {}).map(([st, ts]) => (
-                  <div key={st} className="flex justify-between text-[11px] font-mono text-slate-300">
-                    <span className="capitalize text-orange-300 font-semibold">{st}</span>
-                    <span>{ts?.picName || 'System'} ({ts?.time})</span>
-                  </div>
-                ))}
+              {/* Status Timestamps & Photo Proofs Gallery */}
+              <div className="space-y-2 pt-2 border-t border-slate-800">
+                <span className="font-bold text-slate-400 block text-[10px] uppercase">
+                  Riwayat Pengerjaan Stasiun & Bukti Foto:
+                </span>
+                <div className="space-y-2">
+                  {Object.entries(selectedOrderForDetail.statusTimestamps || {}).map(([st, ts]) => (
+                    <div
+                      key={st}
+                      className="p-2.5 rounded-xl bg-slate-950 border border-slate-800/80 space-y-1.5"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="capitalize font-bold text-orange-400 flex items-center gap-1">
+                          <span>{st === 'cuci' ? '🫧 Cuci' : st === 'kering' ? '🔥 Kering' : st === 'setrika' ? '💨 Setrika' : st === 'packing' ? '📦 Packing' : st}</span>
+                        </span>
+                        <span className="text-[10px] font-mono text-slate-400">{ts?.time}</span>
+                      </div>
+
+                      <div className="flex items-center justify-between text-[11px] text-slate-300">
+                        <span>Petugas (PIC): <strong>{ts?.picName || 'Operator'}</strong></span>
+                        {ts?.commissionEarned && (
+                          <span className="text-emerald-400 font-mono font-bold">
+                            +Rp {ts.commissionEarned.toLocaleString('id-ID')}
+                          </span>
+                        )}
+                      </div>
+
+                      {ts?.stationNotes && (
+                        <p className="text-[10px] text-amber-300/90 italic bg-slate-900/80 p-1 rounded">
+                          "{ts.stationNotes}"
+                        </p>
+                      )}
+
+                      {ts?.photoProof && (
+                        <div className="pt-1 flex items-center gap-2">
+                          <img
+                            src={ts.photoProof}
+                            alt={`Bukti ${st}`}
+                            className="w-16 h-12 object-cover rounded-lg border border-slate-700 cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={() => {
+                              setPhotoViewerData({
+                                url: ts.photoProof!,
+                                invoiceNo: selectedOrderForDetail.invoiceNo,
+                                station: st,
+                                picName: ts.picName || 'Operator',
+                                time: ts.time,
+                                commission: ts.commissionEarned,
+                                notes: ts.stationNotes,
+                              });
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPhotoViewerData({
+                                url: ts.photoProof!,
+                                invoiceNo: selectedOrderForDetail.invoiceNo,
+                                station: st,
+                                picName: ts.picName || 'Operator',
+                                time: ts.time,
+                                commission: ts.commissionEarned,
+                                notes: ts.stationNotes,
+                              });
+                            }}
+                            className="text-[10px] text-cyan-400 hover:underline flex items-center gap-1 font-semibold"
+                          >
+                            <Camera className="w-3 h-3" />
+                            <span>Lihat Foto Bukti Stasiun</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
             <div className="pt-2">
               <button
                 onClick={() => setSelectedOrderForDetail(null)}
-                className="w-full py-2 bg-slate-800 text-white rounded-xl text-xs font-semibold"
+                className="w-full py-2 bg-slate-800 text-white rounded-xl text-xs font-semibold hover:bg-slate-700 transition-colors"
               >
                 Tutup Detail
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Station Photo Proof Upload Modal */}
+      {stationModalOrder && (
+        <StationPhotoProofModal
+          isOpen={!!stationModalOrder}
+          onClose={() => setStationModalOrder(null)}
+          order={stationModalOrder}
+          station={stationModalStation}
+        />
+      )}
+
+      {/* Photo Proof Lightbox Viewer Modal */}
+      {photoViewerData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md animate-fade-in">
+          <div className="relative w-full max-w-lg bg-slate-900 border border-slate-700 rounded-3xl shadow-2xl overflow-hidden space-y-3">
+            {/* Top Bar */}
+            <div className="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-950/60">
+              <div>
+                <span className="font-mono text-xs font-bold text-orange-400">
+                  {photoViewerData.invoiceNo}
+                </span>
+                <h4 className="text-sm font-bold text-white capitalize">
+                  Bukti Pengerjaan: Station {photoViewerData.station}
+                </h4>
+              </div>
+              <button
+                onClick={() => setPhotoViewerData(null)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Photo with Watermark overlay */}
+            <div className="relative bg-black px-4 flex justify-center">
+              <div className="relative rounded-2xl overflow-hidden border border-slate-800 w-full max-h-[360px]">
+                <img
+                  src={photoViewerData.url}
+                  alt="Bukti Foto Full"
+                  className="w-full h-full object-contain max-h-[360px]"
+                />
+                <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/95 via-black/80 to-transparent text-[10px] font-mono text-slate-200">
+                  <div className="flex items-center justify-between text-orange-400 font-bold">
+                    <span>LAUNDRYHUB BUKTI RESMI</span>
+                    <span>{photoViewerData.invoiceNo}</span>
+                  </div>
+                  <div className="text-slate-300 flex items-center justify-between mt-0.5">
+                    <span>PIC: {photoViewerData.picName}</span>
+                    <span>{photoViewerData.time}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Details Footer */}
+            <div className="p-4 pt-1 space-y-2 text-xs">
+              <div className="flex items-center justify-between bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+                <span className="text-slate-400">Komisi Yang Diterima PIC:</span>
+                <span className="font-mono text-emerald-400 font-black text-sm">
+                  +Rp {(photoViewerData.commission || 0).toLocaleString('id-ID')}
+                </span>
+              </div>
+              {photoViewerData.notes && (
+                <div className="text-amber-300 bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-[11px]">
+                  <strong>Catatan Petugas:</strong> {photoViewerData.notes}
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => setPhotoViewerData(null)}
+                className="w-full py-2 rounded-xl bg-slate-800 text-slate-200 hover:bg-slate-700 font-semibold text-xs"
+              >
+                Tutup
               </button>
             </div>
           </div>
