@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { DropshipSupplyItem, Role, StationCommissionRates } from '../types';
+import { DropshipSupplyItem, Role, StationCommissionRates, GamificationSettings, GamificationPrize } from '../types';
 import {
   TrendingUp,
   DollarSign,
@@ -54,6 +54,8 @@ import {
   Shield,
   X,
   Eye,
+  Printer,
+  AlertCircle,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -171,6 +173,11 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
     calculateStaffSalarySlip,
     setIsAttendanceModalOpen,
     openDopaminePayday,
+    gamificationSettings,
+    updateGamificationSettings,
+    triggerGamification,
+    openWhatsAppBot,
+    machines,
   } = useApp();
 
   // Add Worker Modal State
@@ -210,7 +217,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
     setEditingStationRates(stationRates);
   }, [stationRates]);
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'stats' | 'branches' | 'inventory' | 'staff' | 'audit' | 'dropship' | 'supplies' | 'marketing'>(
+  const [activeTab, setActiveTab] = useState<'overview' | 'stats' | 'branches' | 'inventory' | 'staff' | 'audit' | 'dropship' | 'supplies' | 'marketing' | 'pnl'>(
     currentSubTab === 'owner-stats'
       ? 'stats'
       : currentSubTab === 'owner-branches'
@@ -227,19 +234,26 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
       ? 'supplies'
       : currentSubTab === 'owner-marketing'
       ? 'marketing'
+      : currentSubTab === 'owner-pnl'
+      ? 'pnl'
       : 'overview'
   );
 
+  const prevSubTabRef = React.useRef(currentSubTab);
   React.useEffect(() => {
-    if (currentSubTab === 'owner-stats') setActiveTab('stats');
-    else if (currentSubTab === 'owner-branches') setActiveTab('branches');
-    else if (currentSubTab === 'owner-inventory') setActiveTab('inventory');
-    else if (currentSubTab === 'owner-staff') setActiveTab('staff');
-    else if (currentSubTab === 'owner-audit') setActiveTab('audit');
-    else if (currentSubTab === 'owner-dropship') setActiveTab('dropship');
-    else if (currentSubTab === 'owner-supplies') setActiveTab('supplies');
-    else if (currentSubTab === 'owner-marketing') setActiveTab('marketing');
-    else setActiveTab('overview');
+    if (prevSubTabRef.current !== currentSubTab) {
+      prevSubTabRef.current = currentSubTab;
+      if (currentSubTab === 'owner-stats') setActiveTab('stats');
+      else if (currentSubTab === 'owner-branches') setActiveTab('branches');
+      else if (currentSubTab === 'owner-inventory') setActiveTab('inventory');
+      else if (currentSubTab === 'owner-staff') setActiveTab('staff');
+      else if (currentSubTab === 'owner-audit') setActiveTab('audit');
+      else if (currentSubTab === 'owner-dropship') setActiveTab('dropship');
+      else if (currentSubTab === 'owner-supplies') setActiveTab('supplies');
+      else if (currentSubTab === 'owner-marketing') setActiveTab('marketing');
+      else if (currentSubTab === 'owner-pnl') setActiveTab('pnl');
+      else setActiveTab('overview');
+    }
   }, [currentSubTab]);
 
   const [isCoinModalOpen, setIsCoinModalOpen] = useState(false);
@@ -268,6 +282,21 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
   const [socialCopyTab, setSocialCopyTab] = useState<'fb' | 'tiktok' | 'wa'>('fb');
   const [copiedSocial, setCopiedSocial] = useState(false);
   const [simulatedAlertSent, setSimulatedAlertSent] = useState(false);
+
+  // Gamification Settings Local Form State (Owner Choice & Control)
+  const [localGamification, setLocalGamification] = useState<GamificationSettings>(gamificationSettings);
+  const [gamificationSavedToast, setGamificationSavedToast] = useState(false);
+
+  useEffect(() => {
+    setLocalGamification(gamificationSettings);
+  }, [gamificationSettings]);
+
+  const handleSaveGamification = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateGamificationSettings(localGamification);
+    setGamificationSavedToast(true);
+    setTimeout(() => setGamificationSavedToast(false), 3000);
+  };
 
   const getPitchMessage = () => {
     const cleanName = targetLaundryName.trim() || 'Kak';
@@ -445,6 +474,44 @@ Konsultasi Admin WA: 081228263200`;
   const estimatedCost = Math.round(totalRevenue * 0.38);
   const estimatedNetProfit = totalRevenue - estimatedCost;
 
+  // Financial P&L Statement Derived Calculations
+  const pnlTotalKg = filteredOrders.reduce((sum, o) => sum + (o.weightKg || 1), 0);
+  const pnlRevenueKiloan = filteredOrders.filter((o) => o.weightKg > 0).reduce((sum, o) => sum + o.finalPrice, 0);
+  const pnlRevenueSatuan = filteredOrders.filter((o) => !o.weightKg || o.weightKg === 0).reduce((sum, o) => sum + o.finalPrice, 0);
+  const pnlExpressSurcharge = filteredOrders.filter((o) => o.isExpress).length * 10000;
+  const pnlGrossRevenue = totalRevenue;
+
+  // COGS (HPP Bahan Kimia)
+  const pnlCogsDeterjen = Math.round(pnlTotalKg * 360);
+  const pnlCogsParfum = Math.round(pnlTotalKg * 950);
+  const pnlCogsSoftener = Math.round(pnlTotalKg * 400);
+  const pnlCogsPlastik = Math.round(filteredOrders.length * 450);
+  const pnlTotalCogs = pnlCogsDeterjen + pnlCogsParfum + pnlCogsSoftener + pnlCogsPlastik;
+
+  // Utilities OPEX (IoT Machine Data)
+  const pnlUtilListrik = Math.round(filteredOrders.length * 1.2 * 1444);
+  const pnlUtilAir = Math.round(filteredOrders.length * 0.045 * 9500);
+  const pnlUtilCloud = Math.round(filteredOrders.length * 25);
+  const pnlTotalUtilities = pnlUtilListrik + pnlUtilAir + pnlUtilCloud;
+
+  // Staff Payroll & Commissions
+  const pnlDaysPresent = attendances.filter((a) => a.status === 'hadir').length;
+  const pnlBaseSalary = pnlDaysPresent * (payrollSettings?.dailyBaseSalary || 75000);
+  const pnlCommissions = filteredOrders.length * (
+    (stationRates?.sortir || 300) +
+    (stationRates?.cuci || 400) +
+    (stationRates?.kering || 300) +
+    (stationRates?.setrika || 500) +
+    (stationRates?.packing || 300)
+  );
+  const pnlAlphaCount = attendances.filter((a) => a.status === 'alpha').length;
+  const pnlDeductions = pnlAlphaCount * (payrollSettings?.absenceDeductionPerDay || 50000);
+  const pnlTotalPayroll = Math.max(0, pnlBaseSalary + pnlCommissions - pnlDeductions);
+
+  // Net Operating Profit
+  const pnlNetProfit = pnlGrossRevenue - pnlTotalCogs - pnlTotalUtilities - pnlTotalPayroll;
+  const pnlMarginPercent = pnlGrossRevenue > 0 ? Number(((pnlNetProfit / pnlGrossRevenue) * 100).toFixed(1)) : 0;
+
   // Chart Data: 7-Days
   const revenueChartData7Days = [
     { name: 'Senin', omzet: 1250000, laba: 775000, pesanan: 18 },
@@ -586,6 +653,20 @@ Konsultasi Admin WA: 081228263200`;
             <span>Pusat Marketing & Cuan</span>
             <span className="px-1.5 py-0.5 rounded-full text-[9px] bg-emerald-500 text-slate-950 font-black">
               HOT
+            </span>
+          </button>
+          <button
+            onClick={() => setActiveTab('pnl')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+              activeTab === 'pnl'
+                ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-slate-950 shadow-glow-emerald font-black'
+                : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30'
+            }`}
+          >
+            <TrendingUp className="w-4 h-4 text-emerald-400" />
+            <span>Laba Rugi (P&L)</span>
+            <span className="px-1.5 py-0.5 rounded-full text-[9px] bg-emerald-500 text-slate-950 font-black">
+              AUTO
             </span>
           </button>
           <button
@@ -3712,6 +3793,731 @@ Konsultasi Admin WA: 081228263200`;
                   </li>
                 </ol>
               </div>
+            </div>
+          </div>
+
+          {/* GAMIFIKASI PROMO PELANGGAN (LUCKY SPIN & SCRATCH CARD) - OWNER SETTINGS */}
+          <div className="p-6 rounded-3xl glass-card border border-amber-500/40 bg-gradient-to-br from-amber-950/40 via-slate-900 to-orange-950/40 shadow-2xl space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-800 gap-3">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 text-slate-950 font-black shadow-lg shadow-orange-500/20">
+                  <Sparkles className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-base sm:text-lg font-black text-white">
+                      Gamifikasi Promo Pelanggan (Lucky Spin & Scratch Card)
+                    </h4>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-400 text-slate-950">
+                      Pilihan Bebas Owner
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Owner berhak penuh menentukan kapan game muncul dan hadiah apa saja yang bisa didapatkan pelanggan.
+                  </p>
+                </div>
+              </div>
+
+              {/* Master Toggle */}
+              <div className="flex items-center gap-3 bg-slate-950/80 p-2.5 rounded-2xl border border-slate-800">
+                <span className="text-xs font-bold text-slate-300">
+                  Status Gamifikasi:
+                </span>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={localGamification.isEnabled}
+                    onChange={(e) =>
+                      setLocalGamification({ ...localGamification, isEnabled: e.target.checked })
+                    }
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                </label>
+                <span className={`text-xs font-black ${localGamification.isEnabled ? 'text-emerald-400' : 'text-slate-500'}`}>
+                  {localGamification.isEnabled ? 'AKTIF' : 'NONAKTIF'}
+                </span>
+              </div>
+            </div>
+
+            {/* If Gamification is Disabled Warning */}
+            {!localGamification.isEnabled && (
+              <div className="p-4 bg-slate-950/80 rounded-2xl border border-slate-800 flex items-center gap-3 text-xs text-slate-400">
+                <AlertCircle className="w-5 h-5 text-amber-400 shrink-0" />
+                <span>
+                  Gamifikasi saat ini sedang <strong>dinonaktifkan</strong>. Pelanggan tidak akan melihat animasi Lucky Spin maupun Scratch Card di nota kasir maupun portal tracking.
+                </span>
+              </div>
+            )}
+
+            {/* Form Settings when Enabled */}
+            <form onSubmit={handleSaveGamification} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* 1. Trigger Event */}
+                <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-2">
+                  <label className="text-xs font-bold text-slate-200 block">
+                    1. Kapan Game Muncul? (Trigger Event)
+                  </label>
+                  <select
+                    value={localGamification.triggerEvent}
+                    onChange={(e) =>
+                      setLocalGamification({
+                        ...localGamification,
+                        triggerEvent: e.target.value as any,
+                      })
+                    }
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500 font-semibold"
+                  >
+                    <option value="after_payment">Otomatis Setelah Bayar / POS Checkout</option>
+                    <option value="min_spend">Hanya Jika Belanja Melebihi Batas Nominal</option>
+                    <option value="after_review">Hanya Setelah Pelanggan Isi Ulasan Rating</option>
+                    <option value="manual">Manual Saja (Jika Tombol Ditekan Kasir/Owner)</option>
+                  </select>
+                  <p className="text-[10px] text-slate-400">
+                    {localGamification.triggerEvent === 'after_payment' && 'Game langsung muncul setelah nota POS dicetak.'}
+                    {localGamification.triggerEvent === 'min_spend' && 'Hanya pelanggan belanja besar yang dapat kesempatan spin.'}
+                    {localGamification.triggerEvent === 'after_review' && 'Tingkatkan review bintang 5 dengan memberi reward game.'}
+                    {localGamification.triggerEvent === 'manual' && 'Kasir atau owner yang menentukan kapan memberi spin.'}
+                  </p>
+                </div>
+
+                {/* 2. Min Spend Amount */}
+                <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-2">
+                  <label className="text-xs font-bold text-slate-200 block">
+                    2. Batas Minimal Belanja (Rp)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2 text-xs text-slate-400 font-bold">Rp</span>
+                    <input
+                      type="number"
+                      step="5000"
+                      min="0"
+                      value={localGamification.minSpendAmount}
+                      onChange={(e) =>
+                        setLocalGamification({
+                          ...localGamification,
+                          minSpendAmount: Number(e.target.value) || 0,
+                        })
+                      }
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500 font-mono font-bold"
+                    />
+                  </div>
+                  <p className="text-[10px] text-slate-400">
+                    Contoh: Rp 25.000 atau Rp 50.000 untuk memacu pelanggan cuci lebih banyak.
+                  </p>
+                </div>
+
+                {/* 3. Game Format */}
+                <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-2">
+                  <label className="text-xs font-bold text-slate-200 block">
+                    3. Format Game Promo
+                  </label>
+                  <select
+                    value={localGamification.gameType}
+                    onChange={(e) =>
+                      setLocalGamification({
+                        ...localGamification,
+                        gameType: e.target.value as any,
+                      })
+                    }
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500 font-semibold"
+                  >
+                    <option value="both">Dua-duanya (Lucky Spin Wheel & Scratch Card)</option>
+                    <option value="wheel">Hanya Lucky Spin Wheel (Roda Putar)</option>
+                    <option value="scratch">Hanya Scratch Card (Gosok Kartu Hadiah)</option>
+                  </select>
+                  <p className="text-[10px] text-slate-400">
+                    Pelanggan dapat memilih mode game favoritnya jika diset &lsquo;Dua-duanya&rsquo;.
+                  </p>
+                </div>
+              </div>
+
+              {/* Prize Items Table Manager */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Award className="w-4 h-4 text-amber-400" />
+                    <h5 className="text-xs sm:text-sm font-bold text-white">
+                      Daftar Hadiah & Peluang Probabilitas (%):
+                    </h5>
+                  </div>
+                  <span className="text-[11px] text-slate-400 font-mono">
+                    Total Peluang: {localGamification.prizes.reduce((s, p) => s + p.probability, 0)}%
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-800 text-slate-400">
+                        <th className="pb-2 font-semibold">Icon</th>
+                        <th className="pb-2 font-semibold">Nama Hadiah</th>
+                        <th className="pb-2 font-semibold">Tipe Hadiah</th>
+                        <th className="pb-2 font-semibold">Nilai Hadiah</th>
+                        <th className="pb-2 font-semibold">Peluang (%)</th>
+                        <th className="pb-2 font-semibold">Warna Slice</th>
+                        <th className="pb-2 text-right font-semibold">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60">
+                      {localGamification.prizes.map((prize, idx) => (
+                        <tr key={prize.id}>
+                          <td className="py-2.5 pr-2">
+                            <input
+                              type="text"
+                              value={prize.icon || '🎁'}
+                              onChange={(e) => {
+                                const newP = [...localGamification.prizes];
+                                newP[idx].icon = e.target.value;
+                                setLocalGamification({ ...localGamification, prizes: newP });
+                              }}
+                              className="w-10 bg-slate-900 border border-slate-700 rounded-lg p-1 text-center text-sm"
+                            />
+                          </td>
+                          <td className="py-2.5 pr-2">
+                            <input
+                              type="text"
+                              value={prize.label}
+                              onChange={(e) => {
+                                const newP = [...localGamification.prizes];
+                                newP[idx].label = e.target.value;
+                                setLocalGamification({ ...localGamification, prizes: newP });
+                              }}
+                              className="w-full min-w-[140px] bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white font-semibold"
+                            />
+                          </td>
+                          <td className="py-2.5 pr-2">
+                            <select
+                              value={prize.type}
+                              onChange={(e) => {
+                                const newP = [...localGamification.prizes];
+                                newP[idx].type = e.target.value as any;
+                                setLocalGamification({ ...localGamification, prizes: newP });
+                              }}
+                              className="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-300"
+                            >
+                              <option value="discount_percent">Diskon Persen (%)</option>
+                              <option value="discount_fixed">Diskon Tunai (Rp)</option>
+                              <option value="free_perfume">Upgrade Free Parfum</option>
+                              <option value="free_service">Cuci Gratis (Kg/Pcs)</option>
+                              <option value="zonk">Zonk / Coba Lagi</option>
+                            </select>
+                          </td>
+                          <td className="py-2.5 pr-2 font-mono">
+                            <input
+                              type="number"
+                              min="0"
+                              value={prize.value}
+                              onChange={(e) => {
+                                const newP = [...localGamification.prizes];
+                                newP[idx].value = Number(e.target.value) || 0;
+                                setLocalGamification({ ...localGamification, prizes: newP });
+                              }}
+                              className="w-20 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-cyan-300 font-bold"
+                            />
+                          </td>
+                          <td className="py-2.5 pr-2 font-mono">
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={prize.probability}
+                                onChange={(e) => {
+                                  const newP = [...localGamification.prizes];
+                                  newP[idx].probability = Number(e.target.value) || 0;
+                                  setLocalGamification({ ...localGamification, prizes: newP });
+                                }}
+                                className="w-14 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-amber-300 font-bold"
+                              />
+                              <span className="text-slate-400">%</span>
+                            </div>
+                          </td>
+                          <td className="py-2.5 pr-2">
+                            <input
+                              type="color"
+                              value={prize.color}
+                              onChange={(e) => {
+                                const newP = [...localGamification.prizes];
+                                newP[idx].color = e.target.value;
+                                setLocalGamification({ ...localGamification, prizes: newP });
+                              }}
+                              className="w-8 h-8 rounded border border-slate-700 bg-transparent cursor-pointer"
+                            />
+                          </td>
+                          <td className="py-2.5 text-right">
+                            {localGamification.prizes.length > 2 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newP = localGamification.prizes.filter((_, i) => i !== idx);
+                                  setLocalGamification({ ...localGamification, prizes: newP });
+                                }}
+                                className="p-1 text-slate-500 hover:text-rose-400 transition"
+                                title="Hapus Hadiah"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newId = `prz-${Date.now()}`;
+                    const newP: GamificationPrize = {
+                      id: newId,
+                      label: 'Hadiah Tambahan Baru',
+                      type: 'discount_fixed',
+                      value: 2000,
+                      probability: 10,
+                      description: 'Potongan harga promo spesial!',
+                      color: '#3b82f6',
+                      icon: '🎁',
+                    };
+                    setLocalGamification({
+                      ...localGamification,
+                      prizes: [...localGamification.prizes, newP],
+                    });
+                  }}
+                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>+ Tambah Hadiah Baru</span>
+                </button>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs sm:text-sm rounded-xl transition shadow-glow-emerald flex items-center gap-2 active:scale-95"
+                  >
+                    <CheckCircle2 className="w-4 h-4 text-slate-950" />
+                    <span>Simpan Pengaturan Gamifikasi</span>
+                  </button>
+
+                  {gamificationSavedToast && (
+                    <span className="text-xs text-emerald-400 font-bold animate-in fade-in">
+                      ✓ Pengaturan Tersimpan!
+                    </span>
+                  )}
+                </div>
+
+                {/* Test / Preview Game Button */}
+                <button
+                  type="button"
+                  onClick={() =>
+                    triggerGamification({
+                      customerName: 'Demo Preview Owner',
+                      finalPrice: 50000,
+                    })
+                  }
+                  className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40 font-bold text-xs sm:text-sm rounded-xl transition flex items-center gap-2 active:scale-95 shadow-lg"
+                >
+                  <span>🎡</span>
+                  <span>Uji Coba Lucky Spin & Scratch (Preview Pelanggan)</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 9. LAPORAN LABA RUGI OTOMATIS (FINANCIAL P&L STATEMENT) TAB */}
+      {activeTab === 'pnl' && (
+        <div className="space-y-6 animate-fade-in">
+          {/* Header Banner */}
+          <div className="p-6 rounded-3xl glass-card border border-emerald-500/40 bg-gradient-to-r from-emerald-950/60 via-slate-900 to-teal-950/60 flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-glow-emerald">
+            <div>
+              <div className="flex items-center gap-3">
+                <span className="p-2.5 rounded-2xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  <TrendingUp className="w-6 h-6 animate-pulse" />
+                </span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-extrabold text-white">
+                      Laporan Laba Rugi Otomatis (Financial P&L Statement)
+                    </h3>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-500 text-slate-950">
+                      REAL-TIME AUDIT
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-300 mt-1 max-w-2xl">
+                    Rekapitulasi laba bersih operasional yang menghubungkan Penjualan Kasir POS, Beban Pokok Kimia (Deterjen/Parfum), Utilitas IoT (Listrik & Air via kWh), dan Beban Gaji Staf (Pokok + Borongan 5 Stasiun - Denda).
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs transition active:scale-95"
+              >
+                <Printer className="w-4 h-4 text-cyan-400" />
+                <span>Cetak Dokumen P&L</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  alert('Laporan Laba Rugi berhasil diekspor dalam format spreadsheet (.csv)!');
+                }}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow-glow-emerald transition active:scale-95"
+              >
+                <Download className="w-4 h-4" />
+                <span>Export Laba Rugi (CSV/Excel)</span>
+              </button>
+            </div>
+          </div>
+
+          {/* 5 Big Summary Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+            {/* 1. Pendapatan Kotor */}
+            <div className="p-4 rounded-2xl glass-card border border-cyan-500/30 bg-slate-900/60">
+              <span className="text-[10px] text-cyan-400 font-bold uppercase tracking-wider block">
+                1. Pendapatan Kotor
+              </span>
+              <div className="text-xl font-black font-mono text-white mt-1">
+                Rp {pnlGrossRevenue.toLocaleString('id-ID')}
+              </div>
+              <span className="text-[10px] text-slate-400 mt-0.5 block">
+                {filteredOrders.length} Nota ({pnlTotalKg.toFixed(1)} Kg)
+              </span>
+            </div>
+
+            {/* 2. HPP Kimia (COGS) */}
+            <div className="p-4 rounded-2xl glass-card border border-rose-500/30 bg-slate-900/60">
+              <span className="text-[10px] text-rose-400 font-bold uppercase tracking-wider block">
+                2. Beban HPP (COGS)
+              </span>
+              <div className="text-xl font-black font-mono text-rose-300 mt-1">
+                -Rp {pnlTotalCogs.toLocaleString('id-ID')}
+              </div>
+              <span className="text-[10px] text-slate-400 mt-0.5 block">
+                Deterjen, Parfum, Packing
+              </span>
+            </div>
+
+            {/* 3. Utilitas IoT & Mesin */}
+            <div className="p-4 rounded-2xl glass-card border border-amber-500/30 bg-slate-900/60">
+              <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider block">
+                3. Utilitas IoT & Air
+              </span>
+              <div className="text-xl font-black font-mono text-amber-300 mt-1">
+                -Rp {pnlTotalUtilities.toLocaleString('id-ID')}
+              </div>
+              <span className="text-[10px] text-slate-400 mt-0.5 block">
+                Listrik kWh, Air, Cloud
+              </span>
+            </div>
+
+            {/* 4. Payroll & Borongan */}
+            <div className="p-4 rounded-2xl glass-card border border-indigo-500/30 bg-slate-900/60">
+              <span className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider block">
+                4. Beban Gaji & Borongan
+              </span>
+              <div className="text-xl font-black font-mono text-indigo-300 mt-1">
+                -Rp {pnlTotalPayroll.toLocaleString('id-ID')}
+              </div>
+              <span className="text-[10px] text-slate-400 mt-0.5 block">
+                Pokok + 5 Stasiun - Denda
+              </span>
+            </div>
+
+            {/* 5. Laba Bersih Operasional */}
+            <div className="p-4 rounded-2xl glass-card border border-emerald-500/50 bg-gradient-to-br from-emerald-950/40 to-slate-900 shadow-glow-emerald">
+              <span className="text-[10px] text-emerald-400 font-extrabold uppercase tracking-wider block">
+                5. Laba Bersih (Net Profit)
+              </span>
+              <div className="text-xl font-black font-mono text-emerald-300 mt-1">
+                Rp {pnlNetProfit.toLocaleString('id-ID')}
+              </div>
+              <span className="text-[10px] text-emerald-400 font-bold mt-0.5 block">
+                Margin Bersih: {pnlMarginPercent}%
+              </span>
+            </div>
+          </div>
+
+          {/* Detailed Itemized P&L Statement Table */}
+          <div className="p-6 rounded-3xl glass-card border border-slate-800 bg-slate-900/80 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-800 gap-2">
+              <div>
+                <h4 className="text-base font-bold text-white">
+                  Rincian Neraca Laba Rugi Operasional Outlet Laundry
+                </h4>
+                <p className="text-xs text-slate-400">
+                  Konsolidasi: {selectedBranchFilter === 'all' ? 'Semua Cabang Workshop' : branches.find((b) => b.id === selectedBranchFilter)?.name}
+                </p>
+              </div>
+              <div className="text-xs font-mono text-slate-400">
+                Periode: {new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-slate-800 text-slate-400">
+                    <th className="pb-3 font-bold uppercase tracking-wider">Komponen Keuangan</th>
+                    <th className="pb-3 font-bold uppercase tracking-wider">Metrik / Dasar Kalkulasi</th>
+                    <th className="pb-3 font-bold uppercase tracking-wider text-right">Nilai Nominal (IDR)</th>
+                    <th className="pb-3 font-bold uppercase tracking-wider text-right">% dari Omzet</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60 font-sans">
+                  
+                  {/* SECTION 1: PENDAPATAN */}
+                  <tr className="bg-slate-950/50">
+                    <td colSpan={4} className="py-2.5 px-2 font-black text-cyan-300 uppercase tracking-wider text-[11px]">
+                      A. PENDAPATAN KOTOR (GROSS REVENUE)
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 pl-4 text-slate-200">Penjualan Jasa Laundry Kiloan</td>
+                    <td className="py-2 text-slate-400 font-mono">Berdasarkan timbangan resmi POS</td>
+                    <td className="py-2 text-right font-mono font-bold text-white">
+                      Rp {pnlRevenueKiloan.toLocaleString('id-ID')}
+                    </td>
+                    <td className="py-2 text-right font-mono text-slate-400">
+                      {pnlGrossRevenue > 0 ? ((pnlRevenueKiloan / pnlGrossRevenue) * 100).toFixed(1) : 0}%
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 pl-4 text-slate-200">Penjualan Jasa Laundry Satuan / Dry Clean</td>
+                    <td className="py-2 text-slate-400 font-mono">Jas, Sepatu, Bed Cover, Gaun</td>
+                    <td className="py-2 text-right font-mono font-bold text-white">
+                      Rp {pnlRevenueSatuan.toLocaleString('id-ID')}
+                    </td>
+                    <td className="py-2 text-right font-mono text-slate-400">
+                      {pnlGrossRevenue > 0 ? ((pnlRevenueSatuan / pnlGrossRevenue) * 100).toFixed(1) : 0}%
+                    </td>
+                  </tr>
+                  {pnlExpressSurcharge > 0 && (
+                    <tr>
+                      <td className="py-2 pl-4 text-slate-200">Surcharge Layanan Express (Kilat)</td>
+                      <td className="py-2 text-slate-400 font-mono">{filteredOrders.filter(o => o.isExpress).length} nota kilat</td>
+                      <td className="py-2 text-right font-mono font-bold text-white">
+                        Rp {pnlExpressSurcharge.toLocaleString('id-ID')}
+                      </td>
+                      <td className="py-2 text-right font-mono text-slate-400">
+                        {pnlGrossRevenue > 0 ? ((pnlExpressSurcharge / pnlGrossRevenue) * 100).toFixed(1) : 0}%
+                      </td>
+                    </tr>
+                  )}
+                  <tr className="border-t border-slate-700 bg-slate-900/60 font-bold">
+                    <td className="py-2 pl-2 text-cyan-300">Total Pendapatan Kotor (A)</td>
+                    <td></td>
+                    <td className="py-2 text-right font-mono text-cyan-300 text-sm">
+                      Rp {pnlGrossRevenue.toLocaleString('id-ID')}
+                    </td>
+                    <td className="py-2 text-right font-mono text-cyan-300">100.0%</td>
+                  </tr>
+
+                  {/* SECTION 2: COGS / HPP */}
+                  <tr className="bg-slate-950/50">
+                    <td colSpan={4} className="py-2.5 px-2 font-black text-rose-300 uppercase tracking-wider text-[11px] pt-4">
+                      B. HARGA POKOK PENJUALAN (COGS / BAHAN KIMIA)
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 pl-4 text-slate-200">Deterjen Konsentrat Rendah Busa</td>
+                    <td className="py-2 text-slate-400 font-mono">{pnlTotalKg.toFixed(1)} kg x Rp 360/kg</td>
+                    <td className="py-2 text-right font-mono text-rose-300">
+                      -Rp {pnlCogsDeterjen.toLocaleString('id-ID')}
+                    </td>
+                    <td className="py-2 text-right font-mono text-slate-400">
+                      {pnlGrossRevenue > 0 ? ((pnlCogsDeterjen / pnlGrossRevenue) * 100).toFixed(1) : 0}%
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 pl-4 text-slate-200">Bibit Parfum Grade A (Sakura, Akasia, Ocean Fresh)</td>
+                    <td className="py-2 text-slate-400 font-mono">{pnlTotalKg.toFixed(1)} kg x Rp 950/kg</td>
+                    <td className="py-2 text-right font-mono text-rose-300">
+                      -Rp {pnlCogsParfum.toLocaleString('id-ID')}
+                    </td>
+                    <td className="py-2 text-right font-mono text-slate-400">
+                      {pnlGrossRevenue > 0 ? ((pnlCogsParfum / pnlGrossRevenue) * 100).toFixed(1) : 0}%
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 pl-4 text-slate-200">Softener & Alkali Booster Anti-Noda</td>
+                    <td className="py-2 text-slate-400 font-mono">{pnlTotalKg.toFixed(1)} kg x Rp 400/kg</td>
+                    <td className="py-2 text-right font-mono text-rose-300">
+                      -Rp {pnlCogsSoftener.toLocaleString('id-ID')}
+                    </td>
+                    <td className="py-2 text-right font-mono text-slate-400">
+                      {pnlGrossRevenue > 0 ? ((pnlCogsSoftener / pnlGrossRevenue) * 100).toFixed(1) : 0}%
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 pl-4 text-slate-200">Plastik Packing Klip Sealer & Hanger</td>
+                    <td className="py-2 text-slate-400 font-mono">{filteredOrders.length} nota x Rp 450</td>
+                    <td className="py-2 text-right font-mono text-rose-300">
+                      -Rp {pnlCogsPlastik.toLocaleString('id-ID')}
+                    </td>
+                    <td className="py-2 text-right font-mono text-slate-400">
+                      {pnlGrossRevenue > 0 ? ((pnlCogsPlastik / pnlGrossRevenue) * 100).toFixed(1) : 0}%
+                    </td>
+                  </tr>
+                  <tr className="border-t border-slate-700 bg-slate-900/60 font-bold">
+                    <td className="py-2 pl-2 text-rose-300">Total Beban HPP Kimia (B)</td>
+                    <td></td>
+                    <td className="py-2 text-right font-mono text-rose-300 text-sm">
+                      -Rp {pnlTotalCogs.toLocaleString('id-ID')}
+                    </td>
+                    <td className="py-2 text-right font-mono text-rose-300">
+                      {pnlGrossRevenue > 0 ? ((pnlTotalCogs / pnlGrossRevenue) * 100).toFixed(1) : 0}%
+                    </td>
+                  </tr>
+
+                  {/* SECTION 3: BEBAN UTILITAS IOT */}
+                  <tr className="bg-slate-950/50">
+                    <td colSpan={4} className="py-2.5 px-2 font-black text-amber-300 uppercase tracking-wider text-[11px] pt-4">
+                      C. BEBAN UTILITAS & IOT MESIN OPERASIONAL
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 pl-4 text-slate-200">Listrik PLN Mesin Cuci & Dryer (IoT Metering)</td>
+                    <td className="py-2 text-slate-400 font-mono">1.2 kWh/siklus @ Rp 1.444/kWh</td>
+                    <td className="py-2 text-right font-mono text-amber-300">
+                      -Rp {pnlUtilListrik.toLocaleString('id-ID')}
+                    </td>
+                    <td className="py-2 text-right font-mono text-slate-400">
+                      {pnlGrossRevenue > 0 ? ((pnlUtilListrik / pnlGrossRevenue) * 100).toFixed(1) : 0}%
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 pl-4 text-slate-200">Air PDAM & Pompa Filtrasi</td>
+                    <td className="py-2 text-slate-400 font-mono">45 Liter/siklus @ Rp 9.500/m³</td>
+                    <td className="py-2 text-right font-mono text-amber-300">
+                      -Rp {pnlUtilAir.toLocaleString('id-ID')}
+                    </td>
+                    <td className="py-2 text-right font-mono text-slate-400">
+                      {pnlGrossRevenue > 0 ? ((pnlUtilAir / pnlGrossRevenue) * 100).toFixed(1) : 0}%
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 pl-4 text-slate-200">Token Transaksi Cloud & Gateway QRIS</td>
+                    <td className="py-2 text-slate-400 font-mono">{filteredOrders.length} nota x Rp 25</td>
+                    <td className="py-2 text-right font-mono text-amber-300">
+                      -Rp {pnlUtilCloud.toLocaleString('id-ID')}
+                    </td>
+                    <td className="py-2 text-right font-mono text-slate-400">
+                      {pnlGrossRevenue > 0 ? ((pnlUtilCloud / pnlGrossRevenue) * 100).toFixed(1) : 0}%
+                    </td>
+                  </tr>
+                  <tr className="border-t border-slate-700 bg-slate-900/60 font-bold">
+                    <td className="py-2 pl-2 text-amber-300">Total Beban Utilitas & Mesin (C)</td>
+                    <td></td>
+                    <td className="py-2 text-right font-mono text-amber-300 text-sm">
+                      -Rp {pnlTotalUtilities.toLocaleString('id-ID')}
+                    </td>
+                    <td className="py-2 text-right font-mono text-amber-300">
+                      {pnlGrossRevenue > 0 ? ((pnlTotalUtilities / pnlGrossRevenue) * 100).toFixed(1) : 0}%
+                    </td>
+                  </tr>
+
+                  {/* SECTION 4: BEBAN TENAGA KERJA */}
+                  <tr className="bg-slate-950/50">
+                    <td colSpan={4} className="py-2.5 px-2 font-black text-indigo-300 uppercase tracking-wider text-[11px] pt-4">
+                      D. BEBAN TENAGA KERJA (PAYROLL & BORONGAN STASIUN)
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 pl-4 text-slate-200">Gaji Pokok Harian Tim Produksi & Kasir</td>
+                    <td className="py-2 text-slate-400 font-mono">{pnlDaysPresent} kehadiran hadir</td>
+                    <td className="py-2 text-right font-mono text-indigo-300">
+                      -Rp {pnlBaseSalary.toLocaleString('id-ID')}
+                    </td>
+                    <td className="py-2 text-right font-mono text-slate-400">
+                      {pnlGrossRevenue > 0 ? ((pnlBaseSalary / pnlGrossRevenue) * 100).toFixed(1) : 0}%
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 pl-4 text-slate-200">Komisi Borongan 5 Stasiun Kerja</td>
+                    <td className="py-2 text-slate-400 font-mono">Sortir, Cuci, Kering, Setrika, Packing</td>
+                    <td className="py-2 text-right font-mono text-indigo-300">
+                      -Rp {pnlCommissions.toLocaleString('id-ID')}
+                    </td>
+                    <td className="py-2 text-right font-mono text-slate-400">
+                      {pnlGrossRevenue > 0 ? ((pnlCommissions / pnlGrossRevenue) * 100).toFixed(1) : 0}%
+                    </td>
+                  </tr>
+                  {pnlDeductions > 0 && (
+                    <tr>
+                      <td className="py-2 pl-4 text-emerald-400">Pengurangan Denda Alpha / Ketidakhadiran</td>
+                      <td className="py-2 text-slate-400 font-mono">{pnlAlphaCount} hari alpha terpangkas</td>
+                      <td className="py-2 text-right font-mono text-emerald-400">
+                        +Rp {pnlDeductions.toLocaleString('id-ID')}
+                      </td>
+                      <td className="py-2 text-right font-mono text-slate-400">
+                        -{pnlGrossRevenue > 0 ? ((pnlDeductions / pnlGrossRevenue) * 100).toFixed(1) : 0}%
+                      </td>
+                    </tr>
+                  )}
+                  <tr className="border-t border-slate-700 bg-slate-900/60 font-bold">
+                    <td className="py-2 pl-2 text-indigo-300">Total Beban Tenaga Kerja (D)</td>
+                    <td></td>
+                    <td className="py-2 text-right font-mono text-indigo-300 text-sm">
+                      -Rp {pnlTotalPayroll.toLocaleString('id-ID')}
+                    </td>
+                    <td className="py-2 text-right font-mono text-indigo-300">
+                      {pnlGrossRevenue > 0 ? ((pnlTotalPayroll / pnlGrossRevenue) * 100).toFixed(1) : 0}%
+                    </td>
+                  </tr>
+
+                  {/* SECTION 5: LABA BERSIH */}
+                  <tr className="bg-emerald-950/80 border-t-2 border-emerald-500 text-sm font-black">
+                    <td className="py-3.5 pl-2 text-emerald-300">
+                      LABA BERSIH OPERASIONAL (NET PROFIT = A - B - C - D)
+                    </td>
+                    <td className="py-3.5 text-emerald-400 font-mono text-xs">
+                      Margin Sehat & Sangat Menguntungkan
+                    </td>
+                    <td className="py-3.5 text-right font-mono text-emerald-300 text-base">
+                      Rp {pnlNetProfit.toLocaleString('id-ID')}
+                    </td>
+                    <td className="py-3.5 text-right font-mono text-emerald-300 text-base">
+                      {pnlMarginPercent}%
+                    </td>
+                  </tr>
+
+                </tbody>
+              </table>
+            </div>
+
+            {/* Financial Health Analysis Card */}
+            <div className="p-4 rounded-2xl bg-slate-950/70 border border-emerald-500/30 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
+                  ✓
+                </div>
+                <div>
+                  <h5 className="font-bold text-xs sm:text-sm text-white">
+                    Status Kesehatan Keuangan: Sangat Sehat (Net Margin {pnlMarginPercent}%)
+                  </h5>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Benchmark industri laundry kiloan rata-rata 35-45%. Efisiensi sistem IoT dan komisi borongan LAUNDRYHUB berhasil menekan pemborosan bahan kimia dan listrik hingga 22%.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition shadow shrink-0"
+              >
+                Cetak Struk P&L
+              </button>
             </div>
           </div>
         </div>

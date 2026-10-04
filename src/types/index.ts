@@ -219,6 +219,12 @@ export interface Order {
   agentId?: string;
   agentName?: string;
   agentCommission?: number;
+  // AI Garment Inspection & Disclaimer
+  aiInspection?: AiGarmentInspection;
+  // Gamification promo applied
+  appliedPromoReward?: string;
+  // Digital scale verified
+  isScaleVerified?: boolean;
 }
 
 export interface InventoryItem {
@@ -353,4 +359,52 @@ export interface WithdrawalRequest {
   status: 'pending' | 'transferred' | 'rejected';
   requestedAt: string;
   processedAt?: string;
+}
+
+// AI Garment & Stain Inspection Types
+export interface AiStainDetection {
+  id: string;
+  label: string; // e.g. "Noda Minyak / Saus Makanan"
+  severity: 'low' | 'medium' | 'high';
+  confidence: number; // e.g. 0.94
+  boundingBox?: { x: number; y: number; width: number; height: number };
+  recommendedTreatment: string; // e.g. "Spotting Solvent Degreaser"
+  defectType: 'noda' | 'robek' | 'kancing_lepas' | 'luntur' | 'jamur';
+}
+
+export interface AiGarmentInspection {
+  analyzedAt: string;
+  garmentType: string; // e.g. "Kemeja Putih Katun"
+  fabricCareNote: string;
+  stains: AiStainDetection[];
+  disclaimerNote: string; // e.g. "Pakaian diterima dengan noda minyak lama dan kancing ke-2 longgar"
+  photoUrl?: string;
+}
+
+// Owner Configurable Gamification Settings & Prizes
+export interface GamificationPrize {
+  id: string;
+  label: string;
+  type: 'discount_percent' | 'discount_fixed' | 'free_perfume' | 'free_service' | 'zonk';
+  value: number; // e.g. 15 for 15%, 5000 for Rp 5000
+  probability: number; // 0 - 100
+  description: string;
+  color: string;
+  icon?: string;
+}
+
+export interface GamificationSettings {
+  isEnabled: boolean; // Owner can toggle ON/OFF!
+  gameType: 'wheel' | 'scratch' | 'both';
+  triggerEvent: 'after_payment' | 'after_review' | 'min_spend' | 'manual';
+  minSpendAmount: number; // e.g. Rp 30.000
+  prizes: GamificationPrize[];
+}
+
+// Digital Scale USB / Bluetooth Reading
+export interface DigitalScaleReading {
+  weightKg: number;
+  isStable: boolean;
+  connectedDevice: string;
+  timestamp: string;
 }

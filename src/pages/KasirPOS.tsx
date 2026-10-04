@@ -69,6 +69,12 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
     currency,
     t,
     setIsQrScannerOpen,
+    digitalScaleReading,
+    readDigitalScale,
+    openAiScanner,
+    openWhatsAppBot,
+    gamificationSettings,
+    triggerGamification,
   } = useApp();
 
   const [activeSubView, setActiveSubView] = useState<'pos' | 'orders' | 'customers'>(
@@ -334,6 +340,17 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
       // Open Receipt preview right away!
       setActiveOrderForReceipt(newOrder);
       setIsReceiptOpen(true);
+
+      // Trigger owner-configured gamification promo reward if eligible
+      if (gamificationSettings.isEnabled && gamificationSettings.triggerEvent === 'after_payment') {
+        setTimeout(() => {
+          triggerGamification({
+            orderId: newOrder.id,
+            customerName: newOrder.customerName,
+            finalPrice: newOrder.finalPrice,
+          });
+        }, 800);
+      }
     } finally {
       setTimeout(() => setIsSubmittingOrder(false), 800);
     }
@@ -498,22 +515,55 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
                 </div>
               </div>
 
-              {/* Weight Presets */}
-              <div className="flex gap-2 flex-wrap pt-1">
-                <span className="text-[11px] text-slate-400 self-center">Preset:</span>
-                {[3.0, 5.0, 7.0, 10.0, 15.0].map((preset) => (
-                  <button
-                    key={preset}
-                    onClick={() => setCustomWeight(preset)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-mono font-semibold transition-colors ${
-                      customWeight === preset
-                        ? 'bg-cyan-500 text-slate-950 font-bold'
-                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                    }`}
-                  >
-                    {preset} kg
-                  </button>
-                ))}
+              {/* Bluetooth / USB Digital Scale Sync Bar */}
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/90 border border-cyan-500/30 text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <div>
+                    <span className="font-mono text-cyan-300 font-bold block">{digitalScaleReading.connectedDevice}</span>
+                    <span className="text-[10px] text-slate-400">Sinkron: {digitalScaleReading.timestamp} • Anti-Tamper: OK</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const w = readDigitalScale();
+                    setCustomWeight(w);
+                  }}
+                  className="px-3 py-1.5 bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-400 hover:to-teal-400 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1.5 transition shadow-glow-cyan active:scale-95"
+                >
+                  <Zap className="w-3.5 h-3.5 text-slate-950 fill-current" />
+                  <span>Sync Timbangan ({digitalScaleReading.weightKg} kg)</span>
+                </button>
+              </div>
+
+              {/* Weight Presets & AI Scan Button */}
+              <div className="flex items-center justify-between gap-2 flex-wrap pt-1">
+                <div className="flex gap-1.5 flex-wrap items-center">
+                  <span className="text-[11px] text-slate-400">Preset:</span>
+                  {[3.0, 5.0, 7.0, 10.0, 15.0].map((preset) => (
+                    <button
+                      key={preset}
+                      onClick={() => setCustomWeight(preset)}
+                      className={`px-2 py-0.5 rounded-lg text-xs font-mono font-semibold transition-colors ${
+                        customWeight === preset
+                          ? 'bg-cyan-500 text-slate-950 font-bold'
+                          : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                      }`}
+                    >
+                      {preset}kg
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => openAiScanner()}
+                  className="px-2.5 py-1 bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 border border-indigo-500/40 rounded-xl text-xs font-bold transition flex items-center gap-1"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
+                  <span>AI Garment Scan</span>
+                </button>
               </div>
             </div>
 
@@ -1087,14 +1137,18 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
                           <Printer className="w-3.5 h-3.5" />
                         </button>
                         <button
-                          onClick={() => {
-                            setActiveOrderForWhatsApp(ord);
-                            setIsWhatsAppOpen(true);
-                          }}
+                          onClick={() => openWhatsAppBot(ord)}
                           className="p-1.5 rounded-lg bg-emerald-950/60 hover:bg-emerald-900 text-emerald-400 transition-colors"
-                          title="Kirim Nota via WA"
+                          title="WhatsApp Auto-Pilot Bot (e-Nota, Update Status, Reminder)"
                         >
                           <MessageSquare className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => openAiScanner(ord.id)}
+                          className="p-1.5 rounded-lg bg-indigo-950/60 hover:bg-indigo-900 text-indigo-400 transition-colors"
+                          title="AI Garment & Stain Scanner (Inspeksi Noda & Cacat)"
+                        >
+                          <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
                         </button>
                       </td>
                     </tr>

@@ -49,6 +49,8 @@ export const ProduksiKanban: React.FC<ProduksiKanbanProps> = ({ currentSubTab = 
     openDopaminePayday,
     calculateStaffSalarySlip,
     setIsAttendanceModalOpen,
+    openAiScanner,
+    openWhatsAppBot,
   } = useApp();
 
   const mySlip = calculateStaffSalarySlip(currentUser.id);
@@ -212,6 +214,14 @@ export const ProduksiKanban: React.FC<ProduksiKanbanProps> = ({ currentSubTab = 
             <Coins className="w-4 h-4 text-slate-950" />
             <span>Dompet: Rp {mySlip.netTakeHomePay.toLocaleString('id-ID')}</span>
           </button>
+          <button
+            onClick={() => openAiScanner()}
+            className="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 border border-indigo-500/40"
+            title="AI Garment & Stain Scanner (Kamera Inspeksi Noda & Cacat)"
+          >
+            <Sparkles className="w-4 h-4 text-yellow-300" />
+            <span>AI Garment Scanner</span>
+          </button>
         </div>
 
         {/* Staff Filter */}
@@ -338,18 +348,38 @@ export const ProduksiKanban: React.FC<ProduksiKanbanProps> = ({ currentSubTab = 
                                   : 'Belum dihitung'}
                               </span>
                             </span>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setClothesModalOrder(ord);
-                              }}
-                              className="text-[9px] font-bold text-indigo-400 hover:text-indigo-200 underline flex items-center gap-0.5"
-                            >
-                              <Edit3 className="w-2.5 h-2.5" />
-                              <span>{ord.clothesDetails && ord.clothesDetails.length > 0 ? 'Edit' : '+ Hitung'}</span>
-                            </button>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openAiScanner(ord.id);
+                                }}
+                                className="text-[9px] font-bold text-yellow-300 hover:text-yellow-200 bg-indigo-900/60 hover:bg-indigo-800 px-1.5 py-0.5 rounded border border-indigo-400/40 flex items-center gap-0.5 transition"
+                                title="AI Scanner Noda & Pakaian"
+                              >
+                                <Sparkles className="w-2.5 h-2.5 text-yellow-300" />
+                                <span>AI Scan</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setClothesModalOrder(ord);
+                                }}
+                                className="text-[9px] font-bold text-indigo-400 hover:text-indigo-200 underline flex items-center gap-0.5"
+                              >
+                                <Edit3 className="w-2.5 h-2.5" />
+                                <span>{ord.clothesDetails && ord.clothesDetails.length > 0 ? 'Edit' : '+ Hitung'}</span>
+                              </button>
+                            </div>
                           </div>
+                          {ord.aiInspection && (
+                            <div className="text-[9px] text-indigo-300 font-semibold truncate bg-indigo-950/60 px-1.5 py-0.5 rounded border border-indigo-500/30 flex items-center gap-1">
+                              <Sparkles className="w-2.5 h-2.5 text-yellow-300" />
+                              <span>AI: {ord.aiInspection.stains.length} Noda • {ord.aiInspection.garmentType}</span>
+                            </div>
+                          )}
                           {ord.clothesDetails && ord.clothesDetails.length > 0 && (
                             <div className="text-[9px] text-slate-400 truncate">
                               {ord.clothesDetails.filter((c) => c.quantity > 0).map((c) => `${c.quantity} ${c.name.split(' ')[0]}`).join(', ')}

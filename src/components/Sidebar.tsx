@@ -46,6 +46,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
       case 'owner':
         return [
           { id: 'owner-overview', label: 'Ringkasan Eksekutif', icon: <TrendingUp className="w-4 h-4" /> },
+          { id: 'owner-pnl', label: 'Laba Rugi (P&L)', icon: <TrendingUp className="w-4 h-4 text-emerald-400" />, badge: 'AUTO', badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' },
           { id: 'owner-stats', label: 'Statistik Bulanan & Tahunan', icon: <BarChart3 className="w-4 h-4" /> },
           { id: 'owner-branches', label: 'Performa Multi-Cabang', icon: <Layers className="w-4 h-4" /> },
           {

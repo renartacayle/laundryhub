@@ -36,12 +36,15 @@ import {
   Flame,
   Coins,
   Award,
+  Navigation,
+  Bot,
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { useApp } from '../context/AppContext';
 import { formatCurrency } from '../utils/currency';
 import { QrisModal } from './QrisModal';
 import { DopamineJackpotModal } from './DopamineJackpotModal';
+import { GeofenceRadarMap } from './GeofenceRadarMap';
 import confetti from 'canvas-confetti';
 
 interface OrderStatusModalProps {
@@ -68,6 +71,10 @@ export const OrderStatusModal: React.FC<OrderStatusModalProps> = ({
     language,
     orders,
     openTrackingModal,
+    openWhatsAppBot,
+    openAiScanner,
+    triggerGamification,
+    gamificationSettings,
   } = useApp();
 
   // If order was updated in context, get latest version
@@ -280,13 +287,53 @@ export const OrderStatusModal: React.FC<OrderStatusModalProps> = ({
               </div>
             </div>
 
-            <button
-              onClick={onClose}
-              className="p-2 rounded-xl text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors"
-              title="Tutup Modal"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => openWhatsAppBot(currentOrder)}
+                className="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
+                title="Kirim Nota & Update Status via WhatsApp Auto-Pilot Bot"
+              >
+                <Bot className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">WhatsApp Bot</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => openAiScanner(currentOrder.id)}
+                className="px-2.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
+                title="AI Garment & Stain Scanner (Inspeksi Noda & Cacat)"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
+                <span className="hidden sm:inline">AI Scanner</span>
+              </button>
+
+              {gamificationSettings.isEnabled && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    triggerGamification({
+                      orderId: currentOrder.id,
+                      customerName: currentOrder.customerName,
+                      finalPrice: currentOrder.finalPrice,
+                    })
+                  }
+                  className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 text-xs font-black transition flex items-center gap-1.5 shadow-sm"
+                  title="Putar Roda Keberuntungan / Gosok Kartu Hadiah"
+                >
+                  <span>🎡</span>
+                  <span className="hidden sm:inline">Lucky Spin</span>
+                </button>
+              )}
+
+              <button
+                onClick={onClose}
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors"
+                title="Tutup Modal"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           {/* 3-Role View Mode Switcher Pill */}
@@ -631,6 +678,58 @@ export const OrderStatusModal: React.FC<OrderStatusModalProps> = ({
                 ======================================================================= */}
             {viewMode === 'guest' && (
               <div className="space-y-4">
+                {/* AI Garment & Stain Inspection Summary */}
+                {currentOrder.aiInspection && (
+                  <div className="p-4 rounded-2xl bg-indigo-950/40 border border-indigo-500/40 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black uppercase tracking-wider text-indigo-300 flex items-center gap-1.5">
+                        <Sparkles className="w-4 h-4 text-yellow-300" />
+                        Hasil Inspeksi Kamera AI (Garment & Stain Scanner)
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300">
+                        {currentOrder.aiInspection.garmentType}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-300 font-medium">
+                      ⚠️ <strong>Disclaimer Resmi:</strong> {currentOrder.aiInspection.disclaimerNote}
+                    </p>
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {currentOrder.aiInspection.stains.map((stain) => (
+                        <span
+                          key={stain.id}
+                          className="px-2 py-1 rounded-lg bg-slate-900 border border-indigo-500/30 text-[11px] text-slate-200"
+                        >
+                          🔍 {stain.label} ({Math.round(stain.confidence * 100)}% akurasi)
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Visual Live Radar Map (Geofence Outlet / Courier Route) */}
+                <div className="p-4 rounded-2xl bg-slate-800/40 border border-slate-700 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
+                      <Navigation className="w-4 h-4 text-cyan-400" />
+                      Live Radar Geofence GPS & Tracking Kurir:
+                    </span>
+                    <span className="text-[11px] text-cyan-400 font-mono font-bold">
+                      {currentOrder.pickupDeliveryType === 'delivery'
+                        ? 'Pengantaran Kurir Express 🛵'
+                        : 'Lokasi Outlet Geofence 50m 📍'}
+                    </span>
+                  </div>
+                  <GeofenceRadarMap
+                    outletName={branch.name}
+                    outletLat={-6.260718}
+                    outletLng={106.815610}
+                    distanceMeters={12}
+                    mode={currentOrder.pickupDeliveryType === 'delivery' ? 'courier' : 'geofence'}
+                    courierDestinationName={currentOrder.customerAddress || 'Alamat Pelanggan'}
+                    courierEtaMinutes={12}
+                  />
+                </div>
+
                 {/* Rincian Pakaian Terdata */}
                 <div className="p-4 rounded-2xl bg-slate-800/40 border border-slate-700 space-y-3">
                   <div className="flex items-center justify-between">

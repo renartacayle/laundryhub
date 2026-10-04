@@ -28,6 +28,7 @@ import {
 import { useApp } from '../context/AppContext';
 import { StaffAttendance } from '../types';
 import { soundEngine } from '../utils/audio';
+import { GeofenceRadarMap } from './GeofenceRadarMap';
 
 interface StaffAttendanceModalProps {
   isOpen: boolean;
@@ -598,6 +599,20 @@ export const StaffAttendanceModal: React.FC<StaffAttendanceModalProps> = ({ isOp
                       <span>🛰️ Satelit Asli</span>
                     </button>
                   </div>
+                </div>
+
+                {/* Interactive Visual Radar & Geofence Map */}
+                <div className="mt-3">
+                  <GeofenceRadarMap
+                    outletName={targetOutlet.name}
+                    outletLat={targetOutlet.lat}
+                    outletLng={targetOutlet.lng}
+                    userLat={userCoords.lat}
+                    userLng={userCoords.lng}
+                    distanceMeters={distanceMeters}
+                    maxRadiusMeters={50}
+                    mode="geofence"
+                  />
                 </div>
 
                 {/* Radar Metrics & Coordinates Bar */}

@@ -15,6 +15,7 @@ import {
   WithdrawalRequest,
   StaffAttendance,
   PayrollSettings,
+  GamificationSettings,
 } from '../types';
 
 export const INITIAL_BRANCHES: Branch[] = [
@@ -1939,3 +1940,62 @@ export const INITIAL_ATTENDANCE: StaffAttendance[] = [
     notes: 'Tidak masuk tanpa kabar (Potongan gaji)',
   },
 ];
+
+export const DEFAULT_GAMIFICATION_SETTINGS: GamificationSettings = {
+  isEnabled: true, // Owner can toggle ON/OFF
+  gameType: 'both',
+  triggerEvent: 'after_payment',
+  minSpendAmount: 25000,
+  prizes: [
+    {
+      id: 'prz-1',
+      label: 'Diskon 15% Cuci',
+      type: 'discount_percent',
+      value: 15,
+      probability: 30,
+      description: 'Potongan 15% untuk nota berikutnya!',
+      color: '#f59e0b',
+      icon: '🎉',
+    },
+    {
+      id: 'prz-2',
+      label: 'Free Parfum Grade A',
+      type: 'free_perfume',
+      value: 1,
+      probability: 25,
+      description: 'Bebas upgrade aroma Sakura / Akasia Woody!',
+      color: '#ec4899',
+      icon: '🌸',
+    },
+    {
+      id: 'prz-3',
+      label: 'Voucher Rp 5.000',
+      type: 'discount_fixed',
+      value: 5000,
+      probability: 20,
+      description: 'Potongan tunai langsung Rp 5.000!',
+      color: '#10b981',
+      icon: '💵',
+    },
+    {
+      id: 'prz-4',
+      label: 'Cuci Gratis 1 Kg',
+      type: 'free_service',
+      value: 1,
+      probability: 15,
+      description: 'Gratis 1 kg cuci kiloan reguler!',
+      color: '#06b6d4',
+      icon: '🧺',
+    },
+    {
+      id: 'prz-5',
+      label: 'Zonk / Coba Lagi',
+      type: 'zonk',
+      value: 0,
+      probability: 10,
+      description: 'Semoga beruntung di pesanan berikutnya!',
+      color: '#64748b',
+      icon: '🌟',
+    },
+  ],
+};

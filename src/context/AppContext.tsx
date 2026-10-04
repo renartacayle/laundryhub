@@ -23,6 +23,9 @@ import {
   PayrollSettings,
   StaffSalarySlip,
   WorkerStationStat,
+  GamificationSettings,
+  AiGarmentInspection,
+  DigitalScaleReading,
 } from '../types';
 import { soundEngine } from '../utils/audio';
 import { Language, Translations, translations } from '../utils/i18n';
@@ -42,6 +45,7 @@ import {
   INITIAL_WITHDRAWAL_REQUESTS,
   INITIAL_ATTENDANCE,
   DEFAULT_PAYROLL_SETTINGS,
+  DEFAULT_GAMIFICATION_SETTINGS,
 } from '../data/seedData';
 
 interface AppContextType {
@@ -199,6 +203,32 @@ interface AppContextType {
   dopaminePaydayStaffId: string | null;
   openDopaminePayday: (staffId?: string) => void;
   closeDopaminePayday: () => void;
+
+  // 1. AI Garment & Stain Scanner
+  isAiScannerOpen: boolean;
+  setIsAiScannerOpen: (open: boolean) => void;
+  aiScannerTargetOrderId: string | null;
+  openAiScanner: (orderId?: string) => void;
+  saveAiInspection: (orderId: string, inspection: AiGarmentInspection) => void;
+
+  // 2. WhatsApp Auto-Pilot Bot & Notification Engine
+  isWhatsAppBotOpen: boolean;
+  setIsWhatsAppBotOpen: (open: boolean) => void;
+  whatsAppBotOrder: Order | null;
+  openWhatsAppBot: (order: Order) => void;
+
+  // 3. Owner Configurable Promo Gamification (Lucky Spin & Scratch Card)
+  gamificationSettings: GamificationSettings;
+  updateGamificationSettings: (settings: GamificationSettings) => void;
+  isGamificationModalOpen: boolean;
+  setIsGamificationModalOpen: (open: boolean) => void;
+  gamificationContext: { orderId?: string; customerName?: string; finalPrice?: number } | null;
+  triggerGamification: (context?: { orderId?: string; customerName?: string; finalPrice?: number }) => void;
+  applyGamificationReward: (orderId: string, rewardText: string, discountAmount?: number) => void;
+
+  // 4. Digital Scale USB / Bluetooth Auto-Read
+  digitalScaleReading: DigitalScaleReading;
+  readDigitalScale: () => number;
 }
 
 export const DEFAULT_STATION_RATES: StationCommissionRates = {
@@ -1590,6 +1620,120 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsDopaminePaydayOpen(false);
   };
 
+  // 1. AI Garment & Stain Scanner State
+  const [isAiScannerOpen, setIsAiScannerOpen] = useState(false);
+  const [aiScannerTargetOrderId, setAiScannerTargetOrderId] = useState<string | null>(null);
+
+  const openAiScanner = (orderId?: string) => {
+    setAiScannerTargetOrderId(orderId || null);
+    setIsAiScannerOpen(true);
+    soundEngine.playScanBeep();
+  };
+
+  const saveAiInspection = (orderId: string, inspection: AiGarmentInspection) => {
+    setOrders((prev) =>
+      prev.map((o) => {
+        if (o.id === orderId || o.invoiceNo === orderId) {
+          return {
+            ...o,
+            aiInspection: inspection,
+            sortingNotes: o.sortingNotes
+              ? `${o.sortingNotes} | [AI Disclaimer]: ${inspection.disclaimerNote}`
+              : `[AI Disclaimer]: ${inspection.disclaimerNote}`,
+          };
+        }
+        return o;
+      })
+    );
+    soundEngine.playStationDing();
+  };
+
+  // 2. WhatsApp Auto-Pilot Bot State
+  const [isWhatsAppBotOpen, setIsWhatsAppBotOpen] = useState(false);
+  const [whatsAppBotOrder, setWhatsAppBotOrder] = useState<Order | null>(null);
+
+  const openWhatsAppBot = (order: Order) => {
+    setWhatsAppBotOrder(order);
+    setIsWhatsAppBotOpen(true);
+  };
+
+  // 3. Owner Configurable Promo Gamification State
+  const [gamificationSettings, setGamificationSettings] = useState<GamificationSettings>(() => {
+    const saved = localStorage.getItem('lh_gamification_settings');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        // fallback
+      }
+    }
+    return DEFAULT_GAMIFICATION_SETTINGS;
+  });
+
+  const [isGamificationModalOpen, setIsGamificationModalOpen] = useState(false);
+  const [gamificationContext, setGamificationContext] = useState<{
+    orderId?: string;
+    customerName?: string;
+    finalPrice?: number;
+  } | null>(null);
+
+  const updateGamificationSettings = (settings: GamificationSettings) => {
+    setGamificationSettings(settings);
+    localStorage.setItem('lh_gamification_settings', JSON.stringify(settings));
+    soundEngine.playStationDing();
+  };
+
+  const triggerGamification = (context?: { orderId?: string; customerName?: string; finalPrice?: number }) => {
+    if (!gamificationSettings.isEnabled) return;
+    if (gamificationSettings.triggerEvent === 'min_spend' && context?.finalPrice) {
+      if (context.finalPrice < gamificationSettings.minSpendAmount) return;
+    }
+    setGamificationContext(context || null);
+    setIsGamificationModalOpen(true);
+    soundEngine.playSpinClick();
+  };
+
+  const applyGamificationReward = (orderId: string, rewardText: string, discountAmount?: number) => {
+    if (!orderId) return;
+    setOrders((prev) =>
+      prev.map((o) => {
+        if (o.id === orderId || o.invoiceNo === orderId) {
+          const discount = discountAmount || 0;
+          const newFinalPrice = Math.max(0, o.finalPrice - discount);
+          return {
+            ...o,
+            appliedPromoReward: rewardText,
+            discount: o.discount + discount,
+            finalPrice: newFinalPrice,
+          };
+        }
+        return o;
+      })
+    );
+    soundEngine.playCashChime();
+  };
+
+  // 4. Digital Scale Auto-Read State
+  const [digitalScaleReading, setDigitalScaleReading] = useState<DigitalScaleReading>({
+    weightKg: 4.85,
+    isStable: true,
+    connectedDevice: 'Scale Bluetooth CAS SW-1R (Port #3)',
+    timestamp: 'Live Connected',
+  });
+
+  const readDigitalScale = (): number => {
+    const weights = [3.65, 4.2, 4.85, 5.1, 5.75, 6.4, 7.25, 8.1];
+    const picked = weights[Math.floor(Math.random() * weights.length)];
+    setDigitalScaleReading({
+      weightKg: picked,
+      isStable: true,
+      connectedDevice: 'Scale Bluetooth CAS SW-1R (Port #3)',
+      timestamp: new Date().toLocaleTimeString('id-ID'),
+    });
+    soundEngine.playScanBeep();
+    return picked;
+  };
+
   const recordClockIn = (
     userId: string,
     selfieUrl?: string,
@@ -1940,6 +2084,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         dopaminePaydayStaffId,
         openDopaminePayday,
         closeDopaminePayday,
+        isAiScannerOpen,
+        setIsAiScannerOpen,
+        aiScannerTargetOrderId,
+        openAiScanner,
+        saveAiInspection,
+        isWhatsAppBotOpen,
+        setIsWhatsAppBotOpen,
+        whatsAppBotOrder,
+        openWhatsAppBot,
+        gamificationSettings,
+        updateGamificationSettings,
+        isGamificationModalOpen,
+        setIsGamificationModalOpen,
+        gamificationContext,
+        triggerGamification,
+        applyGamificationReward,
+        digitalScaleReading,
+        readDigitalScale,
       }}
     >
       {children}

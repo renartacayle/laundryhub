@@ -21,6 +21,9 @@ import { OrderStatusModal } from './components/OrderStatusModal';
 import { QrScannerModal } from './components/QrScannerModal';
 import { StaffAttendanceModal } from './components/StaffAttendanceModal';
 import { DopaminePaydayModal } from './components/DopaminePaydayModal';
+import { AiGarmentScannerModal } from './components/AiGarmentScannerModal';
+import { PromoGamificationModal } from './components/PromoGamificationModal';
+import { WhatsAppBotModal } from './components/WhatsAppBotModal';
 
 const MainLayout: React.FC = () => {
   const {
@@ -42,6 +45,14 @@ const MainLayout: React.FC = () => {
     isDopaminePaydayOpen,
     closeDopaminePayday,
     dopaminePaydayStaffId,
+    isAiScannerOpen,
+    setIsAiScannerOpen,
+    aiScannerTargetOrderId,
+    isGamificationModalOpen,
+    setIsGamificationModalOpen,
+    isWhatsAppBotOpen,
+    setIsWhatsAppBotOpen,
+    whatsAppBotOrder,
   } = useApp();
 
   // Active sub-tab state for Desktop Sidebar
@@ -297,6 +308,26 @@ const MainLayout: React.FC = () => {
         isOpen={isDopaminePaydayOpen}
         onClose={closeDopaminePayday}
         staffId={dopaminePaydayStaffId}
+      />
+
+      {/* 1. AI Garment & Stain Inspection Scanner Modal */}
+      <AiGarmentScannerModal
+        isOpen={isAiScannerOpen}
+        onClose={() => setIsAiScannerOpen(false)}
+        orderId={aiScannerTargetOrderId}
+      />
+
+      {/* 2. Owner-Configurable Lucky Spin Wheel & Scratch Card Gamification */}
+      <PromoGamificationModal
+        isOpen={isGamificationModalOpen}
+        onClose={() => setIsGamificationModalOpen(false)}
+      />
+
+      {/* 3. WhatsApp Auto-Pilot Bot & Smart Notification Engine */}
+      <WhatsAppBotModal
+        isOpen={isWhatsAppBotOpen}
+        onClose={() => setIsWhatsAppBotOpen(false)}
+        order={whatsAppBotOrder}
       />
     </div>
   );
