@@ -79,6 +79,32 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
           { id: 'agen-manifest', label: 'Manifest & Kurir Jemput', icon: <Truck className="w-4 h-4" /> },
           { id: 'agen-wallet', label: 'Dompet Komisi & Payout', icon: <Wallet className="w-4 h-4" /> },
         ];
+      case 'operator':
+        return [
+          { id: 'kasir-pos', label: 'Kasir POS Baru', icon: <ShoppingCart className="w-4 h-4" /> },
+          {
+            id: 'kasir-orders',
+            label: 'Daftar Transaksi',
+            icon: <FileText className="w-4 h-4" />,
+            badge: `${activeOrdersCount} Aktif`,
+            badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40',
+          },
+          {
+            id: 'prod-kanban',
+            label: 'Kanban Alur Workshop',
+            icon: <LayoutDashboard className="w-4 h-4" />,
+            badge: `${activeOrdersCount}`,
+            badgeColor: 'bg-orange-500/20 text-orange-300 border-orange-500/40',
+          },
+          {
+            id: 'prod-iot',
+            label: 'Kontrol Mesin IoT',
+            icon: <WashingMachine className="w-4 h-4" />,
+            badge: `${runningMachinesCount} ON`,
+            badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40',
+          },
+          { id: 'kasir-customers', label: 'Data Pelanggan & Deposit', icon: <Users className="w-4 h-4" /> },
+        ];
       case 'kasir':
         return [
           { id: 'kasir-pos', label: 'Kasir POS Baru', icon: <ShoppingCart className="w-4 h-4" /> },
@@ -147,6 +173,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
         return { label: 'WORKSHOP PRODUKSI', color: 'text-orange-400', bg: 'bg-orange-500/10 border-orange-500/30' };
       case 'kurir':
         return { label: 'ARMADA KURIR', color: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/30' };
+      case 'operator':
+        return { label: 'OPERATOR CABANG (ALL-IN-ONE)', color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/30' };
       case 'pelanggan':
         return { label: 'PORTAL MEMBER', color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/30' };
     }

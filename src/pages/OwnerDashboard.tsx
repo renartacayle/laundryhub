@@ -1503,6 +1503,7 @@ Konsultasi Admin WA: 081228263200`;
             <div className="flex gap-1.5 flex-wrap">
               {[
                 { id: 'all', label: `Semua (${users.length})` },
+                { id: 'operator', label: `Operator All-in-One (${users.filter((u) => u.role === 'operator').length})` },
                 { id: 'owner', label: `Owner (${users.filter((u) => u.role === 'owner').length})` },
                 { id: 'kasir', label: `Kasir (${users.filter((u) => u.role === 'kasir').length})` },
                 { id: 'produksi', label: `Produksi (${users.filter((u) => u.role === 'produksi').length})` },
@@ -1559,6 +1560,8 @@ Konsultasi Admin WA: 081228263200`;
                               className={`inline-block mt-1 text-[9px] px-2 py-0.2 rounded-full font-bold uppercase border ${
                                 u.role === 'owner'
                                   ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                                  : u.role === 'operator'
+                                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-glow-emerald'
                                   : u.role === 'kasir'
                                   ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
                                   : u.role === 'produksi'
@@ -1570,6 +1573,8 @@ Konsultasi Admin WA: 081228263200`;
                             >
                               {u.role === 'owner'
                                 ? '👑 Owner'
+                                : u.role === 'operator'
+                                ? '⭐ Operator All-in-One'
                                 : u.role === 'kasir'
                                 ? '🖥️ Kasir'
                                 : u.role === 'produksi'
@@ -1845,8 +1850,9 @@ Konsultasi Admin WA: 081228263200`;
                     <label className="text-[11px] font-bold text-slate-300 block mb-1.5">
                       Peran Hak Akses (Role):
                     </label>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                       {[
+                        { id: 'operator', label: '⭐ Operator All-in-One', desc: '1 Karyawan Cabang (Kasir + Cuci + Setrika + Packing)', highlight: true },
                         { id: 'kasir', label: 'Kasir POS', desc: 'Input & Bayar Nota' },
                         { id: 'produksi', label: 'Produksi', desc: 'Cuci, Setrika, IoT' },
                         { id: 'kurir', label: 'Kurir Delivery', desc: 'Jemput Antar & COD' },
@@ -1858,7 +1864,9 @@ Konsultasi Admin WA: 081228263200`;
                           onClick={() => setNewWorkerRole(r.id as Role)}
                           className={`p-2.5 rounded-xl border text-left transition-all ${
                             newWorkerRole === r.id
-                              ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300 shadow-glow-cyan'
+                              ? r.id === 'operator'
+                                ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 shadow-glow-emerald ring-1 ring-emerald-400'
+                                : 'bg-cyan-500/20 border-cyan-500 text-cyan-300 shadow-glow-cyan'
                               : 'bg-slate-800/80 border-slate-700 text-slate-400 hover:text-slate-200'
                           }`}
                         >

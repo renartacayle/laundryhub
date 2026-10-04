@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Order, Branch } from '../types';
-import { Printer, MessageSquare, X, CheckCircle2, QrCode, Bluetooth, Sparkles, AlertCircle } from 'lucide-react';
+import { Printer, MessageSquare, X, CheckCircle2, QrCode, Bluetooth, Sparkles, AlertCircle, WashingMachine } from 'lucide-react';
 import { bluetoothPrinter, buildReceiptEscPosBytes } from '../utils/escpos';
 import { useApp } from '../context/AppContext';
 import { formatCurrency } from '../utils/currency';
@@ -20,7 +20,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
   branch,
   onOpenWhatsApp,
 }) => {
-  const { language, currency, t } = useApp();
+  const { language, currency, t, currentUser, updateOrderStatus } = useApp();
   if (!isOpen || !order) return null;
 
   const [paperWidth, setPaperWidth] = useState<'58mm' | '80mm'>('58mm');
@@ -319,6 +319,20 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
               <span>{language === 'en' ? 'Print PDF (Browser)' : 'Cetak Browser (PDF)'}</span>
             </button>
           </div>
+
+          {/* Fast-Track Wash for Solo Operator */}
+          {order.currentStatus === 'antrean' && (
+            <button
+              onClick={() => {
+                updateOrderStatus(order.id, 'cuci', currentUser);
+                onClose();
+              }}
+              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/50 text-cyan-300 font-bold text-xs transition-all active:scale-95 shadow-glow-cyan"
+            >
+              <WashingMachine className="w-4 h-4 text-cyan-400" />
+              <span>⚡ Solo Operator: Langsung Masukkan Mesin Cuci</span>
+            </button>
+          )}
 
           <button
             onClick={() => onOpenWhatsApp?.(order)}

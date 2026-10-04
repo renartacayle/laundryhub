@@ -54,6 +54,9 @@ const MainLayout: React.FC = () => {
       case 'owner':
         setActiveTab('owner-overview');
         break;
+      case 'operator':
+        setActiveTab('kasir-pos');
+        break;
       case 'agen':
         setActiveTab('agen-pos');
         break;
@@ -124,6 +127,11 @@ const MainLayout: React.FC = () => {
           {/* Desktop Multi-Role View (hidden md:block) */}
           <div className="hidden md:block w-full">
             {currentRole === 'owner' && <OwnerDashboard currentSubTab={activeTab} />}
+            {currentRole === 'operator' && (
+              activeTab.startsWith('prod-')
+                ? <ProduksiKanban currentSubTab={activeTab} />
+                : <KasirPOS currentSubTab={activeTab} />
+            )}
             {currentRole === 'agen' && <AgenDropshipDashboard currentSubTab={activeTab} />}
             {currentRole === 'kasir' && <KasirPOS currentSubTab={activeTab} />}
             {currentRole === 'produksi' && <ProduksiKanban currentSubTab={activeTab} />}

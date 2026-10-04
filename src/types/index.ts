@@ -1,4 +1,4 @@
-export type Role = 'owner' | 'kasir' | 'produksi' | 'kurir' | 'pelanggan' | 'agen';
+export type Role = 'owner' | 'kasir' | 'produksi' | 'kurir' | 'pelanggan' | 'agen' | 'operator';
 
 export interface Branch {
   id: string;
