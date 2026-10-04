@@ -18,6 +18,8 @@ import { IntroductionModal } from './components/IntroductionModal';
 import { DemoTutorialModal } from './components/DemoTutorialModal';
 import { TutorialGuideBanner } from './components/TutorialGuideBanner';
 import { OrderStatusModal } from './components/OrderStatusModal';
+import { QrScannerModal } from './components/QrScannerModal';
+import { StaffAttendanceModal } from './components/StaffAttendanceModal';
 
 const MainLayout: React.FC = () => {
   const {
@@ -32,6 +34,10 @@ const MainLayout: React.FC = () => {
     trackingModalOrder,
     openTrackingModal,
     closeTrackingModal,
+    isQrScannerOpen,
+    setIsQrScannerOpen,
+    isAttendanceModalOpen,
+    setIsAttendanceModalOpen,
   } = useApp();
 
   // Active sub-tab state for Desktop Sidebar
@@ -268,6 +274,18 @@ const MainLayout: React.FC = () => {
         isOpen={!!trackingModalOrder}
         onClose={closeTrackingModal}
         order={trackingModalOrder}
+      />
+
+      {/* In-App Camera QR Scanner Modal */}
+      <QrScannerModal
+        isOpen={isQrScannerOpen}
+        onClose={() => setIsQrScannerOpen(false)}
+      />
+
+      {/* Staff Online Attendance & Piece-Rate Payroll Modal */}
+      <StaffAttendanceModal
+        isOpen={isAttendanceModalOpen}
+        onClose={() => setIsAttendanceModalOpen(false)}
       />
     </div>
   );

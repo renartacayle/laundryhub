@@ -21,6 +21,8 @@ import {
   Menu,
   Store,
   LayoutGrid,
+  Camera,
+  Clock,
 } from 'lucide-react';
 import { CoinTopupModal } from './CoinTopupModal';
 import { IotMachineControlModal } from './IotMachineControlModal';
@@ -54,6 +56,8 @@ export const Navbar: React.FC = () => {
     notifications,
     markNotificationRead,
     resetAllData,
+    setIsQrScannerOpen,
+    setIsAttendanceModalOpen,
   } = useApp();
 
   const [isCoinModalOpen, setIsCoinModalOpen] = useState(false);
@@ -203,6 +207,28 @@ export const Navbar: React.FC = () => {
               title="Pencarian Cepat & Navigasi"
             >
               <Search className="w-4 h-4" />
+            </button>
+
+            {/* In-App Camera QR Scanner Button */}
+            <button
+              id="navbar-qr-scan-btn"
+              onClick={() => setIsQrScannerOpen(true)}
+              className="h-9 flex items-center gap-1.5 px-2 sm:px-2.5 rounded-xl bg-teal-500/10 hover:bg-teal-500/20 border border-teal-500/30 text-teal-700 dark:text-teal-300 text-xs font-bold transition-all shadow-xs active:scale-95 group"
+              title="Scan QR Code Nota Laundry"
+            >
+              <Camera className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 group-hover:scale-110 transition-transform shrink-0" />
+              <span className="hidden sm:inline">Scan QR</span>
+            </button>
+
+            {/* Online Attendance / Presensi Staf Button */}
+            <button
+              id="navbar-attendance-btn"
+              onClick={() => setIsAttendanceModalOpen(true)}
+              className="h-9 flex items-center gap-1.5 px-2 sm:px-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-bold transition-all shadow-xs active:scale-95 group"
+              title="Absen Kehadiran Online & Slip Gaji Borongan"
+            >
+              <Clock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 group-hover:rotate-12 transition-transform shrink-0" />
+              <span className="hidden md:inline">Presensi</span>
             </button>
 
             {/* Token Coin Pill */}

@@ -30,11 +30,18 @@ import {
   Eye,
   CreditCard,
   MessageSquare,
+  Phone,
+  Search,
+  Star,
+  Flame,
+  Coins,
+  Award,
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { useApp } from '../context/AppContext';
 import { formatCurrency } from '../utils/currency';
 import { QrisModal } from './QrisModal';
+import { DopamineJackpotModal } from './DopamineJackpotModal';
 import confetti from 'canvas-confetti';
 
 interface OrderStatusModalProps {
@@ -60,6 +67,7 @@ export const OrderStatusModal: React.FC<OrderStatusModalProps> = ({
     currency,
     language,
     orders,
+    openTrackingModal,
   } = useApp();
 
   // If order was updated in context, get latest version
@@ -82,6 +90,9 @@ export const OrderStatusModal: React.FC<OrderStatusModalProps> = ({
   const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
   const [isCopied, setIsCopied] = useState(false);
   const [isQrisModalOpen, setIsQrisModalOpen] = useState(false);
+  const [isJackpotModalOpen, setIsJackpotModalOpen] = useState(false);
+  const [showPhoneLookup, setShowPhoneLookup] = useState(false);
+  const [lookupPhone, setLookupPhone] = useState('');
   const [selectedPhotoPreview, setSelectedPhotoPreview] = useState<{
     url: string;
     title: string;
@@ -328,8 +339,22 @@ export const OrderStatusModal: React.FC<OrderStatusModalProps> = ({
               </button>
             </div>
 
-            {/* Quick Share & Copy Buttons */}
+            {/* Quick Share, Copy & Phone Lookup Buttons */}
             <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setShowPhoneLookup(!showPhoneLookup)}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors ${
+                  showPhoneLookup
+                    ? 'bg-teal-500/20 text-teal-300 border-teal-500/40'
+                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
+                }`}
+                title="Lupa Nomor Nota? Cek via Nomor WhatsApp"
+              >
+                <Phone className="w-3 h-3 text-teal-400" />
+                <span>Cek via No WA</span>
+              </button>
+
               <button
                 type="button"
                 onClick={handleCopyLink}
@@ -351,6 +376,85 @@ export const OrderStatusModal: React.FC<OrderStatusModalProps> = ({
               </button>
             </div>
           </div>
+
+          {/* Collapsible Phone Lookup Panel */}
+          {showPhoneLookup && (
+            <div className="p-4 bg-slate-900 border-b border-teal-500/30 text-slate-200 animate-in slide-in-from-top-2 duration-200">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-teal-300 flex items-center gap-1.5">
+                  <Phone className="w-3.5 h-3.5 text-teal-400" />
+                  Cari Semua Nota Laundry Berdasarkan Nomor WhatsApp Pelanggan:
+                </span>
+                <button
+                  onClick={() => setShowPhoneLookup(false)}
+                  className="text-xs text-slate-400 hover:text-white"
+                >
+                  Tutup
+                </button>
+              </div>
+
+              <div className="flex gap-2 mb-3">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Ketik nomor WhatsApp pelanggan (misal: 0812 atau nama)..."
+                    value={lookupPhone}
+                    onChange={(e) => setLookupPhone(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs font-mono text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  />
+                </div>
+              </div>
+
+              {lookupPhone.trim().length >= 3 && (
+                <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                  {orders
+                    .filter(
+                      (o) =>
+                        o.customerPhone.replace(/[^0-9]/g, '').includes(lookupPhone.replace(/[^0-9]/g, '')) ||
+                        o.customerName.toLowerCase().includes(lookupPhone.toLowerCase())
+                    )
+                    .map((item) => (
+                      <div
+                        key={item.id}
+                        onClick={() => {
+                          openTrackingModal(item.invoiceNo);
+                          setShowPhoneLookup(false);
+                        }}
+                        className={`p-2 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
+                          item.invoiceNo === currentOrder.invoiceNo
+                            ? 'bg-teal-950/60 border-teal-500/50'
+                            : 'bg-slate-800/80 border-slate-700 hover:border-teal-400'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-mono font-bold text-teal-300">
+                            {item.invoiceNo}
+                          </span>
+                          <span className="text-xs text-slate-300">({item.customerName})</span>
+                          <span className="text-[11px] text-slate-400">{item.weightKg} kg</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-slate-700 text-slate-200">
+                            {item.currentStatus}
+                          </span>
+                          <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                        </div>
+                      </div>
+                    ))}
+                  {orders.filter(
+                    (o) =>
+                      o.customerPhone.replace(/[^0-9]/g, '').includes(lookupPhone.replace(/[^0-9]/g, '')) ||
+                      o.customerName.toLowerCase().includes(lookupPhone.toLowerCase())
+                  ).length === 0 && (
+                    <p className="text-xs text-slate-400 py-1 text-center">
+                      Tidak ditemukan pesanan dengan nomor telepon tersebut.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Feedback Toast if any */}
           {actionSuccessMessage && (
@@ -601,6 +705,83 @@ export const OrderStatusModal: React.FC<OrderStatusModalProps> = ({
                     <p className="text-xs text-slate-400">
                       Foto bukti pengerjaan akan otomatis muncul di sini setelah stasiun sortir atau packing selesai dikerjakan staf.
                     </p>
+                  )}
+                </div>
+
+                {/* Dopamine Feedback & Rating Section */}
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-950/30 via-slate-900 to-yellow-950/20 border border-amber-500/30 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+                      <Flame className="w-4 h-4 text-amber-400" />
+                      Ulasan & Kepuasan Pelanggan (Dopamine Rewards)
+                    </span>
+                    <button
+                      onClick={() => setIsJackpotModalOpen(true)}
+                      className="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-amber-500/20 flex items-center gap-1.5 transition-all transform hover:scale-105 active:scale-95"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>{currentOrder.customerReview ? 'Edit / Putar Lagi Ulasan' : 'Beri Ulasan Bintang 5!'}</span>
+                    </button>
+                  </div>
+
+                  {currentOrder.customerReview ? (
+                    <div className="p-3.5 bg-slate-900/90 rounded-xl border border-amber-500/40 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              className={`w-4 h-4 ${
+                                star <= currentOrder.customerReview!.rating
+                                  ? 'text-amber-400 fill-amber-400'
+                                  : 'text-slate-600'
+                              }`}
+                            />
+                          ))}
+                          <span className="text-xs font-bold text-amber-300 ml-1.5">
+                            {currentOrder.customerReview.rating}.0 / 5.0
+                          </span>
+                        </div>
+                        {currentOrder.customerReview.staffTipAmount && currentOrder.customerReview.staffTipAmount > 0 && (
+                          <span className="text-[11px] font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <Coins className="w-3 h-3 text-emerald-400" />
+                            Tip Staf: Rp {currentOrder.customerReview.staffTipAmount.toLocaleString('id-ID')}
+                          </span>
+                        )}
+                      </div>
+
+                      {currentOrder.customerReview.feedbackText && (
+                        <p className="text-xs text-slate-200 italic">
+                          "{currentOrder.customerReview.feedbackText}"
+                        </p>
+                      )}
+
+                      {currentOrder.customerReview.tags && currentOrder.customerReview.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          {currentOrder.customerReview.tags.map((tag) => (
+                            <span
+                              key={tag}
+                              className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-200 border border-amber-500/30"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-slate-900/60 rounded-xl border border-slate-700/80 flex items-center justify-between">
+                      <div className="text-xs text-slate-300">
+                        <p className="font-semibold text-slate-100">Puas dengan hasil cucian Anda?</p>
+                        <p className="text-[11px] text-slate-400">Putar roda jackpot dopamine & beri apresiasi tip ke staf operasional!</p>
+                      </div>
+                      <button
+                        onClick={() => setIsJackpotModalOpen(true)}
+                        className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs rounded-xl shadow transition-all shrink-0 ml-3"
+                      >
+                        Beri Nilai ⭐
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -1009,6 +1190,15 @@ export const OrderStatusModal: React.FC<OrderStatusModalProps> = ({
               // ignore
             }
           }}
+        />
+      )}
+
+      {/* Dopamine Jackpot Slot Modal */}
+      {isJackpotModalOpen && (
+        <DopamineJackpotModal
+          isOpen={isJackpotModalOpen}
+          onClose={() => setIsJackpotModalOpen(false)}
+          order={currentOrder}
         />
       )}
     </>

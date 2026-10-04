@@ -18,7 +18,13 @@ import {
   StationCommissionRates,
   StationClaim,
   ClothesItem,
+  CustomerReview,
+  StaffAttendance,
+  PayrollSettings,
+  StaffSalarySlip,
+  WorkerStationStat,
 } from '../types';
+import { soundEngine } from '../utils/audio';
 import { Language, Translations, translations } from '../utils/i18n';
 import { Currency } from '../utils/currency';
 import {
@@ -34,6 +40,8 @@ import {
   INITIAL_DROPSHIP_SUPPLIES,
   INITIAL_DROPSHIP_SUPPLY_ORDERS,
   INITIAL_WITHDRAWAL_REQUESTS,
+  INITIAL_ATTENDANCE,
+  DEFAULT_PAYROLL_SETTINGS,
 } from '../data/seedData';
 
 interface AppContextType {
@@ -154,6 +162,24 @@ interface AppContextType {
   trackingModalOrder: Order | null;
   openTrackingModal: (invoiceOrId: string) => void;
   closeTrackingModal: () => void;
+
+  // Camera QR Scanner Modal
+  isQrScannerOpen: boolean;
+  setIsQrScannerOpen: (open: boolean) => void;
+
+  // Dopamine Customer Review & Rating System
+  addOrderReview: (orderId: string, review: CustomerReview) => void;
+
+  // Online Staff Attendance & Payroll System
+  attendances: StaffAttendance[];
+  payrollSettings: PayrollSettings;
+  updatePayrollSettings: (settings: PayrollSettings) => void;
+  recordClockIn: (userId: string, selfieUrl?: string, notes?: string) => { success: boolean; message: string };
+  recordClockOut: (userId: string) => { success: boolean; message: string };
+  recordAbsence: (userId: string, date: string, status: 'alpha' | 'izin', notes?: string) => void;
+  calculateStaffSalarySlip: (userId: string, period?: string) => StaffSalarySlip;
+  isAttendanceModalOpen: boolean;
+  setIsAttendanceModalOpen: (open: boolean) => void;
 }
 
 export const DEFAULT_STATION_RATES: StationCommissionRates = {
@@ -273,6 +299,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [currentAgentId, setCurrentAgentId] = useState<string>('agent-01');
 
   const currentAgent = dropshipAgents.find((a) => a.id === currentAgentId) || dropshipAgents[0];
+
+  // Online Staff Attendance & Payroll States
+  const [attendances, setAttendances] = useState<StaffAttendance[]>(() => {
+    const saved = localStorage.getItem('lh_attendances');
+    return saved ? JSON.parse(saved) : INITIAL_ATTENDANCE;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('lh_attendances', JSON.stringify(attendances));
+  }, [attendances]);
+
+  const [payrollSettings, setPayrollSettings] = useState<PayrollSettings>(() => {
+    const saved = localStorage.getItem('lh_payroll_settings');
+    return saved ? JSON.parse(saved) : DEFAULT_PAYROLL_SETTINGS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('lh_payroll_settings', JSON.stringify(payrollSettings));
+  }, [payrollSettings]);
+
+  const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
 
   const [notifications, setNotifications] = useState<NotificationItem[]>([
     {
@@ -1454,6 +1501,274 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  // Camera QR Scanner Modal State
+  const [isQrScannerOpen, setIsQrScannerOpen] = useState(false);
+
+  // Dopamine Customer Review & Rating System
+  const addOrderReview = (orderId: string, review: CustomerReview) => {
+    setOrders((prev) =>
+      prev.map((ord) => {
+        if (ord.id === orderId || ord.invoiceNo === orderId) {
+          return {
+            ...ord,
+            customerReview: review,
+          };
+        }
+        return ord;
+      })
+    );
+
+    // Audio & dopamine reward
+    if (review.rating >= 4) {
+      soundEngine.playDopamineJackpot();
+    } else {
+      soundEngine.playStationDing();
+    }
+
+    // Add Audit Log
+    const newLog: AuditLog = {
+      id: `log-review-${Date.now()}`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      actorName: review.customerName || 'Pelanggan',
+      actorRole: 'pelanggan',
+      action: 'CUSTOMER_REVIEW',
+      details: `Ulasan bintang ${review.rating}⭐ untuk nota: "${review.feedbackText || 'Puas'}"${review.staffTipAmount ? ` + Tip Staf Rp ${review.staffTipAmount.toLocaleString('id-ID')}` : ''}`,
+      branchId: currentBranchId,
+    };
+    setAuditLogs((prev) => [newLog, ...prev]);
+
+    // If there is staff tip, add notification
+    if (review.staffTipAmount && review.staffTipAmount > 0) {
+      const notif: NotificationItem = {
+        id: `notif-tip-${Date.now()}`,
+        title: '🎉 Tip Pelanggan Masuk!',
+        message: `${review.customerName} memberikan tip Rp ${review.staffTipAmount.toLocaleString('id-ID')} atas hasil cucian bintang ${review.rating}⭐!`,
+        timestamp: 'Baru saja',
+        type: 'reward',
+        read: false,
+      };
+      setNotifications((prev) => [notif, ...prev]);
+    }
+  };
+
+  // Online Staff Attendance & Payroll Handlers
+  const updatePayrollSettings = (settings: PayrollSettings) => {
+    setPayrollSettings(settings);
+    soundEngine.playStationDing();
+  };
+
+  const recordClockIn = (userId: string, selfieUrl?: string, notes?: string): { success: boolean; message: string } => {
+    const targetUser = users.find((u) => u.id === userId) || currentUser;
+    const todayStr = new Date().toISOString().split('T')[0];
+    const nowTime = new Date().toLocaleTimeString('id-ID', { hour12: false });
+
+    // Check existing attendance today
+    const existing = attendances.find((a) => a.userId === targetUser.id && a.date === todayStr);
+    if (existing && existing.clockInTime && existing.clockInTime !== '-') {
+      return {
+        success: false,
+        message: `Karyawan ${targetUser.name} sudah absen masuk hari ini pada ${existing.clockInTime}!`,
+      };
+    }
+
+    // Determine status: Late if clock in after 08:15
+    const parts = nowTime.split(':').map((v) => parseInt(v, 10));
+    const isLate = parts[0] > 8 || (parts[0] === 8 && parts[1] > 15);
+    const status: 'hadir' | 'terlambat' = isLate ? 'terlambat' : 'hadir';
+
+    const defaultSelfie = 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300&auto=format&fit=crop&q=80';
+
+    const newAttendance: StaffAttendance = {
+      id: `att-${Date.now()}`,
+      userId: targetUser.id,
+      userName: targetUser.name,
+      userRole: targetUser.role,
+      branchId: currentBranchId,
+      date: todayStr,
+      clockInTime: nowTime,
+      selfieUrl: selfieUrl || defaultSelfie,
+      status,
+      notes: notes || (isLate ? 'Terlambat masuk kerja (> 08:15)' : 'Hadir on-time shift pagi'),
+      locationAddress: 'Outlet LaundryHub (Radius GPS 8m - Valid)',
+    };
+
+    if (existing) {
+      setAttendances((prev) => prev.map((a) => (a.id === existing.id ? newAttendance : a)));
+    } else {
+      setAttendances((prev) => [newAttendance, ...prev]);
+    }
+
+    soundEngine.playStationDing();
+
+    // Audit log
+    const audit: AuditLog = {
+      id: `log-att-${Date.now()}`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      actorName: targetUser.name,
+      actorRole: targetUser.role,
+      action: 'ABSEN_MASUK_ONLINE',
+      details: `Absen masuk online (${status.toUpperCase()}) jam ${nowTime}. Lokasi GPS valid.`,
+      branchId: currentBranchId,
+    };
+    setAuditLogs((prev) => [audit, ...prev]);
+
+    return {
+      success: true,
+      message: `Absen masuk ${targetUser.name} berhasil! Status: ${status.toUpperCase()} (${nowTime})`,
+    };
+  };
+
+  const recordClockOut = (userId: string): { success: boolean; message: string } => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const nowTime = new Date().toLocaleTimeString('id-ID', { hour12: false });
+
+    const record = attendances.find((a) => a.userId === userId && a.date === todayStr);
+    if (!record) {
+      return { success: false, message: 'Belum melakukan absen masuk hari ini!' };
+    }
+    if (record.clockOutTime) {
+      return { success: false, message: `Sudah melakukan absen pulang pada ${record.clockOutTime}` };
+    }
+
+    setAttendances((prev) =>
+      prev.map((a) => (a.id === record.id ? { ...a, clockOutTime: nowTime } : a))
+    );
+
+    soundEngine.playCashChime();
+
+    const audit: AuditLog = {
+      id: `log-att-out-${Date.now()}`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      actorName: record.userName,
+      actorRole: record.userRole,
+      action: 'ABSEN_PULANG_ONLINE',
+      details: `Absen pulang tercatat pada jam ${nowTime}. Shift selesai.`,
+      branchId: currentBranchId,
+    };
+    setAuditLogs((prev) => [audit, ...prev]);
+
+    return {
+      success: true,
+      message: `Absen pulang ${record.userName} berhasil dicatat pada ${nowTime}!`,
+    };
+  };
+
+  const recordAbsence = (userId: string, date: string, status: 'alpha' | 'izin', notes?: string) => {
+    const target = users.find((u) => u.id === userId);
+    if (!target) return;
+
+    const existingIndex = attendances.findIndex((a) => a.userId === userId && a.date === date);
+    const newRecord: StaffAttendance = {
+      id: `att-${Date.now()}`,
+      userId: target.id,
+      userName: target.name,
+      userRole: target.role,
+      branchId: target.branchId || currentBranchId,
+      date,
+      clockInTime: '-',
+      status,
+      notes: notes || (status === 'alpha' ? 'Tidak masuk tanpa keterangan (Potongan gaji)' : 'Izin tidak masuk kerja'),
+    };
+
+    if (existingIndex >= 0) {
+      setAttendances((prev) => prev.map((a, idx) => (idx === existingIndex ? newRecord : a)));
+    } else {
+      setAttendances((prev) => [newRecord, ...prev]);
+    }
+
+    soundEngine.playStationDing();
+
+    const audit: AuditLog = {
+      id: `log-abs-${Date.now()}`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      actorName: currentUser.name,
+      actorRole: currentUser.role,
+      action: 'CATAT_KETIDAKHADIRAN',
+      details: `Catat status ${status.toUpperCase()} untuk ${target.name} pada ${date}.`,
+      branchId: currentBranchId,
+    };
+    setAuditLogs((prev) => [audit, ...prev]);
+  };
+
+  const calculateStaffSalarySlip = (userId: string, period: string = 'Oktober 2026'): StaffSalarySlip => {
+    const targetUser = users.find((u) => u.id === userId) || currentUser;
+
+    // Filter attendance for user
+    const userAttendances = attendances.filter((a) => a.userId === userId);
+    const daysPresent = userAttendances.filter((a) => a.status === 'hadir' || a.status === 'terlambat').length;
+    const daysAbsent = userAttendances.filter((a) => a.status === 'alpha').length;
+    const daysLate = userAttendances.filter((a) => a.status === 'terlambat').length;
+
+    // Station commission calculations per nota
+    const stationTypes: OrderStatus[] = ['sortir', 'cuci', 'kering', 'setrika', 'packing'];
+    const stationCommissions: WorkerStationStat[] = stationTypes.map((station) => {
+      let count = 0;
+      let totalEarned = 0;
+
+      orders.forEach((ord) => {
+        const ts = ord.statusTimestamps?.[station];
+        if (ts && (ts.picId === userId || (!ts.picId && ts.picName === targetUser.name))) {
+          count += 1;
+          totalEarned += ts.commissionEarned || 0;
+        }
+      });
+
+      return {
+        station,
+        count,
+        totalEarned,
+      };
+    });
+
+    const totalStationEarnings = stationCommissions.reduce((sum, s) => sum + s.totalEarned, 0);
+
+    // Tips from customer reviews for orders completed by this worker
+    let customerTipsTotal = 0;
+    orders.forEach((ord) => {
+      if (ord.customerReview?.staffTipAmount && ord.customerReview.staffTipAmount > 0) {
+        // check if user worked on any station in this order
+        const workedOnOrder = stationTypes.some((st) => {
+          const ts = ord.statusTimestamps?.[st];
+          return ts && (ts.picId === userId || ts.picName === targetUser.name);
+        });
+        if (workedOnOrder) {
+          customerTipsTotal += ord.customerReview.staffTipAmount;
+        }
+      }
+    });
+
+    // Deductions & Base
+    const baseSalaryTotal = daysPresent * payrollSettings.dailyBaseSalary;
+    const absenceDeductionsTotal = daysAbsent * payrollSettings.absenceDeductionPerDay;
+    const lateDeductionsTotal = daysLate * payrollSettings.lateDeductionPerIncident;
+
+    // Net take-home pay
+    const netTakeHomePay = Math.max(
+      0,
+      baseSalaryTotal + totalStationEarnings + customerTipsTotal - absenceDeductionsTotal - lateDeductionsTotal
+    );
+
+    return {
+      userId: targetUser.id,
+      userName: targetUser.name,
+      role: targetUser.role,
+      avatar: targetUser.avatar,
+      period,
+      daysPresent,
+      daysAbsent,
+      daysLate,
+      baseSalaryRate: payrollSettings.dailyBaseSalary,
+      baseSalaryTotal,
+      absenceDeductionRate: payrollSettings.absenceDeductionPerDay,
+      absenceDeductionsTotal,
+      lateDeductionsTotal,
+      stationCommissions,
+      totalStationEarnings,
+      customerTipsTotal,
+      netTakeHomePay,
+    };
+  };
+
   const resetAllData = () => {
     localStorage.clear();
     setOrders(ALL_ORDERS);
@@ -1466,6 +1781,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setDropshipAgents(INITIAL_DROPSHIP_AGENTS);
     setDropshipSupplyOrders(INITIAL_DROPSHIP_SUPPLY_ORDERS);
     setWithdrawalRequests(INITIAL_WITHDRAWAL_REQUESTS);
+    setAttendances(INITIAL_ATTENDANCE);
+    setPayrollSettings(DEFAULT_PAYROLL_SETTINGS);
     setTokenCoins(1850);
     setCurrentRole('owner');
     setCurrentBranchId('br-kemang');
@@ -1552,6 +1869,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         trackingModalOrder,
         openTrackingModal,
         closeTrackingModal,
+        isQrScannerOpen,
+        setIsQrScannerOpen,
+        addOrderReview,
+        attendances,
+        payrollSettings,
+        updatePayrollSettings,
+        recordClockIn,
+        recordClockOut,
+        recordAbsence,
+        calculateStaffSalarySlip,
+        isAttendanceModalOpen,
+        setIsAttendanceModalOpen,
       }}
     >
       {children}

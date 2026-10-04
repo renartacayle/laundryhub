@@ -13,6 +13,8 @@ import {
   DropshipSupplyItem,
   DropshipSupplyOrder,
   WithdrawalRequest,
+  StaffAttendance,
+  PayrollSettings,
 } from '../types';
 
 export const INITIAL_BRANCHES: Branch[] = [
@@ -1860,5 +1862,80 @@ export const INITIAL_WITHDRAWAL_REQUESTS: WithdrawalRequest[] = [
     accountName: 'Ratna Dewi',
     status: 'pending',
     requestedAt: '2026-10-03 14:00:00',
+  },
+];
+
+export const DEFAULT_PAYROLL_SETTINGS: PayrollSettings = {
+  dailyBaseSalary: 60000, // Rp 60.000 / hari hadir
+  absenceDeductionPerDay: 50000, // Rp 50.000 potongan per hari tidak masuk / alpha
+  lateDeductionPerIncident: 15000, // Rp 15.000 potongan per terlambat
+};
+
+export const INITIAL_ATTENDANCE: StaffAttendance[] = [
+  {
+    id: 'att-01',
+    userId: 'usr-kasir-kmg',
+    userName: 'Siti Rahmawati',
+    userRole: 'kasir',
+    branchId: 'br-kemang',
+    date: '2026-10-04',
+    clockInTime: '07:55:12',
+    clockOutTime: '17:02:40',
+    selfieUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300&auto=format&fit=crop&q=80',
+    status: 'hadir',
+    locationAddress: 'Outlet Kemang (Radius 12m - GPS Valid)',
+    notes: 'Shift Pagi On-Time',
+  },
+  {
+    id: 'att-02',
+    userId: 'usr-prod-cuci',
+    userName: 'Budi Santoso',
+    userRole: 'produksi',
+    branchId: 'br-kemang',
+    date: '2026-10-04',
+    clockInTime: '08:02:10',
+    clockOutTime: '17:15:00',
+    selfieUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80',
+    status: 'hadir',
+    locationAddress: 'Outlet Kemang Workshop (Radius 8m - GPS Valid)',
+    notes: 'Pengerjaan mesin cuci & sortir',
+  },
+  {
+    id: 'att-03',
+    userId: 'usr-prod-setrika',
+    userName: 'Ahmad Hidayat',
+    userRole: 'produksi',
+    branchId: 'br-kemang',
+    date: '2026-10-04',
+    clockInTime: '08:45:00',
+    selfieUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80',
+    status: 'terlambat',
+    locationAddress: 'Outlet Kemang Workshop (Radius 15m)',
+    notes: 'Terlambat 45 menit',
+  },
+  {
+    id: 'att-04',
+    userId: 'usr-kurir-1',
+    userName: 'Rian Pratama',
+    userRole: 'kurir',
+    branchId: 'br-kemang',
+    date: '2026-10-03',
+    clockInTime: '08:00:00',
+    clockOutTime: '17:00:00',
+    selfieUrl: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=300&auto=format&fit=crop&q=80',
+    status: 'hadir',
+    locationAddress: 'Outlet Kemang',
+    notes: 'Antar jemput 8 pesanan',
+  },
+  {
+    id: 'att-05',
+    userId: 'usr-prod-setrika',
+    userName: 'Ahmad Hidayat',
+    userRole: 'produksi',
+    branchId: 'br-kemang',
+    date: '2026-10-02',
+    clockInTime: '-',
+    status: 'alpha',
+    notes: 'Tidak masuk tanpa kabar (Potongan gaji)',
   },
 ];

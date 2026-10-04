@@ -38,6 +38,7 @@ import {
   Globe,
   Settings,
   ClipboardCheck,
+  Camera,
 } from 'lucide-react';
 import { ReceiptModal } from '../components/ReceiptModal';
 import { WhatsAppSimulatorModal } from '../components/WhatsAppSimulatorModal';
@@ -67,6 +68,7 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
     language,
     currency,
     t,
+    setIsQrScannerOpen,
   } = useApp();
 
   const [activeSubView, setActiveSubView] = useState<'pos' | 'orders' | 'customers'>(
@@ -408,9 +410,20 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
           </button>
         </div>
 
-        <div className="text-xs text-slate-400 flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-          <span>Kasir Bertugas: <strong className="text-white">{currentUser.name}</strong></span>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setIsQrScannerOpen(true)}
+            className="px-3 py-1.5 rounded-xl bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 border border-teal-500/40 text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95"
+            title="Scan QR Code Nota Laundry"
+          >
+            <Camera className="w-3.5 h-3.5 text-teal-400" />
+            <span>Scan QR Nota</span>
+          </button>
+          <div className="text-xs text-slate-400 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+            <span>Kasir Bertugas: <strong className="text-white">{currentUser.name}</strong></span>
+          </div>
         </div>
       </div>
 

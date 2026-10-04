@@ -93,6 +93,53 @@ export interface StationCommissionRates {
   packing: number; // Rp per kg (e.g. 200)
 }
 
+export interface StaffAttendance {
+  id: string;
+  userId: string;
+  userName: string;
+  userRole: Role;
+  branchId: string;
+  date: string; // YYYY-MM-DD
+  clockInTime: string; // HH:mm:ss
+  clockOutTime?: string; // HH:mm:ss
+  selfieUrl?: string; // Foto bukti selfie kehadiran
+  status: 'hadir' | 'terlambat' | 'izin' | 'alpha';
+  notes?: string;
+  locationAddress?: string;
+}
+
+export interface PayrollSettings {
+  dailyBaseSalary: number; // e.g. Rp 60.000 / hari hadir
+  absenceDeductionPerDay: number; // e.g. Rp 50.000 / hari tidak masuk (pengurangan gaji)
+  lateDeductionPerIncident: number; // e.g. Rp 15.000 / insiden terlambat
+}
+
+export interface WorkerStationStat {
+  station: OrderStatus;
+  count: number;
+  totalEarned: number;
+}
+
+export interface StaffSalarySlip {
+  userId: string;
+  userName: string;
+  role: Role;
+  avatar: string;
+  period: string; // e.g. 'Oktober 2026'
+  daysPresent: number;
+  daysAbsent: number; // hari tidak masuk
+  daysLate: number;
+  baseSalaryRate: number;
+  baseSalaryTotal: number;
+  absenceDeductionRate: number;
+  absenceDeductionsTotal: number;
+  lateDeductionsTotal: number;
+  stationCommissions: WorkerStationStat[];
+  totalStationEarnings: number; // total gaji per stasiun per nota
+  customerTipsTotal: number;
+  netTakeHomePay: number; // (Base + Stations + Tips - Deductions)
+}
+
 export interface StatusTimestamp {
   time: string;
   picName?: string;
@@ -115,6 +162,15 @@ export interface ClothesItem {
   name: string; // e.g. 'Kaos / Kemeja / Baju', 'Celana Panjang', 'Celana Pendek', 'Pakaian Dalam', 'Gamis / Dress', 'Jaket / Sweater', 'Handuk', 'Sprei', 'Lainnya'
   quantity: number; // e.g. 5
   notes?: string; // e.g. 'Ada noda tinta di kerah kemeja putih'
+}
+
+export interface CustomerReview {
+  rating: number; // 1 - 5
+  feedbackText?: string;
+  tags?: string[]; // e.g. ['Wanginya Tahan Lama', 'Lipatan Presisi', 'Kilat Tepat Waktu']
+  staffTipAmount?: number; // e.g. 5000
+  createdAt: string;
+  customerName: string;
 }
 
 export interface Order {
@@ -151,6 +207,8 @@ export interface Order {
   clothesDetails?: ClothesItem[]; // Rincian pakaian (e.g. Baju: 5, Celana: 3, dll)
   sortingNotes?: string;          // Catatan sortir / defect pakaian (noda, robek, kancing copot, luntur)
   totalPieces?: number;           // Total jumlah helai pakaian tercatat
+  // Dopamine customer review & rating
+  customerReview?: CustomerReview;
   // Dropship integration
   isDropship?: boolean;
   agentId?: string;
@@ -216,7 +274,7 @@ export interface NotificationItem {
   id: string;
   title: string;
   message: string;
-  type: 'order' | 'stock' | 'iot' | 'payment' | 'dropship';
+  type: 'order' | 'stock' | 'iot' | 'payment' | 'dropship' | 'reward' | 'attendance';
   timestamp: string;
   read: boolean;
   orderId?: string;

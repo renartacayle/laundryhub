@@ -23,6 +23,7 @@ import {
   Check,
   ClipboardCheck,
   Edit3,
+  MessageSquare,
 } from 'lucide-react';
 import { IotMachineControlModal } from '../components/IotMachineControlModal';
 import { StationPhotoProofModal } from '../components/StationPhotoProofModal';
@@ -512,9 +513,28 @@ export const ProduksiKanban: React.FC<ProduksiKanbanProps> = ({ currentSubTab = 
                         )}
 
                         {ord.currentStatus === 'siap' && (
-                          <div className="p-1.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold flex items-center justify-center gap-1">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                            <span>Semua Stasiun Selesai • Siap Ambil / Antar</span>
+                          <div className="space-y-1.5">
+                            <div className="p-1.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold flex items-center justify-center gap-1">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                              <span>Semua Stasiun Selesai • Siap Ambil / Antar</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const cleanPhone = ord.customerPhone.replace(/[^0-9]/g, '');
+                                const phone = cleanPhone.startsWith('0') ? '62' + cleanPhone.slice(1) : cleanPhone;
+                                const text = encodeURIComponent(
+                                  `Halo Kak ${ord.customerName}! Cucian Anda di LaundryHub dengan No. Nota *${ord.invoiceNo}* (${ord.weightKg} kg) sudah SELESAI, bersih, wangi ${ord.perfumeName}, dan rapi dipacking ✨\n\nPesanan sudah siap diambil di outlet atau siap diantar kurir.\nCek status & foto bukti cucian: https://laundryhub.app/?nota=${ord.invoiceNo}`
+                                );
+                                window.open(`https://wa.me/${phone}?text=${text}`, '_blank');
+                              }}
+                              className="w-full py-1.5 px-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] shadow-md flex items-center justify-center gap-1.5 transition-all active:scale-95"
+                              title="Kirim Pesan WhatsApp Siap Ambil / Antar ke Pelanggan"
+                            >
+                              <MessageSquare className="w-3.5 h-3.5" />
+                              <span>Kirim WhatsApp Siap ke Pelanggan</span>
+                            </button>
                           </div>
                         )}
 

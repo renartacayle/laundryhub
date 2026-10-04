@@ -166,6 +166,10 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
     currency,
     t,
     openTrackingModal,
+    attendances,
+    payrollSettings,
+    calculateStaffSalarySlip,
+    setIsAttendanceModalOpen,
   } = useApp();
 
   // Add Worker Modal State
@@ -178,6 +182,10 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
   const [newWorkerRateKg, setNewWorkerRateKg] = useState(300);
   const [newWorkerRateItem, setNewWorkerRateItem] = useState(1000);
   const [workerFormError, setWorkerFormError] = useState<string | null>(null);
+
+  // Salary Slip & Payroll State
+  const [selectedSlipStaffId, setSelectedSlipStaffId] = useState<string | null>(null);
+  const [isSalarySlipModalOpen, setIsSalarySlipModalOpen] = useState<boolean>(false);
   const [workerFormSuccess, setWorkerFormSuccess] = useState<string | null>(null);
   const [staffRoleFilter, setStaffRoleFilter] = useState<string>('all');
   const [staffSearchText, setStaffSearchText] = useState<string>('');
@@ -2124,6 +2132,316 @@ Konsultasi Admin WA: 081228263200`;
                 );
               })}
           </div>
+
+          {/* 3. Matriks Presensi & Rekap Gaji Karyawan (Borongan per Nota & Potongan Alpha) */}
+          <div className="p-5 rounded-3xl glass-card border border-emerald-500/30 bg-gradient-to-r from-emerald-950/20 via-slate-900/80 to-slate-900/80 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2.5 rounded-2xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  <Clock className="w-5 h-5 text-emerald-400" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-white flex items-center gap-2 flex-wrap">
+                    <span>Rekap Presensi & Gaji Borongan Staf (Oktober 2026)</span>
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                      Gaji Pokok + Stasiun Borongan - Potongan Alpha
+                    </span>
+                  </h4>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Kalkulasi otomatis Take Home Pay berdasarkan hari masuk kerja, potongan ketidakhadiran/alpha (-Rp {payrollSettings.absenceDeductionPerDay.toLocaleString('id-ID')}/hari), potongan telat (-Rp {payrollSettings.lateDeductionPerIncident.toLocaleString('id-ID')}), dan hasil pengerjaan stasiun per nota berfoto valid.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setIsAttendanceModalOpen(true)}
+                  className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 transition-all flex items-center gap-1.5"
+                >
+                  <Clock className="w-4 h-4 text-emerald-400" />
+                  <span>Buka Presensi Online</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const headers = [
+                      'ID Karyawan',
+                      'Nama Karyawan',
+                      'Role',
+                      'Hari Hadir',
+                      'Hari Alpha',
+                      'Hari Terlambat',
+                      'Gaji Pokok (Rp)',
+                      'Komisi Borongan (Rp)',
+                      'Tip Pelanggan (Rp)',
+                      'Potongan Alpha (Rp)',
+                      'Potongan Terlambat (Rp)',
+                      'Take Home Pay (Rp)',
+                    ];
+                    const rows = users.map((u) => {
+                      const slip = calculateStaffSalarySlip(u.id);
+                      return [
+                        `"${u.id}"`,
+                        `"${u.name}"`,
+                        `"${u.role}"`,
+                        slip.daysPresent,
+                        slip.daysAbsent,
+                        slip.daysLate,
+                        slip.baseSalaryTotal,
+                        slip.totalStationEarnings,
+                        slip.customerTipsTotal,
+                        slip.absenceDeductionsTotal,
+                        slip.lateDeductionsTotal,
+                        slip.netTakeHomePay,
+                      ].join(',');
+                    });
+                    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows].join('\n');
+                    const encodedUri = encodeURI(csvContent);
+                    const link = document.createElement('a');
+                    link.setAttribute('href', encodedUri);
+                    link.setAttribute('download', `Rekap_Gaji_LaundryHub_${new Date().toISOString().slice(0, 10)}.csv`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs shadow-glow-emerald transition-all flex items-center gap-1.5"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Export CSV Rekap Gaji</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Attendance & Payroll Table */}
+            <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950/40">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-slate-900/90 text-slate-400 uppercase text-[10px] tracking-wider font-semibold border-b border-slate-800">
+                  <tr>
+                    <th className="p-3">Karyawan</th>
+                    <th className="p-3 text-center">Presensi</th>
+                    <th className="p-3 text-right">Gaji Pokok</th>
+                    <th className="p-3 text-center">Borongan Stasiun (Nota)</th>
+                    <th className="p-3 text-right">Total Borongan</th>
+                    <th className="p-3 text-right">Potongan Alpha/Telat</th>
+                    <th className="p-3 text-right">Take Home Pay</th>
+                    <th className="p-3 text-center">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800 text-slate-300">
+                  {users.map((u) => {
+                    const slip = calculateStaffSalarySlip(u.id);
+                    return (
+                      <tr key={u.id} className="hover:bg-slate-900/60 transition-colors">
+                        <td className="p-3 font-semibold text-white">
+                          <div className="flex items-center gap-2.5">
+                            <img
+                              src={u.avatar}
+                              alt={u.name}
+                              className="w-8 h-8 rounded-full object-cover border border-slate-700 shrink-0"
+                            />
+                            <div>
+                              <p className="font-bold text-white leading-tight">{u.name}</p>
+                              <span className="text-[10px] text-slate-400 uppercase font-mono">{u.role}</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-3 text-center">
+                          <div className="inline-flex items-center gap-1.5 font-mono text-[11px]">
+                            <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold" title="Hari Hadir">
+                              {slip.daysPresent}H
+                            </span>
+                            {slip.daysAbsent > 0 && (
+                              <span className="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 font-bold" title="Hari Alpha">
+                                {slip.daysAbsent}A
+                              </span>
+                            )}
+                            {slip.daysLate > 0 && (
+                              <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold" title="Hari Terlambat">
+                                {slip.daysLate}T
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="p-3 text-right font-mono text-slate-200">
+                          Rp {slip.baseSalaryTotal.toLocaleString('id-ID')}
+                        </td>
+                        <td className="p-3 text-center">
+                          <div className="flex items-center justify-center gap-1 flex-wrap text-[10px] font-mono">
+                            {slip.stationCommissions.map((st) => (
+                              <span
+                                key={st.station}
+                                className={`px-1.5 py-0.5 rounded font-semibold ${
+                                  st.count > 0 ? 'bg-cyan-950 text-cyan-300 border border-cyan-800' : 'bg-slate-900 text-slate-600'
+                                }`}
+                                title={`${st.station}: ${st.count} nota (Rp ${st.totalEarned.toLocaleString('id-ID')})`}
+                              >
+                                {st.station.slice(0, 3)}:{st.count}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="p-3 text-right font-mono font-bold text-cyan-400">
+                          +Rp {slip.totalStationEarnings.toLocaleString('id-ID')}
+                        </td>
+                        <td className="p-3 text-right font-mono">
+                          {slip.absenceDeductionsTotal + slip.lateDeductionsTotal > 0 ? (
+                            <span className="text-rose-400 font-semibold">
+                              -Rp {(slip.absenceDeductionsTotal + slip.lateDeductionsTotal).toLocaleString('id-ID')}
+                            </span>
+                          ) : (
+                            <span className="text-slate-500">Rp 0</span>
+                          )}
+                        </td>
+                        <td className="p-3 text-right font-mono font-black text-sm text-emerald-400">
+                          Rp {slip.netTakeHomePay.toLocaleString('id-ID')}
+                        </td>
+                        <td className="p-3 text-center">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedSlipStaffId(u.id);
+                              setIsSalarySlipModalOpen(true);
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 font-bold text-[11px] border border-emerald-500/30 transition-all flex items-center gap-1 mx-auto"
+                          >
+                            <FileText className="w-3.5 h-3.5" />
+                            <span>Slip Gaji</span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* MODAL: Cetak Slip Gaji Thermal / Karyawan */}
+          {isSalarySlipModalOpen && selectedSlipStaffId && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in">
+              <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full p-6 shadow-2xl relative space-y-4">
+                <button
+                  type="button"
+                  onClick={() => setIsSalarySlipModalOpen(false)}
+                  className="absolute top-4 right-4 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+
+                {(() => {
+                  const slip = calculateStaffSalarySlip(selectedSlipStaffId);
+                  const staffUser = users.find((u) => u.id === selectedSlipStaffId);
+                  const branch = branches.find((b) => b.id === staffUser?.branchId);
+
+                  return (
+                    <div className="space-y-4">
+                      {/* Printable Receipt Paper Container */}
+                      <div id="salary-slip-print" className="p-5 rounded-2xl bg-white text-slate-900 font-mono text-xs shadow-inner space-y-3">
+                        <div className="text-center pb-2 border-b border-dashed border-slate-400">
+                          <h3 className="font-black text-base tracking-wider">LAUNDRYHUB</h3>
+                          <p className="text-[10px] text-slate-600">{branch?.name || 'Workshop Kemang Central'}</p>
+                          <p className="text-[10px] text-slate-500">SLIP GAJI BORONGAN & PRESENSI</p>
+                          <p className="text-[10px] font-bold text-slate-700">Periode: {slip.period}</p>
+                        </div>
+
+                        <div className="space-y-0.5 text-[11px]">
+                          <div className="flex justify-between">
+                            <span className="text-slate-600">Nama Staf:</span>
+                            <span className="font-bold">{slip.userName}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-600">Role / Jabatan:</span>
+                            <span className="font-bold uppercase">{slip.role}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-600">Presensi:</span>
+                            <span>{slip.daysPresent} Hadir | {slip.daysAbsent} Alpha | {slip.daysLate} Telat</span>
+                          </div>
+                        </div>
+
+                        <div className="pt-2 border-t border-dashed border-slate-300 space-y-1">
+                          <p className="font-bold text-[10px] uppercase text-slate-700">Rincian Pendapatan:</p>
+                          <div className="flex justify-between">
+                            <span>Gaji Pokok ({slip.daysPresent}x):</span>
+                            <span>Rp {slip.baseSalaryTotal.toLocaleString('id-ID')}</span>
+                          </div>
+                          {slip.stationCommissions.filter(s => s.count > 0).map(st => (
+                            <div key={st.station} className="flex justify-between text-[10px]">
+                              <span className="capitalize">Borongan {st.station} ({st.count} nota):</span>
+                              <span>+Rp {st.totalEarned.toLocaleString('id-ID')}</span>
+                            </div>
+                          ))}
+                          {slip.customerTipsTotal > 0 && (
+                            <div className="flex justify-between text-emerald-700 font-bold">
+                              <span>Tip Pelanggan:</span>
+                              <span>+Rp {slip.customerTipsTotal.toLocaleString('id-ID')}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {(slip.absenceDeductionsTotal > 0 || slip.lateDeductionsTotal > 0) && (
+                          <div className="pt-2 border-t border-dashed border-slate-300 space-y-1 text-rose-700">
+                            <p className="font-bold text-[10px] uppercase">Rincian Potongan:</p>
+                            {slip.absenceDeductionsTotal > 0 && (
+                              <div className="flex justify-between text-[10px]">
+                                <span>Potongan Alpha ({slip.daysAbsent}x):</span>
+                                <span>-Rp {slip.absenceDeductionsTotal.toLocaleString('id-ID')}</span>
+                              </div>
+                            )}
+                            {slip.lateDeductionsTotal > 0 && (
+                              <div className="flex justify-between text-[10px]">
+                                <span>Potongan Terlambat ({slip.daysLate}x):</span>
+                                <span>-Rp {slip.lateDeductionsTotal.toLocaleString('id-ID')}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        <div className="pt-2 border-t-2 border-slate-900 flex justify-between font-black text-sm">
+                          <span>TAKE HOME PAY:</span>
+                          <span className="text-emerald-700">Rp {slip.netTakeHomePay.toLocaleString('id-ID')}</span>
+                        </div>
+
+                        <div className="pt-4 flex justify-between text-[9px] text-center text-slate-500">
+                          <div>
+                            <p>Penerima,</p>
+                            <div className="h-8" />
+                            <p className="font-bold">({slip.userName})</p>
+                          </div>
+                          <div>
+                            <p>Owner Laundry,</p>
+                            <div className="h-8" />
+                            <p className="font-bold">(Management)</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Modal Actions */}
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => window.print()}
+                          className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black text-xs shadow-glow-emerald transition-all flex items-center justify-center gap-1.5"
+                        >
+                          <FileText className="w-4 h-4" />
+                          <span>Cetak Thermal / Print</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIsSalarySlipModalOpen(false)}
+                          className="py-2.5 px-4 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold"
+                        >
+                          Tutup
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+          )}
 
           {/* MODAL: Tambah Karyawan Baru via Gmail */}
           {isAddWorkerModalOpen && (
