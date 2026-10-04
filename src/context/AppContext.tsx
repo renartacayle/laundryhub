@@ -139,6 +139,16 @@ interface AppContextType {
     clothesDetails?: ClothesItem[],
     sortingNotes?: string
   ) => { success: boolean; commissionEarned: number; message: string };
+
+  // Step-by-Step Interactive Tutorial & Demo System
+  activeTutorial: 'owner' | 'pekerja' | 'pelanggan' | null;
+  tutorialStep: number;
+  startTutorial: (role: 'owner' | 'pekerja' | 'pelanggan') => void;
+  nextTutorialStep: () => void;
+  prevTutorialStep: () => void;
+  exitTutorial: () => void;
+  isDemoTutorialModalOpen: boolean;
+  setIsDemoTutorialModalOpen: (open: boolean) => void;
 }
 
 export const DEFAULT_STATION_RATES: StationCommissionRates = {
@@ -1334,6 +1344,62 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, ...data } : u)));
   };
 
+  // Step-by-Step Interactive Tutorial & Demo System
+  const [activeTutorial, setActiveTutorial] = useState<'owner' | 'pekerja' | 'pelanggan' | null>(() => {
+    return (localStorage.getItem('lh_active_tutorial') as any) || null;
+  });
+  const [tutorialStep, setTutorialStep] = useState<number>(() => {
+    const saved = localStorage.getItem('lh_tutorial_step');
+    return saved ? parseInt(saved, 10) : 0;
+  });
+  const [isDemoTutorialModalOpen, setIsDemoTutorialModalOpen] = useState(false);
+
+  const startTutorial = (role: 'owner' | 'pekerja' | 'pelanggan') => {
+    setActiveTutorial(role);
+    setTutorialStep(0);
+    localStorage.setItem('lh_active_tutorial', role);
+    localStorage.setItem('lh_tutorial_step', '0');
+
+    if (role === 'owner') {
+      setCurrentRole('owner');
+    } else if (role === 'pekerja') {
+      setCurrentRole('kasir');
+    } else if (role === 'pelanggan') {
+      setCurrentRole('pelanggan');
+    }
+  };
+
+  const nextTutorialStep = () => {
+    setTutorialStep((prev) => {
+      const next = Math.min(4, prev + 1);
+      localStorage.setItem('lh_tutorial_step', String(next));
+      if (activeTutorial === 'pekerja') {
+        if (next === 0) setCurrentRole('kasir');
+        else setCurrentRole('produksi');
+      }
+      return next;
+    });
+  };
+
+  const prevTutorialStep = () => {
+    setTutorialStep((prev) => {
+      const p = Math.max(0, prev - 1);
+      localStorage.setItem('lh_tutorial_step', String(p));
+      if (activeTutorial === 'pekerja') {
+        if (p === 0) setCurrentRole('kasir');
+        else setCurrentRole('produksi');
+      }
+      return p;
+    });
+  };
+
+  const exitTutorial = () => {
+    setActiveTutorial(null);
+    setTutorialStep(0);
+    localStorage.removeItem('lh_active_tutorial');
+    localStorage.removeItem('lh_tutorial_step');
+  };
+
   const resetAllData = () => {
     localStorage.clear();
     setOrders(ALL_ORDERS);
@@ -1349,6 +1415,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setTokenCoins(1850);
     setCurrentRole('owner');
     setCurrentBranchId('br-kemang');
+    setActiveTutorial(null);
+    setTutorialStep(0);
   };
 
   return (
@@ -1418,6 +1486,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         claimStationTask,
         unclaimStationTask,
         completeStationTask,
+        activeTutorial,
+        tutorialStep,
+        startTutorial,
+        nextTutorialStep,
+        prevTutorialStep,
+        exitTutorial,
+        isDemoTutorialModalOpen,
+        setIsDemoTutorialModalOpen,
       }}
     >
       {children}

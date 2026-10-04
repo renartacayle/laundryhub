@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Role } from '../types';
-import { Crown, Monitor, WashingMachine, Bike, UserCircle2, Store, Lock, Unlock, ShieldAlert } from 'lucide-react';
+import { Crown, Monitor, WashingMachine, Bike, UserCircle2, Store, Lock, Unlock, ShieldAlert, Sparkles } from 'lucide-react';
 import { AuthGateModal } from './AuthGateModal';
 
 export const RoleSwitcherBar: React.FC = () => {
-  const { currentRole, setCurrentRole, activeGmailAccount, setIsGoogleAuthModalOpen } = useApp();
+  const { currentRole, setCurrentRole, activeGmailAccount, setIsGoogleAuthModalOpen, setIsDemoTutorialModalOpen } = useApp();
 
   // Mode: Demo (1-click free) vs Commercial (PIN Protected)
   const [isCommercialMode, setIsCommercialMode] = useState<boolean>(() => {
@@ -133,8 +133,19 @@ export const RoleSwitcherBar: React.FC = () => {
             })}
           </div>
 
-          {/* Right Controls: Google Auth & Demo Toggle */}
+          {/* Right Controls: Tutorial Demo, Google Auth & Mode Toggle */}
           <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Tutorial Demo Button */}
+            <button
+              type="button"
+              onClick={() => setIsDemoTutorialModalOpen(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-500/15 via-emerald-500/15 to-cyan-500/15 hover:from-amber-500/25 hover:to-cyan-500/25 border border-amber-500/30 text-amber-800 dark:text-amber-300 transition-all active:scale-95 shadow-xs"
+              title="Coba Versi Demo dengan Tutorial Step-by-Step (Owner, Pekerja, Pelanggan)"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+              <span>Tutorial Demo</span>
+            </button>
+
             {/* Google Auth button in switcher */}
             <button
               type="button"

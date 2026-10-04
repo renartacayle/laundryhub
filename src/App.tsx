@@ -15,9 +15,19 @@ import { LiveSocialProofToast } from './components/LiveSocialProofToast';
 import { StickyConversionBar } from './components/StickyConversionBar';
 import { LandingPageModal } from './components/LandingPageModal';
 import { IntroductionModal } from './components/IntroductionModal';
+import { DemoTutorialModal } from './components/DemoTutorialModal';
+import { TutorialGuideBanner } from './components/TutorialGuideBanner';
 
 const MainLayout: React.FC = () => {
-  const { currentRole, setCurrentRole } = useApp();
+  const {
+    currentRole,
+    setCurrentRole,
+    activeTutorial,
+    tutorialStep,
+    isDemoTutorialModalOpen,
+    setIsDemoTutorialModalOpen,
+    activeGmailAccount,
+  } = useApp();
 
   // Active sub-tab state for Desktop Sidebar
   const [activeTab, setActiveTab] = useState<string>('owner-overview');
@@ -47,6 +57,59 @@ const MainLayout: React.FC = () => {
     window.addEventListener('lh_open_intro', handleOpenIntro);
     return () => window.removeEventListener('lh_open_intro', handleOpenIntro);
   }, []);
+
+  // Auto-prompt Demo Tutorial on initial visit if guest
+  useEffect(() => {
+    const tutorialSeen = localStorage.getItem('lh_demo_tutorial_seen');
+    if (!tutorialSeen && !activeGmailAccount) {
+      setIsDemoTutorialModalOpen(true);
+      localStorage.setItem('lh_demo_tutorial_seen', 'true');
+    }
+  }, [activeGmailAccount, setIsDemoTutorialModalOpen]);
+
+  // Synchronize step-by-step interactive tutorial with tabs and roles
+  useEffect(() => {
+    if (!activeTutorial) return;
+
+    if (activeTutorial === 'owner') {
+      setCurrentRole('owner');
+      if (tutorialStep === 0) {
+        setActiveTab('owner-overview');
+        setMobileTab('stats');
+      } else if (tutorialStep === 1) {
+        setActiveTab('owner-staff');
+        setMobileTab('staff');
+      } else if (tutorialStep === 2) {
+        setActiveTab('owner-overview');
+        setMobileTab('progress');
+      } else if (tutorialStep === 3) {
+        setActiveTab('owner-overview');
+        setMobileTab('stats');
+      } else if (tutorialStep === 4) {
+        setActiveTab('owner-overview');
+        setMobileTab('stats');
+      }
+    } else if (activeTutorial === 'pekerja') {
+      if (tutorialStep === 0) {
+        setCurrentRole('kasir');
+        setActiveTab('kasir-pos');
+        setMobileTab('kasir');
+      } else {
+        setCurrentRole('produksi');
+        setActiveTab('prod-kanban');
+        setMobileTab('progress');
+      }
+    } else if (activeTutorial === 'pelanggan') {
+      setCurrentRole('pelanggan');
+      if (tutorialStep <= 2) {
+        setActiveTab('cust-tracking');
+      } else if (tutorialStep === 3) {
+        setActiveTab('cust-history');
+      } else if (tutorialStep === 4) {
+        setActiveTab('cust-wallet');
+      }
+    }
+  }, [activeTutorial, tutorialStep]);
 
   // When role changes (e.g. on desktop), switch to default tab for that role
   useEffect(() => {
@@ -115,13 +178,23 @@ const MainLayout: React.FC = () => {
         <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
         <main className="flex-1 p-3 sm:p-6 lg:p-8 pb-24 md:pb-8 overflow-x-hidden min-h-[calc(100vh-120px)] w-full max-w-full">
-          {/* Mobile Direct 5-Pillar View (md:hidden) */}
+          {/* Mobile Direct View (md:hidden) */}
           <div className="md:hidden w-full">
-            {mobileTab === 'stats' && <OwnerDashboard currentSubTab="owner-stats" />}
-            {mobileTab === 'staff' && <OwnerDashboard currentSubTab="owner-staff" />}
-            {mobileTab === 'progress' && <ProduksiKanban currentSubTab="prod-kanban" />}
-            {mobileTab === 'kasir' && <KasirPOS currentSubTab="kasir-pos" />}
-            {mobileTab === 'settings' && <MobileSettingsView />}
+            {currentRole === 'pelanggan' ? (
+              <PelangganPortal currentSubTab={activeTab} />
+            ) : currentRole === 'kurir' ? (
+              <KurirDashboard currentSubTab={activeTab} />
+            ) : currentRole === 'agen' ? (
+              <AgenDropshipDashboard currentSubTab={activeTab} />
+            ) : (
+              <>
+                {mobileTab === 'stats' && <OwnerDashboard currentSubTab="owner-stats" />}
+                {mobileTab === 'staff' && <OwnerDashboard currentSubTab="owner-staff" />}
+                {mobileTab === 'progress' && <ProduksiKanban currentSubTab="prod-kanban" />}
+                {mobileTab === 'kasir' && <KasirPOS currentSubTab="kasir-pos" />}
+                {mobileTab === 'settings' && <MobileSettingsView />}
+              </>
+            )}
           </div>
 
           {/* Desktop Multi-Role View (hidden md:block) */}
@@ -164,6 +237,15 @@ const MainLayout: React.FC = () => {
 
       {/* Interactive Introduction / Onboarding Modal */}
       <IntroductionModal isOpen={isIntroOpen} onClose={() => setIsIntroOpen(false)} />
+
+      {/* Floating Step-by-Step Interactive Tutorial Guide Banner */}
+      <TutorialGuideBanner />
+
+      {/* Interactive Demo Tutorial Selection Modal (Owner, Pekerja, Pelanggan) */}
+      <DemoTutorialModal
+        isOpen={isDemoTutorialModalOpen}
+        onClose={() => setIsDemoTutorialModalOpen(false)}
+      />
     </div>
   );
 };

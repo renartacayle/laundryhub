@@ -36,6 +36,8 @@ export const Navbar: React.FC = () => {
     activeGmailAccount,
     isGoogleAuthModalOpen,
     setIsGoogleAuthModalOpen,
+    setIsDemoTutorialModalOpen,
+    activeTutorial,
     branches,
     currentBranchId,
     setCurrentBranchId,
@@ -310,6 +312,21 @@ export const Navbar: React.FC = () => {
                       </span>
                     </div>
 
+                    {/* Tutorial Versi Demo (Owner, Pekerja, Pelanggan) */}
+                    <button
+                      onClick={() => {
+                        setIsToolsMenuOpen(false);
+                        setIsDemoTutorialModalOpen(true);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-left text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-500/10 transition-colors"
+                    >
+                      <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold leading-tight">Tutorial Versi Demo</div>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400">Pilih panduan Owner, Pekerja, atau Pelanggan</div>
+                      </div>
+                    </button>
+
                     {/* Promo Rp 25 */}
                     <button
                       onClick={() => {
@@ -425,46 +442,69 @@ export const Navbar: React.FC = () => {
             <div className="hidden sm:block h-5 w-px bg-slate-200 dark:bg-slate-800 mx-0.5" />
 
             {/* =========================================================
-                GOOGLE / USER ACCOUNT PROFILE PILL
+                DEMO VERSION OR GOOGLE ACCOUNT PROFILE PILL
                 ========================================================= */}
-            <button
-              type="button"
-              onClick={() => setIsGoogleAuthModalOpen(true)}
-              className="h-9 flex items-center gap-2 pl-1.5 pr-2.5 rounded-xl border border-slate-200/90 dark:border-slate-750 bg-white/90 dark:bg-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-750 hover:border-slate-300 dark:hover:border-slate-600 transition-all cursor-pointer group shadow-xs active:scale-95"
-              title={`Akun Google: ${activeGmailAccount || currentUser.email} (Klik untuk ganti akun)`}
-            >
-              {/* Google G mini icon */}
-              <div className="w-6 h-6 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-700 flex items-center justify-center shrink-0 shadow-xs">
-                <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
-                </svg>
-              </div>
+            {!activeGmailAccount ? (
+              <button
+                type="button"
+                onClick={() => setIsDemoTutorialModalOpen(true)}
+                className="h-9 flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 rounded-xl border border-emerald-500/40 dark:border-cyan-500/40 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-cyan-500/10 hover:from-emerald-500/20 hover:to-cyan-500/20 text-emerald-800 dark:text-cyan-200 transition-all cursor-pointer group shadow-xs active:scale-95"
+                title="Coba Versi Demo Interaktif (Tutorial Step-by-Step Owner, Pekerja, Pelanggan)"
+              >
+                <div className="w-5 h-5 rounded-lg bg-emerald-500 text-slate-950 flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                  <Sparkles className="w-3 h-3 text-slate-950" />
+                </div>
+                <div className="flex flex-col text-left leading-none">
+                  <div className="text-xs font-black tracking-tight flex items-center gap-1 text-slate-900 dark:text-white">
+                    <span>Coba Versi Demo</span>
+                    <span className="hidden sm:inline text-[8px] px-1 py-0.2 rounded font-black bg-emerald-500/25 text-emerald-800 dark:text-cyan-300">
+                      TUTORIAL
+                    </span>
+                  </div>
+                  <div className="text-[9px] font-semibold text-emerald-700 dark:text-cyan-400 uppercase mt-0.5 tracking-wide">
+                    {activeTutorial ? `Mode ${activeTutorial}` : currentRole}
+                  </div>
+                </div>
+                <ChevronDown className="w-3 h-3 text-slate-400 group-hover:translate-y-0.5 transition-transform shrink-0" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsGoogleAuthModalOpen(true)}
+                className="h-9 flex items-center gap-2 pl-1.5 pr-2.5 rounded-xl border border-slate-200/90 dark:border-slate-750 bg-white/90 dark:bg-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-750 hover:border-slate-300 dark:hover:border-slate-600 transition-all cursor-pointer group shadow-xs active:scale-95"
+                title={`Akun Google: ${activeGmailAccount} (Klik untuk ganti akun)`}
+              >
+                {/* Google G mini icon */}
+                <div className="w-6 h-6 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-700 flex items-center justify-center shrink-0 shadow-xs">
+                  <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                  </svg>
+                </div>
 
-              {/* Avatar circle */}
-              <img
-                src={currentUser.avatar}
-                alt={currentUser.name}
-                className="w-5 h-5 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700 shrink-0"
-              />
+                {/* Avatar circle */}
+                <img
+                  src={currentUser.avatar}
+                  alt={currentUser.name}
+                  className="w-5 h-5 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700 shrink-0"
+                />
 
-              {/* Name & Role Text */}
-              <div className="hidden sm:flex flex-col text-left leading-none">
-                <div className="text-xs font-bold text-slate-800 dark:text-slate-100 max-w-[85px] xl:max-w-[110px] truncate flex items-center gap-1">
-                  <span>{getShortName(currentUser.name)}</span>
-                  {activeGmailAccount && (
+                {/* Name & Role Text */}
+                <div className="hidden sm:flex flex-col text-left leading-none">
+                  <div className="text-xs font-bold text-slate-800 dark:text-slate-100 max-w-[85px] xl:max-w-[110px] truncate flex items-center gap-1">
+                    <span>{getShortName(currentUser.name)}</span>
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                  )}
+                  </div>
+                  <div className="text-[9px] font-semibold text-emerald-600 dark:text-cyan-400 uppercase mt-0.5 tracking-wide">
+                    {currentRole}
+                  </div>
                 </div>
-                <div className="text-[9px] font-semibold text-emerald-600 dark:text-cyan-400 uppercase mt-0.5 tracking-wide">
-                  {currentRole}
-                </div>
-              </div>
 
-              <ChevronDown className="w-3 h-3 text-slate-400 group-hover:translate-y-0.5 transition-transform shrink-0" />
-            </button>
+                <ChevronDown className="w-3 h-3 text-slate-400 group-hover:translate-y-0.5 transition-transform shrink-0" />
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -488,47 +528,98 @@ export const Navbar: React.FC = () => {
               </button>
             </div>
 
-            {/* Mobile Google Account Banner */}
-            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950/90 border border-slate-200 dark:border-slate-800 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                  <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24">
-                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-                  </svg>
-                  <span>Akun Google / Gmail</span>
-                </span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase bg-emerald-100 dark:bg-slate-800 text-emerald-800 dark:text-cyan-300">
-                  {currentRole}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <img
-                  src={currentUser.avatar}
-                  alt={currentUser.name}
-                  className="w-9 h-9 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shrink-0"
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="font-bold text-xs text-slate-900 dark:text-white truncate">{currentUser.name}</div>
-                  <div className="text-[11px] text-emerald-600 dark:text-cyan-400 font-mono truncate">
-                    {activeGmailAccount || currentUser.email}
+            {/* Mobile Google Account Banner OR Demo Version Card */}
+            {!activeGmailAccount ? (
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-teal-500/10 to-cyan-500/10 border border-emerald-500/30 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-emerald-600 dark:text-cyan-400" />
+                    <span className="text-xs font-black text-slate-900 dark:text-white">
+                      Versi Demo Interaktif
+                    </span>
                   </div>
+                  <span className="text-[9px] px-2 py-0.5 rounded-full font-bold uppercase bg-emerald-500/20 text-emerald-800 dark:text-cyan-300">
+                    {activeTutorial ? `Mode ${activeTutorial}` : currentRole}
+                  </span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    setIsGoogleAuthModalOpen(true);
-                  }}
-                  className="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] shrink-0 shadow-xs"
-                >
-                  Ganti Akun
-                </button>
+
+                <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-snug">
+                  Jelajahi seluruh fitur laundry dengan tutorial step-by-step (Owner, Pekerja, Pelanggan) tanpa perlu login!
+                </p>
+
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      setIsDemoTutorialModalOpen(true);
+                    }}
+                    className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-xs"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Pilih Tutorial</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      setIsGoogleAuthModalOpen(true);
+                    }}
+                    className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs shadow-xs"
+                  >
+                    <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24">
+                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                    </svg>
+                    <span>Masuk Google</span>
+                  </button>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950/90 border border-slate-200 dark:border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24">
+                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                    </svg>
+                    <span>Akun Google / Gmail</span>
+                  </span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase bg-emerald-100 dark:bg-slate-800 text-emerald-800 dark:text-cyan-300">
+                    {currentRole}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <img
+                    src={currentUser.avatar}
+                    alt={currentUser.name}
+                    className="w-9 h-9 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-xs text-slate-900 dark:text-white truncate">{currentUser.name}</div>
+                    <div className="text-[11px] text-emerald-600 dark:text-cyan-400 font-mono truncate">
+                      {activeGmailAccount}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      setIsGoogleAuthModalOpen(true);
+                    }}
+                    className="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] shrink-0 shadow-xs"
+                  >
+                    Ganti Akun
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Quick Actions Grid */}
             <div className="grid grid-cols-2 gap-2.5">
