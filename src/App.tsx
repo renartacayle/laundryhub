@@ -17,6 +17,7 @@ import { LandingPageModal } from './components/LandingPageModal';
 import { IntroductionModal } from './components/IntroductionModal';
 import { DemoTutorialModal } from './components/DemoTutorialModal';
 import { TutorialGuideBanner } from './components/TutorialGuideBanner';
+import { OrderStatusModal } from './components/OrderStatusModal';
 
 const MainLayout: React.FC = () => {
   const {
@@ -27,6 +28,10 @@ const MainLayout: React.FC = () => {
     isDemoTutorialModalOpen,
     setIsDemoTutorialModalOpen,
     activeGmailAccount,
+    orders,
+    trackingModalOrder,
+    openTrackingModal,
+    closeTrackingModal,
   } = useApp();
 
   // Active sub-tab state for Desktop Sidebar
@@ -57,6 +62,17 @@ const MainLayout: React.FC = () => {
     window.addEventListener('lh_open_intro', handleOpenIntro);
     return () => window.removeEventListener('lh_open_intro', handleOpenIntro);
   }, []);
+
+  // Auto-open OrderStatusModal if URL query param ?nota= or ?invoice= is provided
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const notaQuery = params.get('nota') || params.get('invoice');
+      if (notaQuery) {
+        openTrackingModal(notaQuery);
+      }
+    }
+  }, [orders]);
 
   // Auto-prompt Demo Tutorial on initial visit if guest
   useEffect(() => {
@@ -245,6 +261,13 @@ const MainLayout: React.FC = () => {
       <DemoTutorialModal
         isOpen={isDemoTutorialModalOpen}
         onClose={() => setIsDemoTutorialModalOpen(false)}
+      />
+
+      {/* Live Order Status & Tracking Modal (Public Guest, Worker Action, Owner Matrix) */}
+      <OrderStatusModal
+        isOpen={!!trackingModalOrder}
+        onClose={closeTrackingModal}
+        order={trackingModalOrder}
       />
     </div>
   );

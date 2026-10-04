@@ -18,6 +18,7 @@ import {
   X,
   ClipboardCheck,
   AlertTriangle,
+  QrCode,
 } from 'lucide-react';
 import { ReceiptModal } from '../components/ReceiptModal';
 import { WhatsAppSimulatorModal } from '../components/WhatsAppSimulatorModal';
@@ -39,6 +40,7 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
     language,
     currency,
     t,
+    openTrackingModal,
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'tracking' | 'wallet' | 'history' | 'pickup'>(
@@ -224,8 +226,18 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
                   </p>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <button
+                    onClick={() => {
+                      openTrackingModal(activeOrder.invoiceNo);
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-bold transition-all shadow-md shadow-cyan-500/20 active:scale-95"
+                  >
+                    <QrCode className="w-4 h-4 text-cyan-200" />
+                    <span>{language === 'en' ? 'Live QR Tracking' : 'Status & QR Nota'}</span>
+                  </button>
+                  <button
+                    id="open-receipt-btn"
                     onClick={() => {
                       setSelectedOrderReceipt(activeOrder);
                       setIsReceiptOpen(true);
@@ -233,7 +245,7 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
                     className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-colors"
                   >
                     <Printer className="w-4 h-4" />
-                    <span>{language === 'en' ? 'View Digital Receipt' : 'Lihat Nota Digital'}</span>
+                    <span>{language === 'en' ? 'Digital Receipt' : 'Lihat Struk'}</span>
                   </button>
                   <button
                     onClick={() => {
@@ -243,7 +255,7 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
                     className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-colors shadow-glow-emerald"
                   >
                     <MessageSquare className="w-4 h-4" />
-                    <span>{language === 'en' ? 'Simulate WA Notification' : 'Simulasi WA Notifikasi'}</span>
+                    <span>{language === 'en' ? 'Simulate WA' : 'Kirim WA'}</span>
                   </button>
                 </div>
               </div>
@@ -561,15 +573,21 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
                         {ord.currentStatus}
                       </span>
                     </td>
-                    <td className="p-3.5 text-right">
+                    <td className="p-3.5 text-right space-x-1.5">
+                      <button
+                        onClick={() => openTrackingModal(ord.invoiceNo)}
+                        className="px-2.5 py-1 rounded-lg bg-cyan-600/25 hover:bg-cyan-600 text-cyan-300 hover:text-white border border-cyan-500/40 font-semibold text-xs transition-colors"
+                      >
+                        {language === 'en' ? 'Track' : 'Status'}
+                      </button>
                       <button
                         onClick={() => {
                           setSelectedOrderReceipt(ord);
                           setIsReceiptOpen(true);
                         }}
-                        className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 font-semibold text-xs"
+                        className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs transition-colors"
                       >
-                        {language === 'en' ? 'Open Receipt' : 'Buka Nota'}
+                        {language === 'en' ? 'Receipt' : 'Nota'}
                       </button>
                     </td>
                   </tr>

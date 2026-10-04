@@ -44,6 +44,7 @@ export const ProduksiKanban: React.FC<ProduksiKanbanProps> = ({ currentSubTab = 
     stationRates,
     claimStationTask,
     unclaimStationTask,
+    openTrackingModal,
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'kanban' | 'iot' | 'productivity'>(
@@ -276,9 +277,18 @@ export const ProduksiKanban: React.FC<ProduksiKanbanProps> = ({ currentSubTab = 
                         {/* Header: Invoice + Express badge */}
                         <div className="flex items-start justify-between gap-1">
                           <div>
-                            <span className="font-mono font-bold text-xs text-orange-400">
-                              {ord.invoiceNo}
-                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openTrackingModal(ord.invoiceNo);
+                              }}
+                              className="font-mono font-bold text-xs text-orange-400 hover:text-orange-300 hover:underline flex items-center gap-1 text-left"
+                              title="Buka Status Cucian & Ambil Stasiun"
+                            >
+                              <span>{ord.invoiceNo}</span>
+                              <Eye className="w-3 h-3 text-orange-400/80" />
+                            </button>
                             <div className="font-bold text-xs text-white leading-tight">
                               {ord.customerName}
                             </div>

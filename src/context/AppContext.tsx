@@ -149,6 +149,11 @@ interface AppContextType {
   exitTutorial: () => void;
   isDemoTutorialModalOpen: boolean;
   setIsDemoTutorialModalOpen: (open: boolean) => void;
+
+  // Live Tracking & Order Status Modal (Guest, Worker, Owner)
+  trackingModalOrder: Order | null;
+  openTrackingModal: (invoiceOrId: string) => void;
+  closeTrackingModal: () => void;
 }
 
 export const DEFAULT_STATION_RATES: StationCommissionRates = {
@@ -1400,6 +1405,55 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.removeItem('lh_tutorial_step');
   };
 
+  // Live Tracking Modal State & Handlers
+  const [trackingModalOrder, setTrackingModalOrder] = useState<Order | null>(null);
+
+  // Synchronize trackingModalOrder with latest order data if changed in background
+  useEffect(() => {
+    if (trackingModalOrder) {
+      const updated = orders.find(
+        (o) => o.id === trackingModalOrder.id || o.invoiceNo === trackingModalOrder.invoiceNo
+      );
+      if (updated && updated !== trackingModalOrder) {
+        setTrackingModalOrder(updated);
+      }
+    }
+  }, [orders, trackingModalOrder]);
+
+  const openTrackingModal = (invoiceOrId: string) => {
+    if (!invoiceOrId) return;
+    const clean = invoiceOrId.trim().toLowerCase();
+    const exact = orders.find(
+      (o) => o.id.toLowerCase() === clean || o.invoiceNo.toLowerCase() === clean
+    );
+    if (exact) {
+      setTrackingModalOrder(exact);
+      return;
+    }
+    const partial = orders.find(
+      (o) => o.invoiceNo.toLowerCase().includes(clean) || o.customerName.toLowerCase().includes(clean)
+    );
+    if (partial) {
+      setTrackingModalOrder(partial);
+      return;
+    }
+    if (orders.length > 0) {
+      setTrackingModalOrder(orders[0]);
+    }
+  };
+
+  const closeTrackingModal = () => {
+    setTrackingModalOrder(null);
+    if (typeof window !== 'undefined' && window.history && window.history.replaceState) {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has('nota') || url.searchParams.has('invoice')) {
+        url.searchParams.delete('nota');
+        url.searchParams.delete('invoice');
+        window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''));
+      }
+    }
+  };
+
   const resetAllData = () => {
     localStorage.clear();
     setOrders(ALL_ORDERS);
@@ -1417,6 +1471,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCurrentBranchId('br-kemang');
     setActiveTutorial(null);
     setTutorialStep(0);
+    setTrackingModalOrder(null);
   };
 
   return (
@@ -1494,6 +1549,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         exitTutorial,
         isDemoTutorialModalOpen,
         setIsDemoTutorialModalOpen,
+        trackingModalOrder,
+        openTrackingModal,
+        closeTrackingModal,
       }}
     >
       {children}

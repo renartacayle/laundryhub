@@ -53,6 +53,7 @@ import {
   Mail,
   Shield,
   X,
+  Eye,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -164,6 +165,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
     language,
     currency,
     t,
+    openTrackingModal,
   } = useApp();
 
   // Add Worker Modal State
@@ -1832,9 +1834,15 @@ Konsultasi Admin WA: 081228263200`;
                     >
                       <div className="space-y-2">
                         <div className="flex items-center justify-between text-xs">
-                          <span className="font-mono font-bold text-orange-400">
-                            {entry.invoiceNo}
-                          </span>
+                          <button
+                            type="button"
+                            onClick={() => openTrackingModal(entry.invoiceNo)}
+                            className="font-mono font-bold text-orange-400 hover:text-orange-300 hover:underline flex items-center gap-1 text-left"
+                            title="Audit Lengkap Nota & Status Staf"
+                          >
+                            <span>{entry.invoiceNo}</span>
+                            <Eye className="w-3 h-3 text-orange-400/80" />
+                          </button>
                           <span className="capitalize font-bold px-2 py-0.5 rounded-full text-[9px] bg-slate-800 text-cyan-300 border border-slate-700">
                             {entry.station === 'sortir' ? '🔍 Sortir' : entry.station === 'cuci' ? '🫧 Cuci' : entry.station === 'kering' ? '🔥 Kering' : entry.station === 'setrika' ? '💨 Setrika' : '📦 Packing'}
                           </span>

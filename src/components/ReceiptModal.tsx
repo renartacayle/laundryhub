@@ -1,6 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Order, Branch } from '../types';
-import { Printer, MessageSquare, X, CheckCircle2, QrCode, Bluetooth, Sparkles, AlertCircle, WashingMachine } from 'lucide-react';
+import {
+  Printer,
+  MessageSquare,
+  X,
+  CheckCircle2,
+  QrCode,
+  Bluetooth,
+  Sparkles,
+  AlertCircle,
+  WashingMachine,
+  Copy,
+  Check,
+  Eye,
+  ExternalLink,
+} from 'lucide-react';
+import QRCode from 'qrcode';
 import { bluetoothPrinter, buildReceiptEscPosBytes } from '../utils/escpos';
 import { useApp } from '../context/AppContext';
 import { formatCurrency } from '../utils/currency';
@@ -20,7 +35,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
   branch,
   onOpenWhatsApp,
 }) => {
-  const { language, currency, t, currentUser, updateOrderStatus } = useApp();
+  const { language, currency, t, currentUser, updateOrderStatus, openTrackingModal } = useApp();
   if (!isOpen || !order) return null;
 
   const [paperWidth, setPaperWidth] = useState<'58mm' | '80mm'>('58mm');
@@ -29,6 +44,31 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
     type: 'idle',
     message: '',
   });
+  const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
+  const [isCopied, setIsCopied] = useState(false);
+
+  const trackingUrl = typeof window !== 'undefined' && order
+    ? `${window.location.origin}/?nota=${order.invoiceNo}`
+    : `https://laundryhub.app/?nota=${order.invoiceNo}`;
+
+  useEffect(() => {
+    if (order?.invoiceNo) {
+      const url = typeof window !== 'undefined'
+        ? `${window.location.origin}/?nota=${order.invoiceNo}`
+        : `https://laundryhub.app/?nota=${order.invoiceNo}`;
+
+      QRCode.toDataURL(url, {
+        width: 160,
+        margin: 1,
+        color: {
+          dark: '#0F172A',
+          light: '#FFFFFF',
+        },
+      })
+        .then(setQrCodeUrl)
+        .catch(console.error);
+    }
+  }, [order?.invoiceNo]);
 
   const handlePrint = () => {
     window.print();
@@ -290,16 +330,55 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
               </div>
             )}
 
-            {/* QR / Barcode Simulator */}
-            <div className="pt-3 text-center">
-              <div className="inline-block p-1 border border-slate-400 rounded bg-slate-50 mb-1">
-                <div className="font-mono tracking-widest text-[10px] font-bold text-slate-800">
-                  ||||| |||| |||||| |||| |||||
-                </div>
+            {/* Real Scannable QR Code & Online Tracking Link */}
+            <div className="pt-3 text-center border-t border-dashed border-slate-300">
+              <div className="inline-block p-1.5 bg-white border border-slate-300 rounded-xl shadow-xs mb-1.5">
+                {qrCodeUrl ? (
+                  <img
+                    src={qrCodeUrl}
+                    alt={`QR Code ${order.invoiceNo}`}
+                    className="w-24 h-24 mx-auto object-contain rounded-lg"
+                  />
+                ) : (
+                  <div className="w-24 h-24 flex items-center justify-center bg-slate-100 text-[10px] text-slate-500 rounded">
+                    Membuat QR...
+                  </div>
+                )}
               </div>
-              <div className="text-[9px] text-slate-500">
-                {language === 'en' ? 'Scan receipt for machine / online tracking' : 'Scan nota untuk tracking di mesin / website'}
+              <div className="text-[10px] font-bold text-slate-900 tracking-tight uppercase">
+                {language === 'en' ? 'SCAN FOR LIVE STATUS TRACKING' : 'SCAN UNTUK TRACKING STATUS CUCIAN'}
               </div>
+              <div className="text-[8px] text-slate-500 font-mono break-all mt-0.5">
+                {trackingUrl}
+              </div>
+
+              {/* Quick Action Buttons on Receipt (Hidden on paper print) */}
+              <div className="mt-2 flex items-center justify-center gap-1.5 print:hidden">
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(trackingUrl);
+                    setIsCopied(true);
+                    setTimeout(() => setIsCopied(false), 2000);
+                  }}
+                  className="inline-flex items-center gap-1 text-[9px] font-bold px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition-colors"
+                >
+                  {isCopied ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3 text-slate-600" />}
+                  <span>{isCopied ? (language === 'en' ? 'Copied' : 'Tersalin') : (language === 'en' ? 'Copy Link' : 'Salin Link')}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    openTrackingModal(order.invoiceNo);
+                  }}
+                  className="inline-flex items-center gap-1 text-[9px] font-bold px-2.5 py-1 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white shadow-xs transition-colors"
+                >
+                  <Eye className="w-3 h-3" />
+                  <span>{language === 'en' ? 'View Status' : 'Buka Status'}</span>
+                </button>
+              </div>
+
               <div className="text-[8px] text-slate-400 mt-2 leading-tight">
                 {language === 'en' ? (
                   <>
@@ -321,6 +400,22 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
 
         {/* Action Buttons */}
         <div className="p-4 bg-slate-900 border-t border-slate-800 space-y-2">
+          {/* Prominent Live Status Button for Customer, Worker & Owner */}
+          <button
+            type="button"
+            onClick={() => {
+              openTrackingModal(order.invoiceNo);
+            }}
+            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-cyan-500/20 transition-all active:scale-98"
+          >
+            <Eye className="w-4 h-4 text-cyan-200" />
+            <span>
+              {language === 'en'
+                ? '🔍 Open Laundry Status (Guest, Worker & Owner)'
+                : '🔍 Buka Status Cucian (Tracking, Pekerja & Owner)'}
+            </span>
+          </button>
+
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={handleBluetoothPrint}

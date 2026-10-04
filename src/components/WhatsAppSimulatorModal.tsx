@@ -35,6 +35,10 @@ export const WhatsAppSimulatorModal: React.FC<WhatsAppSimulatorModalProps> = ({
     minute: '2-digit',
   });
 
+  const trackingUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/?nota=${order.invoiceNo}`
+    : `https://laundryhub.app/?nota=${order.invoiceNo}`;
+
   const getMessageText = () => {
     if (templateType === 'created') {
       return `Halo Kak *${order.customerName}*! 👋
@@ -48,7 +52,7 @@ Berikut detail nota cucian Anda:
 ⏱️ *Est. Selesai:* ${estReady}
 
 Lacak status progres pakaian Anda secara real-time di sini:
-👉 https://laundryhub.id/lacak/${order.invoiceNo}
+👉 ${trackingUrl}
 
 Salam hangat,
 *${branchName}*`;
@@ -61,7 +65,7 @@ Salam hangat,
 
 Pakaian sudah dipacking rapi dan siap diambil di outlet *${branchName}*. Kami tunggu kedatangannya ya Kak! 🙏
 
-👉 Cek detail nota: https://laundryhub.id/lacak/${order.invoiceNo}`;
+👉 Cek detail nota & riwayat: ${trackingUrl}`;
     } else {
       return `Halo Kak *${order.customerName}*! 🛵💨
 Paket cucian Anda dengan *No. Nota ${order.invoiceNo}* sedang dalam perjalanan diantar oleh kurir kami ke alamat Anda.
