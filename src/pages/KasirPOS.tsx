@@ -8,6 +8,7 @@ import {
   Order,
   Fragrance,
   OrderStatus,
+  ClothesItem,
 } from '../types';
 import {
   INITIAL_SERVICES,
@@ -36,12 +37,14 @@ import {
   Filter,
   Globe,
   Settings,
+  ClipboardCheck,
 } from 'lucide-react';
 import { ReceiptModal } from '../components/ReceiptModal';
 import { WhatsAppSimulatorModal } from '../components/WhatsAppSimulatorModal';
 import { QrisModal } from '../components/QrisModal';
 import { InternationalCardModal } from '../components/InternationalCardModal';
 import { OutletQrisConfigModal } from '../components/OutletQrisConfigModal';
+import { ClothesDetailModal } from '../components/ClothesDetailModal';
 import { formatCurrency } from '../utils/currency';
 import { dbService } from '../services/api';
 
@@ -120,6 +123,12 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
   // Orders Tab Filter state
   const [orderSearchText, setOrderSearchText] = useState('');
   const [orderStatusFilter, setOrderStatusFilter] = useState<string>('all');
+
+  // Clothes Detailing & Sortir State
+  const [isClothesModalOpen, setIsClothesModalOpen] = useState<boolean>(false);
+  const [cartClothesDetails, setCartClothesDetails] = useState<ClothesItem[]>([]);
+  const [cartSortingNotes, setCartSortingNotes] = useState<string>('');
+  const [cartTotalPieces, setCartTotalPieces] = useState<number>(0);
 
   const selectedCustomer = customers.find((c) => c.id === selectedCustomerId) || customers[0];
   const activeBranch = branches.find((b) => b.id === currentBranchId) || branches[0];
@@ -304,6 +313,9 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
         paidAmount: paymentMethod === 'tunai' ? cashGiven : finalPrice,
         changeAmount,
         isExpress,
+        clothesDetails: cartClothesDetails.length > 0 ? cartClothesDetails : undefined,
+        sortingNotes: cartSortingNotes.trim() || undefined,
+        totalPieces: cartTotalPieces > 0 ? cartTotalPieces : undefined,
       });
 
       // Enqueue to offline sync layer
@@ -313,6 +325,9 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
       setCartItems([]);
       setSpecialNotes('');
       setDiscountAmount(0);
+      setCartClothesDetails([]);
+      setCartSortingNotes('');
+      setCartTotalPieces(0);
 
       // Open Receipt preview right away!
       setActiveOrderForReceipt(newOrder);
@@ -721,6 +736,46 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
                       </button>
                     </div>
                   </div>
+                </div>
+
+                {/* Clothes Detailing & Sortir Trigger Card */}
+                <div className="pt-3 border-t border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setIsClothesModalOpen(true)}
+                    className={`w-full p-2.5 rounded-2xl border text-left transition-all flex items-center justify-between gap-2 active:scale-98 ${
+                      cartTotalPieces > 0
+                        ? 'bg-indigo-950/40 border-indigo-500/50 text-indigo-300'
+                        : 'bg-slate-900/80 border-slate-700/80 hover:border-indigo-500/50 text-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="p-1.5 rounded-xl bg-indigo-500/20 text-indigo-300 shrink-0">
+                        <ClipboardCheck className="w-4 h-4 text-indigo-400" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold flex items-center gap-1.5">
+                          <span>Rincian Pakaian & Sortir:</span>
+                          <span className="font-mono text-cyan-400 font-extrabold">
+                            {cartTotalPieces > 0 ? `${cartTotalPieces} Pcs` : '(Opsional)'}
+                          </span>
+                        </div>
+                        {cartTotalPieces > 0 ? (
+                          <div className="text-[10px] text-slate-400 truncate">
+                            {cartClothesDetails.filter((c) => c.quantity > 0).map((c) => `${c.quantity} ${c.name.split(' ')[0]}`).join(', ')}
+                            {cartSortingNotes ? ` • Note: ${cartSortingNotes}` : ''}
+                          </div>
+                        ) : (
+                          <div className="text-[10px] text-slate-500">
+                            Klik untuk catat isi baju, celana & noda
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-bold text-indigo-300 bg-indigo-500/20 px-2 py-1 rounded-lg shrink-0 border border-indigo-500/30">
+                      {cartTotalPieces > 0 ? 'Edit' : '+ Catat'}
+                    </span>
+                  </button>
                 </div>
 
                 {/* Calculation Breakdown */}
@@ -1231,6 +1286,23 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
             </div>
           </div>
         </div>
+      )}
+
+      {/* Clothes Detail & Sortir Modal */}
+      {isClothesModalOpen && (
+        <ClothesDetailModal
+          isOpen={isClothesModalOpen}
+          onClose={() => setIsClothesModalOpen(false)}
+          initialClothes={cartClothesDetails}
+          initialNotes={cartSortingNotes}
+          orderCustomerName={selectedCustomer?.name}
+          orderWeightKg={Number(totalWeight.toFixed(1))}
+          onSave={(clothes, notes, totalPieces) => {
+            setCartClothesDetails(clothes);
+            setCartSortingNotes(notes);
+            setCartTotalPieces(totalPieces);
+          }}
+        />
       )}
 
       {/* Receipt Modal */}

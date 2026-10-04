@@ -17,6 +17,7 @@ import {
   WithdrawalRequest,
   StationCommissionRates,
   StationClaim,
+  ClothesItem,
 } from '../types';
 import { Language, Translations, translations } from '../utils/i18n';
 import { Currency } from '../utils/currency';
@@ -115,6 +116,14 @@ interface AppContextType {
   removeWorker: (userId: string) => void;
   updateWorker: (userId: string, data: Partial<User>) => void;
 
+  // Clothes Detailing & Sortir
+  updateOrderClothesDetails: (
+    orderId: string,
+    clothesDetails: ClothesItem[],
+    sortingNotes?: string,
+    totalPieces?: number
+  ) => void;
+
   // Multi-Worker Station Claim & Piece-Rate System
   stationRates: StationCommissionRates;
   updateStationRates: (rates: StationCommissionRates) => void;
@@ -125,11 +134,14 @@ interface AppContextType {
     station: OrderStatus,
     worker: User,
     photoProof: string,
-    notes?: string
+    notes?: string,
+    clothesDetails?: ClothesItem[],
+    sortingNotes?: string
   ) => { success: boolean; commissionEarned: number; message: string };
 }
 
 export const DEFAULT_STATION_RATES: StationCommissionRates = {
+  sortir: 150,
   cuci: 300,
   kering: 200,
   setrika: 400,
@@ -233,7 +245,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const saved = localStorage.getItem('lh_station_rates');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        return { ...DEFAULT_STATION_RATES, ...parsed };
       } catch (e) {
         // fallback
       }
@@ -740,12 +753,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   };
 
+  const updateOrderClothesDetails = (
+    orderId: string,
+    clothesDetails: ClothesItem[],
+    sortingNotes?: string,
+    totalPieces?: number
+  ) => {
+    const count = totalPieces ?? clothesDetails.reduce((a, b) => a + (b.quantity || 0), 0);
+    setOrders((prevOrders) =>
+      prevOrders.map((o) => {
+        if (o.id === orderId) {
+          return {
+            ...o,
+            clothesDetails,
+            sortingNotes,
+            totalPieces: count,
+          };
+        }
+        return o;
+      })
+    );
+  };
+
   const completeStationTask = (
     orderId: string,
     station: OrderStatus,
     worker: User,
     photoProof: string,
-    notes?: string
+    notes?: string,
+    clothesDetails?: ClothesItem[],
+    sortingNotes?: string
   ): { success: boolean; commissionEarned: number; message: string } => {
     if (!photoProof || photoProof.trim() === '') {
       return {
@@ -760,13 +797,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return { success: false, commissionEarned: 0, message: 'Pesanan tidak ditemukan' };
     }
 
-    // Sequence for advance
-    const sequence: OrderStatus[] = ['antrean', 'cuci', 'kering', 'setrika', 'packing', 'siap'];
+    // Sequence for advance (now includes sortir)
+    const sequence: OrderStatus[] = ['antrean', 'sortir', 'cuci', 'kering', 'setrika', 'packing', 'siap'];
     const curIdx = sequence.indexOf(station);
     const nextStatus: OrderStatus = curIdx >= 0 && curIdx < sequence.length - 1 ? sequence[curIdx + 1] : 'siap';
 
     // Calculate commission by station rate
-    const ratePerKg = stationRates[station as keyof StationCommissionRates] || 300;
+    const ratePerKg = stationRates[station as keyof StationCommissionRates] || 200;
     const rawCommission = order.weightKg > 0
       ? Math.round(order.weightKg * ratePerKg)
       : Math.round(order.itemCount * (ratePerKg * 1.5));
@@ -792,10 +829,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             },
           };
           const { currentClaim, ...rest } = o;
+
+          const updatedClothes = clothesDetails && clothesDetails.length > 0 ? clothesDetails : o.clothesDetails;
+          const updatedSortNotes = sortingNotes !== undefined && sortingNotes !== '' ? sortingNotes : (notes || o.sortingNotes);
+          const updatedPieces = updatedClothes ? updatedClothes.reduce((a, b) => a + (b.quantity || 0), 0) : o.totalPieces;
+
           return {
             ...rest,
             currentStatus: nextStatus,
             statusTimestamps: updatedTimestamps,
+            ...(updatedClothes ? { clothesDetails: updatedClothes } : {}),
+            ...(updatedSortNotes ? { sortingNotes: updatedSortNotes } : {}),
+            ...(updatedPieces ? { totalPieces: updatedPieces } : {}),
           };
         }
         return o;
@@ -1345,6 +1390,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         createOrder,
         createAgentDropshipOrder,
         updateOrderStatus,
+        updateOrderClothesDetails,
         startIotMachine,
         stopIotMachine,
         updateInventoryStock,

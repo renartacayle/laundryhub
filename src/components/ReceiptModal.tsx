@@ -213,6 +213,29 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
               ))}
             </div>
 
+            {/* Clothes Details Breakdown on Receipt */}
+            {order.clothesDetails && order.clothesDetails.length > 0 && (
+              <div className="py-2 border-b border-dashed border-slate-400 text-[10px]">
+                <div className="flex justify-between font-bold text-slate-800 mb-1">
+                  <span>RINCIAN PAKAIAN:</span>
+                  <span>{order.totalPieces || order.clothesDetails.reduce((a, b) => a + (b.quantity || 0), 0)} pcs</span>
+                </div>
+                <div className="space-y-0.5 text-slate-700">
+                  {order.clothesDetails.filter((c) => c.quantity > 0).map((c, idx) => (
+                    <div key={idx} className="flex justify-between">
+                      <span>• {c.name} {c.notes ? `(${c.notes})` : ''}</span>
+                      <span className="font-semibold">{c.quantity} pcs</span>
+                    </div>
+                  ))}
+                </div>
+                {order.sortingNotes && (
+                  <div className="mt-1 text-[9px] text-amber-800 bg-amber-50 p-1 rounded">
+                    <strong>Catatan Sortir:</strong> {order.sortingNotes}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Calculations */}
             <div className="py-2 text-[10px] space-y-1 border-b border-dashed border-slate-400">
               <div className="flex justify-between text-slate-600">

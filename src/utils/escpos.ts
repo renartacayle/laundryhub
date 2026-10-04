@@ -107,6 +107,22 @@ export function buildReceiptEscPosBytes(
   }
   addText(divider);
 
+  // Clothes Details breakdown
+  if (order.clothesDetails && order.clothesDetails.length > 0) {
+    add(ESC_POS.BOLD_ON);
+    const totalPcs = order.totalPieces || order.clothesDetails.reduce((a, b) => a + (b.quantity || 0), 0);
+    addText(formatTwoColumns('RINCIAN PAKAIAN', `${totalPcs} pcs`, cols));
+    add(ESC_POS.BOLD_OFF);
+    order.clothesDetails.filter((c) => c.quantity > 0).forEach((c) => {
+      const itemTitle = `* ${c.name.split(' ')[0]}${c.notes ? ' (' + c.notes + ')' : ''}`;
+      addText(formatTwoColumns(itemTitle, `${c.quantity} pcs`, cols));
+    });
+    if (order.sortingNotes) {
+      addText(`Sortir: ${order.sortingNotes}\n`);
+    }
+    addText(divider);
+  }
+
   // 5. Totals
   const totalWeightStr = order.weightKg > 0 ? `${order.weightKg} kg` : `${order.itemCount} pcs`;
   addText(formatTwoColumns('Total Muatan:', totalWeightStr, cols));

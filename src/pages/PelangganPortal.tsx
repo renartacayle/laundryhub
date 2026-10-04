@@ -16,6 +16,8 @@ import {
   ChevronRight,
   Camera,
   X,
+  ClipboardCheck,
+  AlertTriangle,
 } from 'lucide-react';
 import { ReceiptModal } from '../components/ReceiptModal';
 import { WhatsAppSimulatorModal } from '../components/WhatsAppSimulatorModal';
@@ -83,6 +85,7 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
   const workflowSteps: { id: OrderStatus; label: string; desc: string }[] = language === 'en'
     ? [
         { id: 'antrean', label: 'Queued', desc: 'Received at Counter' },
+        { id: 'sortir', label: 'Sorting', desc: 'Item Counting & Defect Check' },
         { id: 'cuci', label: 'Washing', desc: 'Washer Machine Cycle' },
         { id: 'kering', label: 'Drying', desc: 'Tumble Dryer Cycle' },
         { id: 'setrika', label: 'Ironing', desc: 'Steam Press & Scent' },
@@ -91,6 +94,7 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
       ]
     : [
         { id: 'antrean', label: 'Antrean', desc: 'Diterima Kasir' },
+        { id: 'sortir', label: 'Sortir', desc: 'Hitung Pcs & Cek Noda' },
         { id: 'cuci', label: 'Cuci', desc: 'Mesin Washer Putar' },
         { id: 'kering', label: 'Kering', desc: 'Pengering Suhu Pas' },
         { id: 'setrika', label: 'Setrika', desc: 'Uap Halus & Wangi' },
@@ -99,7 +103,7 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
       ];
 
   const getStepIndex = (status: OrderStatus) => {
-    const list: OrderStatus[] = ['antrean', 'cuci', 'kering', 'setrika', 'packing', 'siap', 'selesai'];
+    const list: OrderStatus[] = ['antrean', 'sortir', 'cuci', 'kering', 'setrika', 'packing', 'siap', 'selesai'];
     return list.indexOf(status);
   };
 
@@ -356,6 +360,40 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
                   </p>
                 </div>
               </div>
+
+              {/* Detail Isi Pakaian & Catatan Sortir Pelanggan */}
+              {activeOrder.clothesDetails && activeOrder.clothesDetails.length > 0 && (
+                <div className="p-4 rounded-2xl bg-indigo-950/20 border border-indigo-500/30 space-y-2.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-extrabold text-indigo-300 flex items-center gap-1.5">
+                      <ClipboardCheck className="w-4 h-4 text-indigo-400" />
+                      <span>{language === 'en' ? 'Verified Garment Breakdown:' : 'Rincian Pakaian Terdata di Outlet:'}</span>
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px] font-mono font-bold">
+                      {activeOrder.totalPieces || activeOrder.clothesDetails.reduce((a, b) => a + (b.quantity || 0), 0)} Pcs / Helai
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                    {activeOrder.clothesDetails.filter((c) => c.quantity > 0).map((c, i) => (
+                      <div key={i} className="p-2 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between">
+                        <span className="text-slate-300 font-medium truncate">• {c.name} {c.notes ? `(${c.notes})` : ''}</span>
+                        <strong className="text-indigo-400 font-mono shrink-0 ml-1">{c.quantity} pcs</strong>
+                      </div>
+                    ))}
+                  </div>
+
+                  {activeOrder.sortingNotes && (
+                    <div className="p-2.5 rounded-xl bg-amber-950/30 border border-amber-500/30 text-[11px] text-amber-200 flex items-start gap-1.5">
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                      <div>
+                        <strong>{language === 'en' ? 'Inspection Notes:' : 'Catatan Pemeriksaan Stasiun Sortir:'}</strong>{' '}
+                        <span>{activeOrder.sortingNotes}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           ) : (
             <div className="p-12 text-center rounded-3xl glass-panel border border-slate-800 text-slate-400">

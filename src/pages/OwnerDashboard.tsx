@@ -48,6 +48,7 @@ import {
   Flame,
   Shirt,
   PackageCheck,
+  ClipboardCheck,
   Trash2,
   Mail,
   Shield,
@@ -191,6 +192,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
     time: string;
     notes?: string;
     commission?: number;
+    clothesSummary?: string;
   } | null>(null);
 
   useEffect(() => {
@@ -1540,14 +1542,45 @@ Konsultasi Admin WA: 081228263200`;
               )}
             </div>
 
-            {/* Inputs Grid for 4 Stations */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {/* Inputs Grid for 5 Stations */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+              {/* Sortir */}
+              <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-indigo-500/30 space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold text-indigo-300">
+                  <span className="flex items-center gap-1.5">
+                    <ClipboardCheck className="w-4 h-4 text-indigo-400" />
+                    <span>Station 1: Sortir</span>
+                  </span>
+                  <span className="text-[10px] text-slate-500">Hitung & Tag</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-400 font-mono">Rp</span>
+                  <input
+                    type="number"
+                    step="50"
+                    min="0"
+                    value={editingStationRates.sortir || 0}
+                    onChange={(e) =>
+                      setEditingStationRates((prev) => ({
+                        ...prev,
+                        sortir: Math.max(0, parseInt(e.target.value, 10) || 0),
+                      }))
+                    }
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-indigo-300 font-mono font-bold focus:outline-none focus:border-indigo-500"
+                  />
+                  <span className="text-xs text-slate-400 font-mono">/kg</span>
+                </div>
+                <span className="text-[10px] text-slate-400 block">
+                  Contoh 5 kg = <strong>Rp {((editingStationRates.sortir || 0) * 5).toLocaleString('id-ID')}</strong>
+                </span>
+              </div>
+
               {/* Cuci */}
               <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-cyan-500/30 space-y-2">
                 <div className="flex items-center justify-between text-xs font-bold text-cyan-300">
                   <span className="flex items-center gap-1.5">
                     <WashingMachine className="w-4 h-4 text-cyan-400" />
-                    <span>Station 1: Cuci</span>
+                    <span>Station 2: Cuci</span>
                   </span>
                   <span className="text-[10px] text-slate-500">Washer</span>
                 </div>
@@ -1578,7 +1611,7 @@ Konsultasi Admin WA: 081228263200`;
                 <div className="flex items-center justify-between text-xs font-bold text-orange-300">
                   <span className="flex items-center gap-1.5">
                     <Flame className="w-4 h-4 text-orange-400" />
-                    <span>Station 2: Kering</span>
+                    <span>Station 3: Kering</span>
                   </span>
                   <span className="text-[10px] text-slate-500">Dryer</span>
                 </div>
@@ -1609,7 +1642,7 @@ Konsultasi Admin WA: 081228263200`;
                 <div className="flex items-center justify-between text-xs font-bold text-purple-300">
                   <span className="flex items-center gap-1.5">
                     <Shirt className="w-4 h-4 text-purple-400" />
-                    <span>Station 3: Setrika</span>
+                    <span>Station 4: Setrika</span>
                   </span>
                   <span className="text-[10px] text-slate-500">Steam Press</span>
                 </div>
@@ -1640,7 +1673,7 @@ Konsultasi Admin WA: 081228263200`;
                 <div className="flex items-center justify-between text-xs font-bold text-amber-300">
                   <span className="flex items-center gap-1.5">
                     <PackageCheck className="w-4 h-4 text-amber-400" />
-                    <span>Station 4: Packing</span>
+                    <span>Station 5: Packing</span>
                   </span>
                   <span className="text-[10px] text-slate-500">QC & Segel</span>
                 </div>
@@ -1670,12 +1703,12 @@ Konsultasi Admin WA: 081228263200`;
             {/* Total Summary & Save Button */}
             <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-slate-800">
               <div className="text-xs text-slate-300 flex items-center gap-2 flex-wrap">
-                <span className="text-slate-400">Total Borongan per kg (4 Stasiun):</span>
+                <span className="text-slate-400">Total Borongan per kg (5 Stasiun):</span>
                 <span className="text-base font-black font-mono text-emerald-400 bg-emerald-950/60 px-3 py-1 rounded-xl border border-emerald-500/30">
-                  Rp {(editingStationRates.cuci + editingStationRates.kering + editingStationRates.setrika + editingStationRates.packing).toLocaleString('id-ID')} / kg
+                  Rp {((editingStationRates.sortir || 0) + editingStationRates.cuci + editingStationRates.kering + editingStationRates.setrika + editingStationRates.packing).toLocaleString('id-ID')} / kg
                 </span>
                 <span className="text-[11px] text-slate-400">
-                  (Nota 7 kg = total upah borongan tim Rp {((editingStationRates.cuci + editingStationRates.kering + editingStationRates.setrika + editingStationRates.packing) * 7).toLocaleString('id-ID')})
+                  (Nota 7 kg = total upah borongan tim Rp {(((editingStationRates.sortir || 0) + editingStationRates.cuci + editingStationRates.kering + editingStationRates.setrika + editingStationRates.packing) * 7).toLocaleString('id-ID')})
                 </span>
               </div>
 
@@ -1718,6 +1751,7 @@ Konsultasi Admin WA: 081228263200`;
               <div className="flex gap-1 flex-wrap">
                 {[
                   { id: 'all', label: 'Semua Stasiun' },
+                  { id: 'sortir', label: '🔍 Sortir' },
                   { id: 'cuci', label: '🫧 Cuci' },
                   { id: 'kering', label: '🔥 Kering' },
                   { id: 'setrika', label: '💨 Setrika' },
@@ -1751,13 +1785,18 @@ Konsultasi Admin WA: 081228263200`;
                 photoProof?: string;
                 commissionEarned?: number;
                 stationNotes?: string;
+                clothesSummary?: string;
               }[] = [];
 
               orders.forEach((ord) => {
                 if (ord.statusTimestamps) {
                   Object.entries(ord.statusTimestamps).forEach(([stKey, ts]) => {
-                    if (stKey === 'cuci' || stKey === 'kering' || stKey === 'setrika' || stKey === 'packing') {
+                    if (stKey === 'sortir' || stKey === 'cuci' || stKey === 'kering' || stKey === 'setrika' || stKey === 'packing') {
                       if (stationProofFilter === 'all' || stationProofFilter === stKey) {
+                        const clothesSum = ord.clothesDetails && ord.clothesDetails.length > 0
+                          ? `${ord.clothesDetails.reduce((a, b) => a + (b.quantity || 0), 0)} Pcs (${ord.clothesDetails.filter(c => c.quantity > 0).map(c => `${c.quantity} ${c.name.split(' ')[0]}`).join(', ')})`
+                          : undefined;
+
                         completedStationEntries.push({
                           orderId: ord.id,
                           invoiceNo: ord.invoiceNo,
@@ -1766,8 +1805,9 @@ Konsultasi Admin WA: 081228263200`;
                           picName: ts?.picName || 'Operator',
                           time: ts?.time || ord.createdAt,
                           photoProof: ts?.photoProof,
-                          commissionEarned: ts?.commissionEarned || (stationRates[stKey as keyof StationCommissionRates] || 300) * (ord.weightKg || 5),
-                          stationNotes: ts?.stationNotes,
+                          commissionEarned: ts?.commissionEarned || (stationRates[stKey as keyof StationCommissionRates] || 200) * (ord.weightKg || 5),
+                          stationNotes: ts?.stationNotes || ord.sortingNotes,
+                          clothesSummary: clothesSum,
                         });
                       }
                     }
@@ -1796,13 +1836,20 @@ Konsultasi Admin WA: 081228263200`;
                             {entry.invoiceNo}
                           </span>
                           <span className="capitalize font-bold px-2 py-0.5 rounded-full text-[9px] bg-slate-800 text-cyan-300 border border-slate-700">
-                            {entry.station === 'cuci' ? '🫧 Cuci' : entry.station === 'kering' ? '🔥 Kering' : entry.station === 'setrika' ? '💨 Setrika' : '📦 Packing'}
+                            {entry.station === 'sortir' ? '🔍 Sortir' : entry.station === 'cuci' ? '🫧 Cuci' : entry.station === 'kering' ? '🔥 Kering' : entry.station === 'setrika' ? '💨 Setrika' : '📦 Packing'}
                           </span>
                         </div>
 
                         <div className="text-xs text-white font-medium">
                           {entry.customerName}
                         </div>
+
+                        {/* Clothes Summary Badge if available */}
+                        {entry.clothesSummary && (
+                          <div className="text-[10px] text-indigo-300 bg-indigo-950/40 border border-indigo-500/20 px-2 py-1 rounded-lg truncate">
+                            👕 {entry.clothesSummary}
+                          </div>
+                        )}
 
                         {/* Photo Thumbnail */}
                         {entry.photoProof ? (
@@ -1816,6 +1863,7 @@ Konsultasi Admin WA: 081228263200`;
                                 time: entry.time,
                                 notes: entry.stationNotes,
                                 commission: entry.commissionEarned,
+                                clothesSummary: entry.clothesSummary,
                               })
                             }
                             className="relative h-28 rounded-xl overflow-hidden border border-slate-700 cursor-pointer group bg-black"
@@ -3697,9 +3745,15 @@ Konsultasi Admin WA: 081228263200`;
                   +Rp {(ownerProofPhotoView.commission || 0).toLocaleString('id-ID')}
                 </span>
               </div>
+              {ownerProofPhotoView.clothesSummary && (
+                <div className="text-indigo-300 bg-indigo-950/40 p-2.5 rounded-xl border border-indigo-500/30 text-[11px] flex items-center justify-between">
+                  <span>Rincian Pakaian:</span>
+                  <strong className="text-white font-mono">{ownerProofPhotoView.clothesSummary}</strong>
+                </div>
+              )}
               {ownerProofPhotoView.notes && (
                 <div className="text-amber-300 bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-[11px]">
-                  <strong>Catatan Karyawan:</strong> {ownerProofPhotoView.notes}
+                  <strong>Catatan Karyawan / Sortir:</strong> {ownerProofPhotoView.notes}
                 </div>
               )}
               <div className="flex gap-2">

@@ -578,6 +578,14 @@ export const INITIAL_ORDERS: Order[] = [
     perfumeId: 'fr-sakura',
     perfumeName: 'Sakura Blossom',
     specialNotes: 'Ada 2 kemeja putih jangan dicampur pakaian luntur',
+    clothesDetails: [
+      { id: 'cl-1', name: 'Kaos / Kemeja / Baju Atasan', quantity: 5, notes: '2 kemeja putih ada noda kerah' },
+      { id: 'cl-2', name: 'Celana Panjang / Jeans', quantity: 3, notes: 'kantong sudah bersih' },
+      { id: 'cl-3', name: 'Pakaian Dalam (CD / Bra / Kaos Kaki)', quantity: 4 },
+      { id: 'cl-4', name: 'Handuk / Kain Lap', quantity: 2 },
+    ],
+    sortingNotes: 'Baju 5 pcs (2 kemeja putih noda kerah dipisahkan dari pakaian luntur), celana 3 jeans aman',
+    totalPieces: 14,
     createdAt: '2026-10-03 14:15:00',
     estReadyDate: '2026-10-05 14:15:00',
     statusTimestamps: {
@@ -627,6 +635,14 @@ export const INITIAL_ORDERS: Order[] = [
     perfumeId: 'fr-snappy',
     perfumeName: 'Snappy Red Exotic',
     specialNotes: 'Butuh jam 6 sore untuk acara resepsi',
+    clothesDetails: [
+      { id: 'cl-21', name: 'Jas Pria / Blazer', quantity: 1, notes: 'kancing lengkap, jangan diperas kencang' },
+      { id: 'cl-22', name: 'Kaos / Kemeja / Baju Atasan', quantity: 4, notes: 'kemeja slim fit' },
+      { id: 'cl-23', name: 'Celana Panjang / Jeans', quantity: 2 },
+      { id: 'cl-24', name: 'Pakaian Dalam (CD / Bra / Kaos Kaki)', quantity: 2 },
+    ],
+    sortingNotes: 'Jas pesta resepsi butuh penanganan khusus dan setrika uap ekstra rapi',
+    totalPieces: 9,
     createdAt: '2026-10-03 14:40:00',
     estReadyDate: '2026-10-03 18:40:00',
     statusTimestamps: {
@@ -662,11 +678,17 @@ export const INITIAL_ORDERS: Order[] = [
     finalPrice: 70000,
     paymentMethod: 'transfer',
     paymentStatus: 'lunas',
-    currentStatus: 'antrean',
+    currentStatus: 'sortir',
     pickupDeliveryType: 'outlet',
     perfumeId: 'fr-lavender',
     perfumeName: 'Sweet Lavender',
     specialNotes: 'Cuci ekstra lembut, bahan tencel organik',
+    clothesDetails: [
+      { id: 'cl-31', name: 'Sprei / Sarung Bantal', quantity: 4, notes: 'bahan tencel organik halus' },
+      { id: 'cl-32', name: 'Lainnya / Item Khusus', quantity: 2, notes: 'Bed cover king jumbo' },
+    ],
+    sortingNotes: 'Bed cover bahan tencel halus, jangan gunakan sikat kasar dan jemur teduh',
+    totalPieces: 6,
     createdAt: '2026-10-03 15:10:00',
     estReadyDate: '2026-10-05 15:10:00',
     statusTimestamps: {

@@ -72,6 +72,7 @@ export interface OrderItem {
 
 export type OrderStatus =
   | 'antrean'
+  | 'sortir'
   | 'cuci'
   | 'kering'
   | 'setrika'
@@ -85,6 +86,7 @@ export type PaymentStatus = 'lunas' | 'belum_lunas' | 'piutang';
 export type PaymentMethod = 'tunai' | 'transfer' | 'qris' | 'deposit' | 'piutang' | 'card_international';
 
 export interface StationCommissionRates {
+  sortir: number;  // Rp per kg (e.g. 150)
   cuci: number;    // Rp per kg (e.g. 300)
   kering: number;  // Rp per kg (e.g. 200)
   setrika: number; // Rp per kg (e.g. 400)
@@ -106,6 +108,13 @@ export interface StationClaim {
   workerId: string;
   workerName: string;
   claimedAt: string;
+}
+
+export interface ClothesItem {
+  id: string;
+  name: string; // e.g. 'Kaos / Kemeja / Baju', 'Celana Panjang', 'Celana Pendek', 'Pakaian Dalam', 'Gamis / Dress', 'Jaket / Sweater', 'Handuk', 'Sprei', 'Lainnya'
+  quantity: number; // e.g. 5
+  notes?: string; // e.g. 'Ada noda tinta di kerah kemeja putih'
 }
 
 export interface Order {
@@ -138,6 +147,10 @@ export interface Order {
   changeAmount: number;
   assignedMachineId?: string;
   isExpress?: boolean;
+  // Detail sortir & isi pakaian
+  clothesDetails?: ClothesItem[]; // Rincian pakaian (e.g. Baju: 5, Celana: 3, dll)
+  sortingNotes?: string;          // Catatan sortir / defect pakaian (noda, robek, kancing copot, luntur)
+  totalPieces?: number;           // Total jumlah helai pakaian tercatat
   // Dropship integration
   isDropship?: boolean;
   agentId?: string;

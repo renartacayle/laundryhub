@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { Order, OrderStatus, User, StationCommissionRates } from '../types';
+import { Order, OrderStatus, User, StationCommissionRates, ClothesItem } from '../types';
 import {
   Camera,
   Upload,
@@ -8,6 +8,7 @@ import {
   X,
   AlertTriangle,
   Sparkles,
+  ClipboardCheck,
   WashingMachine,
   Flame,
   Shirt,
@@ -15,8 +16,10 @@ import {
   Coins,
   Clock,
   UserCheck,
+  Edit3,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { ClothesDetailModal } from './ClothesDetailModal';
 
 interface StationPhotoProofModalProps {
   isOpen: boolean;
@@ -42,6 +45,18 @@ export const StationPhotoProofModal: React.FC<StationPhotoProofModalProps> = ({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
+  // Clothes Detailing & Sortir states
+  const [isClothesModalOpen, setIsClothesModalOpen] = useState<boolean>(false);
+  const [clothesList, setClothesList] = useState<ClothesItem[]>(order.clothesDetails || []);
+  const [sortingNotes, setSortingNotes] = useState<string>(order.sortingNotes || '');
+
+  useEffect(() => {
+    if (isOpen) {
+      setClothesList(order.clothesDetails || []);
+      setSortingNotes(order.sortingNotes || '');
+    }
+  }, [isOpen, order]);
+
   // Available worker options (workers, operators, or owner)
   const eligibleWorkers = users.filter((u) => u.role === 'produksi' || u.role === 'operator' || u.role === 'kasir' || u.role === 'owner');
   const selectedWorker: User = users.find((u) => u.id === selectedWorkerId) || currentUser;
@@ -49,6 +64,26 @@ export const StationPhotoProofModal: React.FC<StationPhotoProofModalProps> = ({
   // Station details
   const getStationInfo = (st: OrderStatus) => {
     switch (st) {
+      case 'sortir':
+        return {
+          title: 'Station 1: Sortir & Tagging',
+          icon: <ClipboardCheck className="w-5 h-5 text-indigo-400" />,
+          color: 'indigo',
+          borderColor: 'border-indigo-500/40',
+          bgBadge: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
+          desc: 'Hitung helai pakaian, deteksi noda/kerusakan awal, pisahkan luntur & tagging.',
+          defaultPhoto: 'https://images.unsplash.com/photo-1582735689369-4fe89db7114c?w=600&auto=format&fit=crop&q=80',
+          presets: [
+            {
+              label: '🧺 Hitung & Pilah Pakaian (Hitung Pcs)',
+              url: 'https://images.unsplash.com/photo-1582735689369-4fe89db7114c?w=600&auto=format&fit=crop&q=80',
+            },
+            {
+              label: '🔍 Cek Noda & Kerusakan / Defect Tagging',
+              url: 'https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?w=600&auto=format&fit=crop&q=80',
+            },
+          ],
+        };
       case 'cuci':
         return {
           title: 'Station Cuci (Washing)',
@@ -175,7 +210,9 @@ export const StationPhotoProofModal: React.FC<StationPhotoProofModalProps> = ({
         station,
         selectedWorker,
         selectedPhoto,
-        notes.trim() || undefined
+        notes.trim() || undefined,
+        clothesList,
+        sortingNotes
       );
 
       if (res.success) {
@@ -416,6 +453,54 @@ export const StationPhotoProofModal: React.FC<StationPhotoProofModalProps> = ({
             )}
           </div>
 
+          {/* Clothes Breakdown & Defect Section */}
+          <div className={`p-3.5 rounded-2xl bg-slate-950/70 border space-y-2.5 ${station === 'sortir' ? 'border-indigo-500/60 ring-1 ring-indigo-500/30' : 'border-indigo-500/30'}`}>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
+                <ClipboardCheck className="w-4 h-4 text-indigo-400" />
+                <span>Rincian Isi Pakaian & Catatan Sortir</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsClothesModalOpen(true)}
+                className="px-2.5 py-1 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/40 text-[10px] font-bold flex items-center gap-1 transition-all active:scale-95"
+              >
+                <Edit3 className="w-3 h-3" />
+                <span>{clothesList.length > 0 ? 'Edit / Cek Pcs' : '+ Input Rincian Pcs'}</span>
+              </button>
+            </div>
+
+            {clothesList.length > 0 ? (
+              <div className="space-y-1.5 text-[11px]">
+                <div className="flex items-center justify-between text-slate-300 font-semibold">
+                  <span>Total Pakaian:</span>
+                  <span className="text-indigo-400 font-mono font-bold">
+                    {clothesList.reduce((sum, c) => sum + (c.quantity || 0), 0)} Pcs
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-1 text-[10px]">
+                  {clothesList.filter((c) => c.quantity > 0).map((c, i) => (
+                    <span key={i} className="px-2 py-0.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300">
+                      {c.name.split(' ')[0]}: <strong className="text-indigo-300">{c.quantity}</strong>
+                      {c.notes ? ` (${c.notes})` : ''}
+                    </span>
+                  ))}
+                </div>
+                {sortingNotes && (
+                  <p className="text-[10px] text-amber-300/90 bg-amber-950/30 border border-amber-500/20 p-2 rounded-xl mt-1">
+                    ⚠️ <strong>Kondisi/Defect:</strong> {sortingNotes}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <p className="text-[10px] text-slate-400 italic">
+                {station === 'sortir'
+                  ? '🔍 Rekomendasi stasiun sortir: Hitung jumlah baju, celana & kondisi awal agar terdokumentasi.'
+                  : 'Belum ada rincian helai pakaian tercatat. Klik tombol di atas untuk menambah.'}
+              </p>
+            )}
+          </div>
+
           {/* Optional Worker Notes */}
           <div>
             <label className="text-xs font-bold text-slate-300 block mb-1">
@@ -459,6 +544,23 @@ export const StationPhotoProofModal: React.FC<StationPhotoProofModalProps> = ({
           </div>
         </form>
       </div>
+
+      {/* Embedded Clothes Detail Modal */}
+      {isClothesModalOpen && (
+        <ClothesDetailModal
+          isOpen={isClothesModalOpen}
+          onClose={() => setIsClothesModalOpen(false)}
+          initialClothes={clothesList}
+          initialNotes={sortingNotes}
+          orderInvoiceNo={order.invoiceNo}
+          orderCustomerName={order.customerName}
+          orderWeightKg={order.weightKg}
+          onSave={(updatedItems, updatedNotes) => {
+            setClothesList(updatedItems);
+            setSortingNotes(updatedNotes);
+          }}
+        />
+      )}
     </div>
   );
 };

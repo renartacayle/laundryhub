@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { Order, OrderStatus, StationCommissionRates } from '../types';
+import { Order, OrderStatus, StationCommissionRates, ClothesItem } from '../types';
 import {
   WashingMachine,
   Flame,
@@ -21,9 +21,12 @@ import {
   Eye,
   HandMetal,
   Check,
+  ClipboardCheck,
+  Edit3,
 } from 'lucide-react';
 import { IotMachineControlModal } from '../components/IotMachineControlModal';
 import { StationPhotoProofModal } from '../components/StationPhotoProofModal';
+import { ClothesDetailModal } from '../components/ClothesDetailModal';
 
 interface ProduksiKanbanProps {
   currentSubTab?: string;
@@ -36,6 +39,7 @@ export const ProduksiKanban: React.FC<ProduksiKanbanProps> = ({ currentSubTab = 
     currentUser,
     users,
     updateOrderStatus,
+    updateOrderClothesDetails,
     machines,
     stationRates,
     claimStationTask,
@@ -57,9 +61,12 @@ export const ProduksiKanban: React.FC<ProduksiKanbanProps> = ({ currentSubTab = 
   const [isIotModalOpen, setIsIotModalOpen] = useState(false);
   const [draggedOrderId, setDraggedOrderId] = useState<string | null>(null);
 
+  // Clothes Detail Modal State
+  const [clothesModalOrder, setClothesModalOrder] = useState<Order | null>(null);
+
   // Station Photo Proof Modal State
   const [stationModalOrder, setStationModalOrder] = useState<Order | null>(null);
-  const [stationModalStation, setStationModalStation] = useState<OrderStatus>('cuci');
+  const [stationModalStation, setStationModalStation] = useState<OrderStatus>('sortir');
 
   // Photo Proof Lightbox Viewer State
   const [photoViewerData, setPhotoViewerData] = useState<{
@@ -72,7 +79,7 @@ export const ProduksiKanban: React.FC<ProduksiKanbanProps> = ({ currentSubTab = 
     notes?: string;
   } | null>(null);
 
-  // Workflow Columns definitions
+  // Workflow Columns definitions (now includes 2. Sortir & Tagging)
   const columns: { id: OrderStatus; title: string; icon: React.ReactNode; color: string; badge: string }[] = [
     {
       id: 'antrean',
@@ -82,36 +89,43 @@ export const ProduksiKanban: React.FC<ProduksiKanbanProps> = ({ currentSubTab = 
       badge: 'bg-slate-800 text-slate-300',
     },
     {
+      id: 'sortir',
+      title: '2. Sortir & Tagging',
+      icon: <ClipboardCheck className="w-4 h-4 text-indigo-400" />,
+      color: 'border-indigo-500/40 bg-indigo-950/20',
+      badge: 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40',
+    },
+    {
       id: 'cuci',
-      title: '2. Proses Cuci',
+      title: '3. Proses Cuci',
       icon: <WashingMachine className="w-4 h-4" />,
       color: 'border-cyan-500/40 bg-cyan-950/20',
       badge: 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40',
     },
     {
       id: 'kering',
-      title: '3. Pengeringan',
+      title: '4. Pengeringan',
       icon: <Flame className="w-4 h-4" />,
       color: 'border-orange-500/40 bg-orange-950/20',
       badge: 'bg-orange-500/20 text-orange-300 border border-orange-500/40',
     },
     {
       id: 'setrika',
-      title: '4. Setrika Uap',
+      title: '5. Setrika Uap',
       icon: <Shirt className="w-4 h-4" />,
       color: 'border-purple-500/40 bg-purple-950/20',
       badge: 'bg-purple-500/20 text-purple-300 border border-purple-500/40',
     },
     {
       id: 'packing',
-      title: '5. Packing & QC',
+      title: '6. Packing & QC',
       icon: <PackageCheck className="w-4 h-4" />,
       color: 'border-amber-500/40 bg-amber-950/20',
       badge: 'bg-amber-500/20 text-amber-300 border border-amber-500/40',
     },
     {
       id: 'siap',
-      title: '6. Siap Ambil / Antar',
+      title: '7. Siap Ambil / Antar',
       icon: <CheckCircle2 className="w-4 h-4" />,
       color: 'border-emerald-500/40 bg-emerald-950/20',
       badge: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40',
@@ -126,7 +140,7 @@ export const ProduksiKanban: React.FC<ProduksiKanbanProps> = ({ currentSubTab = 
   });
 
   const getNextStatus = (current: OrderStatus): OrderStatus | null => {
-    const sequence: OrderStatus[] = ['antrean', 'cuci', 'kering', 'setrika', 'packing', 'siap'];
+    const sequence: OrderStatus[] = ['antrean', 'sortir', 'cuci', 'kering', 'setrika', 'packing', 'siap'];
     const idx = sequence.indexOf(current);
     if (idx >= 0 && idx < sequence.length - 1) {
       return sequence[idx + 1];
@@ -239,12 +253,13 @@ export const ProduksiKanban: React.FC<ProduksiKanbanProps> = ({ currentSubTab = 
                   colOrders.map((ord) => {
                     const next = getNextStatus(ord.currentStatus);
                     const latestTimestamp = ord.statusTimestamps?.[ord.currentStatus];
-                    const isProductionStation = ord.currentStatus === 'cuci' || ord.currentStatus === 'kering' || ord.currentStatus === 'setrika' || ord.currentStatus === 'packing';
-                    const currentRate = isProductionStation ? (stationRates[ord.currentStatus as keyof StationCommissionRates] || 300) : 300;
+                    const isProductionStation = ord.currentStatus === 'sortir' || ord.currentStatus === 'cuci' || ord.currentStatus === 'kering' || ord.currentStatus === 'setrika' || ord.currentStatus === 'packing';
+                    const currentRate = isProductionStation ? (stationRates[ord.currentStatus as keyof StationCommissionRates] || 200) : 200;
                     const estCommission = Math.max(500, Math.round(ord.weightKg > 0 ? ord.weightKg * currentRate : ord.itemCount * (currentRate * 1.5)));
                     const isClaimedByMe = ord.currentClaim?.workerId === currentUser.id;
 
                     const stationsList: { id: OrderStatus; name: string; shortName: string; icon: string }[] = [
+                      { id: 'sortir', name: 'Sortir', shortName: 'Sortir', icon: '🔍' },
                       { id: 'cuci', name: 'Cuci', shortName: 'Cuci', icon: '🫧' },
                       { id: 'kering', name: 'Kering', shortName: 'Kering', icon: '🔥' },
                       { id: 'setrika', name: 'Setrika', shortName: 'Setrika', icon: '💨' },
@@ -288,6 +303,41 @@ export const ProduksiKanban: React.FC<ProduksiKanbanProps> = ({ currentSubTab = 
                           </div>
                         </div>
 
+                        {/* Clothes Breakdown & Defect Note */}
+                        <div className="p-2 rounded-xl bg-slate-950/70 border border-indigo-500/20 space-y-1">
+                          <div className="flex items-center justify-between text-[10px]">
+                            <span className="font-bold text-indigo-300 flex items-center gap-1">
+                              <ClipboardCheck className="w-3 h-3 text-indigo-400" />
+                              <span>
+                                {ord.clothesDetails && ord.clothesDetails.length > 0
+                                  ? `${ord.totalPieces || ord.clothesDetails.reduce((s, c) => s + (c.quantity || 0), 0)} Pcs Pakaian`
+                                  : 'Belum dihitung'}
+                              </span>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setClothesModalOrder(ord);
+                              }}
+                              className="text-[9px] font-bold text-indigo-400 hover:text-indigo-200 underline flex items-center gap-0.5"
+                            >
+                              <Edit3 className="w-2.5 h-2.5" />
+                              <span>{ord.clothesDetails && ord.clothesDetails.length > 0 ? 'Edit' : '+ Hitung'}</span>
+                            </button>
+                          </div>
+                          {ord.clothesDetails && ord.clothesDetails.length > 0 && (
+                            <div className="text-[9px] text-slate-400 truncate">
+                              {ord.clothesDetails.filter((c) => c.quantity > 0).map((c) => `${c.quantity} ${c.name.split(' ')[0]}`).join(', ')}
+                            </div>
+                          )}
+                          {ord.sortingNotes && (
+                            <div className="text-[9px] text-amber-300/90 font-medium truncate bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-500/20">
+                              ⚠️ {ord.sortingNotes}
+                            </div>
+                          )}
+                        </div>
+
                         {/* Notes if any */}
                         {ord.specialNotes && (
                           <div className="text-[10px] bg-slate-950/80 text-amber-300 p-1.5 rounded-lg border border-amber-500/20 line-clamp-1">
@@ -300,7 +350,7 @@ export const ProduksiKanban: React.FC<ProduksiKanbanProps> = ({ currentSubTab = 
                           <span className="text-[9px] uppercase tracking-wider text-slate-500 font-bold block mb-1">
                             Progress Borongan per Stasiun:
                           </span>
-                          <div className="grid grid-cols-4 gap-1">
+                          <div className="grid grid-cols-5 gap-1">
                             {stationsList.map((st) => {
                               const ts = ord.statusTimestamps?.[st.id];
                               const isCompleted = !!ts;
@@ -546,6 +596,40 @@ export const ProduksiKanban: React.FC<ProduksiKanbanProps> = ({ currentSubTab = 
                 ))}
               </div>
 
+              {/* Detail Isi Pakaian & Catatan Sortir */}
+              {selectedOrderForDetail.clothesDetails && selectedOrderForDetail.clothesDetails.length > 0 && (
+                <div className="p-3 rounded-xl bg-slate-950 border border-indigo-500/30 space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-indigo-300 flex items-center gap-1">
+                      <ClipboardCheck className="w-3.5 h-3.5 text-indigo-400" />
+                      <span>Rincian Pakaian ({selectedOrderForDetail.totalPieces || selectedOrderForDetail.clothesDetails.reduce((a, b) => a + b.quantity, 0)} Pcs):</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setClothesModalOrder(selectedOrderForDetail);
+                      }}
+                      className="text-[10px] text-indigo-400 hover:underline font-bold"
+                    >
+                      Edit Pcs
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1 text-[11px] text-slate-300">
+                    {selectedOrderForDetail.clothesDetails.filter((c) => c.quantity > 0).map((c, i) => (
+                      <div key={i} className="flex justify-between bg-slate-900/80 px-2 py-1 rounded">
+                        <span className="truncate">• {c.name} {c.notes ? `(${c.notes})` : ''}</span>
+                        <strong className="text-indigo-300 shrink-0 ml-1">{c.quantity} pcs</strong>
+                      </div>
+                    ))}
+                  </div>
+                  {selectedOrderForDetail.sortingNotes && (
+                    <div className="mt-1 text-[10px] text-amber-300 bg-amber-950/40 p-1.5 rounded border border-amber-500/20">
+                      <strong>Catatan Sortir / Kerusakan:</strong> {selectedOrderForDetail.sortingNotes}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Status Timestamps & Photo Proofs Gallery */}
               <div className="space-y-2 pt-2 border-t border-slate-800">
                 <span className="font-bold text-slate-400 block text-[10px] uppercase">
@@ -559,7 +643,7 @@ export const ProduksiKanban: React.FC<ProduksiKanbanProps> = ({ currentSubTab = 
                     >
                       <div className="flex items-center justify-between">
                         <span className="capitalize font-bold text-orange-400 flex items-center gap-1">
-                          <span>{st === 'cuci' ? '🫧 Cuci' : st === 'kering' ? '🔥 Kering' : st === 'setrika' ? '💨 Setrika' : st === 'packing' ? '📦 Packing' : st}</span>
+                          <span>{st === 'sortir' ? '🔍 Sortir' : st === 'cuci' ? '🫧 Cuci' : st === 'kering' ? '🔥 Kering' : st === 'setrika' ? '💨 Setrika' : st === 'packing' ? '📦 Packing' : st}</span>
                         </span>
                         <span className="text-[10px] font-mono text-slate-400">{ts?.time}</span>
                       </div>
@@ -642,6 +726,23 @@ export const ProduksiKanban: React.FC<ProduksiKanbanProps> = ({ currentSubTab = 
           onClose={() => setStationModalOrder(null)}
           order={stationModalOrder}
           station={stationModalStation}
+        />
+      )}
+
+      {/* Clothes Detail Modal */}
+      {clothesModalOrder && (
+        <ClothesDetailModal
+          isOpen={!!clothesModalOrder}
+          onClose={() => setClothesModalOrder(null)}
+          initialClothes={clothesModalOrder.clothesDetails}
+          initialNotes={clothesModalOrder.sortingNotes}
+          orderInvoiceNo={clothesModalOrder.invoiceNo}
+          orderCustomerName={clothesModalOrder.customerName}
+          orderWeightKg={clothesModalOrder.weightKg}
+          onSave={(updatedClothes, updatedNotes, totalPieces) => {
+            updateOrderClothesDetails(clothesModalOrder.id, updatedClothes, updatedNotes, totalPieces);
+            setClothesModalOrder(null);
+          }}
         />
       )}
 
