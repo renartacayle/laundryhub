@@ -263,23 +263,38 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
                         key={step.id}
                         className={`p-3.5 rounded-2xl border transition-all flex flex-col justify-between ${
                           isCurrent
-                            ? 'bg-emerald-500/20 border-emerald-500 shadow-glow-emerald scale-105'
+                            ? 'bg-emerald-500/15 border-emerald-500 shadow-md ring-2 ring-emerald-400/40 scale-[1.03] z-10'
                             : isPassed
-                            ? 'bg-slate-900 border-slate-700 text-slate-300'
-                            : 'bg-slate-950/40 border-slate-900 text-slate-600 opacity-60'
+                            ? 'bg-emerald-500/5 border-emerald-500/40 text-slate-800 dark:text-slate-200'
+                            : 'bg-slate-850/60 border-slate-700/60 text-slate-600 dark:text-slate-400 hover:border-slate-500'
                         }`}
                       >
                         <div>
                           <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-mono font-bold text-slate-500">
+                            <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                              isCurrent
+                                ? 'bg-emerald-500 text-slate-950 font-black'
+                                : isPassed
+                                ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold'
+                                : 'bg-slate-700/50 text-slate-400 dark:text-slate-400'
+                            }`}>
                               0{idx + 1}
                             </span>
-                            {isPassed && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
+                            {isPassed && <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
+                            {isCurrent && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>}
                           </div>
-                          <div className={`text-xs font-extrabold mt-2 ${isCurrent ? 'text-emerald-300' : 'text-white'}`}>
+                          <div className={`text-xs font-extrabold mt-2 ${
+                            isCurrent
+                              ? 'text-emerald-600 dark:text-emerald-300'
+                              : isPassed
+                              ? 'text-slate-900 dark:text-slate-100'
+                              : 'text-slate-700 dark:text-slate-300'
+                          }`}>
                             {step.label}
                           </div>
-                          <div className="text-[10px] text-slate-400 mt-0.5">{step.desc}</div>
+                          <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 font-medium leading-tight">
+                            {step.desc}
+                          </div>
                         </div>
 
                         <div className="pt-2">

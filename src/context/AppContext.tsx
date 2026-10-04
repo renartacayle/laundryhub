@@ -162,7 +162,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
 
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
-    return localStorage.getItem('lh_dark') !== 'false';
+    return localStorage.getItem('lh_dark') === 'true';
   });
 
   const [language, setLanguage] = useState<Language>(() => {

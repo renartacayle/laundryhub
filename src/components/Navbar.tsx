@@ -23,6 +23,7 @@ import {
   HelpCircle,
   Menu,
   Store,
+  LayoutGrid,
 } from 'lucide-react';
 import { CoinTopupModal } from './CoinTopupModal';
 import { IotMachineControlModal } from './IotMachineControlModal';
@@ -69,6 +70,7 @@ export const Navbar: React.FC = () => {
   const [isLandingOpen, setIsLandingOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
 
   // Global Ctrl+K / Cmd+K listener
   React.useEffect(() => {
@@ -193,18 +195,6 @@ export const Navbar: React.FC = () => {
 
           {/* Right: Quick Widgets & Controls */}
           <div className="flex items-center gap-2 sm:gap-2.5">
-            {/* Online / Offline status */}
-            <div
-              className={`hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border ${
-                isOnline
-                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                  : 'bg-amber-500/10 border-amber-500/30 text-amber-400'
-              }`}
-            >
-              {isOnline ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
-              <span>{isOnline ? 'Cloud Sync Online' : 'Offline Cache'}</span>
-            </div>
-
             {/* Mobile Search Button */}
             <button
               onClick={() => setIsCommandPaletteOpen(true)}
@@ -212,56 +202,6 @@ export const Navbar: React.FC = () => {
               title="Pencarian Cepat & Navigasi"
             >
               <Search className="w-4 h-4" />
-            </button>
-
-            {/* Showcase & Promo Button */}
-            <button
-              onClick={() => setIsLandingOpen(true)}
-              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-cyan-500/20 border border-emerald-500/40 hover:border-emerald-400 text-xs font-bold text-emerald-300 transition-all shadow-glow-emerald hover:scale-105"
-              title="Lihat Keunggulan & Promo Rp 25/Nota"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
-              <span>Promo Rp 25</span>
-            </button>
-
-            {/* Android APK Direct Download Button */}
-            <a
-              href="/laundryhub.apk"
-              download="laundryhub.apk"
-              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/40 text-xs font-bold text-cyan-300 transition-all cursor-pointer shadow-sm hover:scale-105"
-              title="Unduh Aplikasi Android Resmi (APK 4 MB)"
-            >
-              <Smartphone className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Unduh APK</span>
-            </a>
-
-            {/* Panduan / Intro Walkthrough Button */}
-            <button
-              onClick={() => window.dispatchEvent(new CustomEvent('lh_open_intro'))}
-              className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700/80 hover:border-emerald-500/50 text-xs font-semibold text-slate-200 transition-all hover:bg-slate-800"
-              title="Buka Panduan & Pengenalan Aplikasi"
-            >
-              <HelpCircle className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Panduan</span>
-            </button>
-
-            {/* IoT Machine Trigger Button */}
-            <button
-              onClick={() => setIsIotModalOpen(true)}
-              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700/80 hover:border-cyan-500/50 text-xs font-semibold text-slate-200 transition-all hover:bg-slate-800"
-              title="Panel Kontrol IoT Mesin"
-            >
-              <Cpu className="w-3.5 h-3.5 text-cyan-400" />
-              <span className="hidden sm:inline">Mesin IoT</span>
-              <span
-                className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                  runningMachinesCount > 0
-                    ? 'bg-cyan-500 text-slate-950 font-black'
-                    : 'bg-slate-700 text-slate-300'
-                }`}
-              >
-                {runningMachinesCount} ON
-              </span>
             </button>
 
             {/* Coin Balance Widget */}
@@ -276,33 +216,13 @@ export const Navbar: React.FC = () => {
               <span className="text-[10px] ml-0.5 px-1 bg-amber-500/30 rounded font-black">+</span>
             </button>
 
-            {/* Language Switcher (ID / EN) */}
+            {/* Dark / Pastel Light Mode Toggle */}
             <button
-              onClick={() => {
-                const nextLang = language === 'id' ? 'en' : 'id';
-                setLanguage(nextLang);
-                if (nextLang === 'en') setCurrency('USD');
-                else setCurrency('IDR');
-              }}
-              className="hidden md:flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700/80 hover:border-cyan-500/50 text-xs font-bold text-slate-200 transition-all hover:bg-slate-800"
-              title={language === 'id' ? 'Switch to English (Global)' : 'Ganti ke Bahasa Indonesia'}
+              onClick={toggleDarkMode}
+              className="flex p-2 rounded-xl bg-slate-800/80 border border-slate-700/80 hover:scale-105 active:scale-95 transition-all shadow-sm"
+              title={isDarkMode ? 'Ganti ke Mode Pastel Terang' : 'Ganti ke Mode Midnight Gelap'}
             >
-              <Globe className="w-3.5 h-3.5 text-cyan-400" />
-              <span>{language === 'id' ? '🇮🇩 ID' : '🇬🇧 EN'}</span>
-            </button>
-
-            {/* Currency Switcher (IDR / USD) */}
-            <button
-              onClick={() => setCurrency(currency === 'IDR' ? 'USD' : 'IDR')}
-              className={`hidden md:flex items-center gap-1 px-2 py-1.5 rounded-xl text-xs font-bold border transition-all ${
-                currency === 'USD'
-                  ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400 shadow-glow-emerald'
-                  : 'bg-slate-800/70 border-slate-700/80 text-slate-300 hover:text-white'
-              }`}
-              title="Toggle Currency (IDR / USD)"
-            >
-              <DollarSign className="w-3.5 h-3.5" />
-              <span>{currency}</span>
+              {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-violet-600 dark:text-cyan-400" />}
             </button>
 
             {/* Notification Bell */}
@@ -355,27 +275,135 @@ export const Navbar: React.FC = () => {
               )}
             </div>
 
-            {/* Dark / Pastel Light Mode Toggle */}
-            <button
-              onClick={toggleDarkMode}
-              className="flex p-2 rounded-xl bg-slate-800/80 border border-slate-700/80 hover:scale-105 active:scale-95 transition-all shadow-sm"
-              title={isDarkMode ? 'Ganti ke Mode Pastel Terang' : 'Ganti ke Mode Midnight Gelap'}
-            >
-              {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-violet-600 dark:text-cyan-400" />}
-            </button>
+            {/* Desktop Ekosistem & Alat Dropdown */}
+            <div className="relative hidden md:block">
+              <button
+                onClick={() => setIsToolsMenuOpen(!isToolsMenuOpen)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 hover:border-cyan-500/40 text-xs font-semibold text-slate-200 transition-all shadow-sm active:scale-95"
+                title="Menu & Alat Ekosistem"
+              >
+                <LayoutGrid className="w-3.5 h-3.5 text-cyan-400" />
+                <span className="hidden lg:inline">Alat & Fitur</span>
+                {runningMachinesCount > 0 && (
+                  <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                )}
+                <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isToolsMenuOpen ? 'rotate-180' : ''}`} />
+              </button>
 
-            {/* Reset Demo Data Button */}
-            <button
-              onClick={() => {
-                if (window.confirm('Reset semua data kembali ke seed demo awal?')) {
-                  resetAllData();
-                }
-              }}
-              className="p-2 rounded-xl bg-slate-800/70 border border-slate-700/80 text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors hidden lg:block"
-              title="Reset Data Demo"
-            >
-              <RotateCcw className="w-4 h-4" />
-            </button>
+              {isToolsMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setIsToolsMenuOpen(false)} />
+                  <div className="absolute right-0 mt-2 w-72 bg-slate-900 border border-slate-700/90 rounded-2xl shadow-2xl p-2.5 z-50 animate-in fade-in zoom-in-95 space-y-1 text-xs">
+                    {/* Header / Cloud sync status */}
+                    <div className="flex items-center justify-between px-2 py-1.5 border-b border-slate-800 text-[11px]">
+                      <span className="font-bold text-slate-400 uppercase tracking-wider">Ekosistem</span>
+                      <span className={`inline-flex items-center gap-1 font-semibold ${isOnline ? 'text-emerald-400' : 'text-amber-400'}`}>
+                        {isOnline ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
+                        {isOnline ? 'Cloud Synced' : 'Offline'}
+                      </span>
+                    </div>
+
+                    {/* Promo Rp 25 */}
+                    <button
+                      onClick={() => {
+                        setIsToolsMenuOpen(false);
+                        setIsLandingOpen(true);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-left text-emerald-300 hover:bg-emerald-500/10 transition-colors"
+                    >
+                      <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold leading-tight">Promo Rp 25/Nota</div>
+                        <div className="text-[10px] text-slate-400">Lihat kalkulasi hemat & paket</div>
+                      </div>
+                    </button>
+
+                    {/* Unduh APK */}
+                    <a
+                      href="/laundryhub.apk"
+                      download="laundryhub.apk"
+                      onClick={() => setIsToolsMenuOpen(false)}
+                      className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-cyan-300 hover:bg-cyan-500/10 transition-colors"
+                    >
+                      <Smartphone className="w-4 h-4 text-cyan-400 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold leading-tight">Unduh Aplikasi Android</div>
+                        <div className="text-[10px] text-slate-400">File APK Resmi (4 MB)</div>
+                      </div>
+                    </a>
+
+                    {/* Mesin IoT */}
+                    <button
+                      onClick={() => {
+                        setIsToolsMenuOpen(false);
+                        setIsIotModalOpen(true);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-slate-200 hover:bg-slate-800 transition-colors"
+                    >
+                      <Cpu className="w-4 h-4 text-cyan-400 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold leading-tight">Kontrol Mesin IoT</div>
+                        <div className="text-[10px] text-slate-400">{runningMachinesCount} mesin aktif berputar</div>
+                      </div>
+                    </button>
+
+                    {/* Panduan */}
+                    <button
+                      onClick={() => {
+                        setIsToolsMenuOpen(false);
+                        window.dispatchEvent(new CustomEvent('lh_open_intro'));
+                      }}
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-slate-200 hover:bg-slate-800 transition-colors"
+                    >
+                      <HelpCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold leading-tight">Panduan Aplikasi</div>
+                        <div className="text-[10px] text-slate-400">Tur interaktif fitur laundry</div>
+                      </div>
+                    </button>
+
+                    <div className="border-t border-slate-800 my-1 pt-1">
+                      {/* Language & Currency toggles */}
+                      <div className="grid grid-cols-2 gap-1 px-1">
+                        <button
+                          onClick={() => {
+                            const nextLang = language === 'id' ? 'en' : 'id';
+                            setLanguage(nextLang);
+                            if (nextLang === 'en') setCurrency('USD');
+                            else setCurrency('IDR');
+                          }}
+                          className="flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-750 text-[11px] font-semibold text-slate-200"
+                        >
+                          <Globe className="w-3.5 h-3.5 text-cyan-400" />
+                          <span>{language === 'id' ? '🇮🇩 ID' : '🇬🇧 EN'}</span>
+                        </button>
+                        <button
+                          onClick={() => setCurrency(currency === 'IDR' ? 'USD' : 'IDR')}
+                          className="flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-750 text-[11px] font-semibold text-slate-200"
+                        >
+                          <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>{currency}</span>
+                        </button>
+                      </div>
+
+                      {/* Reset Demo Data */}
+                      <button
+                        onClick={() => {
+                          if (window.confirm('Reset semua data kembali ke seed demo awal?')) {
+                            resetAllData();
+                            setIsToolsMenuOpen(false);
+                          }
+                        }}
+                        className="w-full flex items-center gap-2 px-2.5 py-1.5 mt-1 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 text-[11px] transition-colors"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5 shrink-0" />
+                        <span>Reset Data Demo</span>
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
 
             {/* Mobile Menu Hamburger Button */}
             <button
