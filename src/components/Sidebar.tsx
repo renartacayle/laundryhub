@@ -122,10 +122,45 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
         return [
           {
             id: 'prod-kanban',
-            label: 'Kanban Alur Workshop',
-            icon: <LayoutDashboard className="w-4 h-4" />,
+            label: 'Alur Workshop (Semua)',
+            icon: <LayoutDashboard className="w-4 h-4 text-orange-400" />,
             badge: `${activeOrdersCount}`,
             badgeColor: 'bg-orange-500/20 text-orange-300 border-orange-500/40',
+          },
+          {
+            id: 'prod-station-sortir',
+            label: '1. Sortir & Tagging',
+            icon: <Layers className="w-4 h-4 text-indigo-400" />,
+            badge: `${orders.filter((o) => o.currentStatus === 'sortir').length}`,
+            badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40',
+          },
+          {
+            id: 'prod-station-cuci',
+            label: '2. Proses Cuci',
+            icon: <WashingMachine className="w-4 h-4 text-cyan-400" />,
+            badge: `${orders.filter((o) => o.currentStatus === 'cuci').length}`,
+            badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40',
+          },
+          {
+            id: 'prod-station-kering',
+            label: '3. Pengeringan',
+            icon: <Flame className="w-4 h-4 text-orange-400" />,
+            badge: `${orders.filter((o) => o.currentStatus === 'kering').length}`,
+            badgeColor: 'bg-orange-500/20 text-orange-300 border-orange-500/40',
+          },
+          {
+            id: 'prod-station-setrika',
+            label: '4. Setrika Uap',
+            icon: <Sparkles className="w-4 h-4 text-purple-400" />,
+            badge: `${orders.filter((o) => o.currentStatus === 'setrika').length}`,
+            badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/40',
+          },
+          {
+            id: 'prod-station-packing',
+            label: '5. Packing & QC',
+            icon: <Package className="w-4 h-4 text-amber-400" />,
+            badge: `${orders.filter((o) => o.currentStatus === 'packing').length}`,
+            badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
           },
           {
             id: 'prod-iot',
@@ -134,7 +169,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
             badge: `${runningMachinesCount} ON`,
             badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40',
           },
-          { id: 'prod-productivity', label: 'Produktivitas Tim', icon: <Award className="w-4 h-4" /> },
         ];
       case 'kurir':
         return [
