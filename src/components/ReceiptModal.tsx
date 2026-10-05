@@ -14,11 +14,14 @@ import {
   Check,
   Eye,
   ExternalLink,
+  Download,
+  FileText,
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { bluetoothPrinter, buildReceiptEscPosBytes } from '../utils/escpos';
 import { useApp } from '../context/AppContext';
 import { formatCurrency } from '../utils/currency';
+import { downloadReceiptPdf } from '../utils/pdfReceipt';
 
 interface ReceiptModalProps {
   isOpen: boolean;
@@ -416,13 +419,33 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
             </span>
           </button>
 
+          {/* PDF Download & Print Options */}
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => downloadReceiptPdf(order, branch, 'a4')}
+              className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-xs shadow-lg shadow-cyan-500/25 transition-all active:scale-95"
+            >
+              <Download className="w-4 h-4 text-slate-950" />
+              <span>Download PDF Nota</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => downloadReceiptPdf(order, branch, paperWidth)}
+              className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs transition-colors"
+            >
+              <Printer className="w-4 h-4 text-cyan-400" />
+              <span>Cetak Thermal ({paperWidth})</span>
+            </button>
+          </div>
+
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={handleBluetoothPrint}
               disabled={isBluetoothPrinting}
-              className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold text-xs shadow-lg shadow-cyan-500/20 transition-all disabled:opacity-50"
+              className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/30 font-semibold text-xs transition-colors disabled:opacity-50"
             >
-              <Bluetooth className={`w-4 h-4 ${isBluetoothPrinting ? 'animate-spin' : ''}`} />
+              <Bluetooth className={`w-4 h-4 ${isBluetoothPrinting ? 'animate-spin text-cyan-400' : 'text-cyan-400'}`} />
               <span>
                 {isBluetoothPrinting
                   ? (language === 'en' ? 'Sending...' : 'Mengirim...')
@@ -431,10 +454,10 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
             </button>
             <button
               onClick={handlePrint}
-              className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs transition-colors"
+              className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-semibold text-xs transition-colors"
             >
-              <Printer className="w-4 h-4 text-cyan-400" />
-              <span>{language === 'en' ? 'Print PDF (Browser)' : 'Cetak Browser (PDF)'}</span>
+              <FileText className="w-4 h-4 text-amber-400" />
+              <span>Print Browser</span>
             </button>
           </div>
 

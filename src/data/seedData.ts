@@ -1948,9 +1948,10 @@ export const INITIAL_ATTENDANCE: StaffAttendance[] = [
 export const DEFAULT_GAMIFICATION_SETTINGS: GamificationSettings = {
   isEnabled: true, // Owner can toggle ON/OFF
   gameType: 'both',
-  triggerEvent: 'after_payment',
+  triggerEvent: 'on_pickup', // Default: Promo cuma pas ambil cucian
   minSpendAmount: 25000,
   oneSpinPerOrder: true, // 1 Nota = 1x Spin
+  onlyOnPickup: true, // Cuma bisa pas customer ambil cucian
   hasPeriodLimit: true, // Batas Periode Promo Tertentu
   startDate: '2026-10-01',
   endDate: '2026-10-31',

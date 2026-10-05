@@ -3732,12 +3732,14 @@ Konsultasi Admin WA: 081228263200`;
                     }
                     className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500 font-semibold"
                   >
+                    <option value="on_pickup">Khusus Pas Ambil Cucian (Status Siap Ambil / Selesai)</option>
                     <option value="after_payment">Otomatis Setelah Bayar / POS Checkout</option>
                     <option value="min_spend">Hanya Jika Belanja Melebihi Batas Nominal</option>
                     <option value="after_review">Hanya Setelah Pelanggan Isi Ulasan Rating</option>
                     <option value="manual">Manual Saja (Jika Tombol Ditekan Kasir/Owner)</option>
                   </select>
                   <p className="text-[10px] text-slate-400">
+                    {localGamification.triggerEvent === 'on_pickup' && 'Pelanggan hanya boleh memutar spin saat mengambil pakaian bersih.'}
                     {localGamification.triggerEvent === 'after_payment' && 'Game langsung muncul setelah nota POS dicetak.'}
                     {localGamification.triggerEvent === 'min_spend' && 'Hanya pelanggan belanja besar yang dapat kesempatan spin.'}
                     {localGamification.triggerEvent === 'after_review' && 'Tingkatkan review bintang 5 dengan memberi reward game.'}
@@ -3825,12 +3827,12 @@ Konsultasi Admin WA: 081228263200`;
                   })()}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
                   {/* Toggle 1 Nota = 1x Spin */}
                   <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-bold text-slate-200">
-                        Batas 1 Nota = Maksimal 1x Spin
+                        Batas 1 Nota = 1x Spin
                       </label>
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input
@@ -3850,11 +3852,45 @@ Konsultasi Admin WA: 081228263200`;
                     <p className="text-[11px] text-slate-400 leading-relaxed">
                       {localGamification.oneSpinPerOrder ? (
                         <span className="text-amber-300 font-semibold">
-                          ✓ Aktif (Ketat): Setiap nomor nota hanya berhak memutar 1 kali. Mencegah kecurangan atau perputaran ulang.
+                          ✓ Aktif: 1 nomor nota hanya 1 kali kesempatan spin.
                         </span>
                       ) : (
                         <span className="text-slate-400">
-                          Nonaktif: Pelanggan/kasir dapat memutar roda berulang kali pada nomor nota yang sama.
+                          Nonaktif: Bebas spin berulang.
+                        </span>
+                      )}
+                    </p>
+                  </div>
+
+                  {/* Toggle Khusus Pas Ambil Cucian */}
+                  <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-200">
+                        Khusus Pas Ambil Cucian
+                      </label>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={localGamification.onlyOnPickup}
+                          onChange={(e) =>
+                            setLocalGamification({
+                              ...localGamification,
+                              onlyOnPickup: e.target.checked,
+                            })
+                          }
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-cyan-500"></div>
+                      </label>
+                    </div>
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      {localGamification.onlyOnPickup ? (
+                        <span className="text-cyan-300 font-semibold">
+                          ✓ Wajib Siap Ambil: Pelanggan cuma bisa spin saat mengambil pakaian bersih (status Siap Ambil/Selesai).
+                        </span>
+                      ) : (
+                        <span className="text-slate-400">
+                          Bebas Kapan Saja: Bisa diputar sejak pakaian masih antrean/dicuci.
                         </span>
                       )}
                     </p>

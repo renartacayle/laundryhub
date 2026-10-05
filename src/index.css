@@ -201,22 +201,38 @@ html:not(.dark) button.bg-brand-600 * {
   background: var(--scrollbar-thumb-hover);
 }
 
-/* Receipt Print Styling */
+/* Receipt & Document Print Styling */
 @media print {
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
   body * {
     visibility: hidden;
   }
-  #printable-receipt, #printable-receipt * {
+  #printable-receipt, #printable-receipt *,
+  #salary-slip-printable-area, #salary-slip-printable-area * {
     visibility: visible;
   }
   #printable-receipt {
     position: absolute;
     left: 0;
     top: 0;
-    width: 80mm;
-    margin: 0;
-    padding: 10px;
-    background: white !important;
-    color: black !important;
+    width: 80mm !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 10px !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  /* Remove dark mode and fixed modal backdrops during print */
+  .fixed, .backdrop-blur-sm, .backdrop-blur-md, .bg-black\/75, .bg-black\/80 {
+    position: static !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
   }
 }

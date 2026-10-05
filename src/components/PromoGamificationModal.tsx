@@ -16,6 +16,7 @@ import {
   Calendar,
   ShieldAlert,
   Check,
+  Clock,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { GamificationPrize } from '../types';
@@ -459,6 +460,12 @@ export const PromoGamificationModal: React.FC<PromoGamificationModalProps> = ({
               {periodStatus.label}
             </span>
 
+            {gamificationSettings.onlyOnPickup && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                Khusus Pas Ambil
+              </span>
+            )}
+
             {gamificationSettings.oneSpinPerOrder && (
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
                 1 Nota = 1x Spin
@@ -502,19 +509,39 @@ export const PromoGamificationModal: React.FC<PromoGamificationModalProps> = ({
           
           {/* Eligibility Blocked Alert */}
           {!eligibility.canSpin && (
-            <div className="w-full mb-4 p-3.5 rounded-2xl bg-amber-950/60 border border-amber-500/40 text-amber-200 text-xs flex items-start gap-3 shadow-lg">
-              <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 shrink-0">
-                <Lock className="w-5 h-5" />
+            <div className={`w-full mb-4 p-3.5 rounded-2xl border text-xs flex items-start gap-3 shadow-lg ${
+              eligibility.isNotReadyForPickup
+                ? 'bg-sky-950/60 border-cyan-500/40 text-cyan-200'
+                : 'bg-amber-950/60 border-amber-500/40 text-amber-200'
+            }`}>
+              <div className={`p-2 rounded-xl shrink-0 ${
+                eligibility.isNotReadyForPickup
+                  ? 'bg-cyan-500/20 text-cyan-400'
+                  : 'bg-amber-500/20 text-amber-400'
+              }`}>
+                {eligibility.isNotReadyForPickup ? (
+                  <Clock className="w-5 h-5 animate-pulse" />
+                ) : (
+                  <Lock className="w-5 h-5" />
+                )}
               </div>
               <div className="space-y-1 flex-1">
                 <div className="flex items-center justify-between gap-2">
                   <h5 className="font-extrabold text-white text-sm">
-                    {eligibility.isClaimedBlocked
+                    {eligibility.isNotReadyForPickup
+                      ? '⏳ Promo Lucky Spin Khusus Pengambilan Cucian'
+                      : eligibility.isClaimedBlocked
                       ? 'Jatah Spin Nota Ini Sudah Terpakai'
                       : 'Promo Sedang Tidak Aktif'}
                   </h5>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white uppercase tracking-wider">
-                    TERKUNCI
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                    eligibility.isNotReadyForPickup
+                      ? 'bg-cyan-500 text-slate-950'
+                      : eligibility.isClaimedBlocked
+                      ? 'bg-rose-500 text-white'
+                      : 'bg-slate-700 text-slate-200'
+                  }`}>
+                    {eligibility.isNotReadyForPickup ? 'MENUNGGU AMBIL' : 'TERKUNCI'}
                   </span>
                 </div>
                 <p className="text-slate-300 leading-relaxed">
@@ -567,9 +594,15 @@ export const PromoGamificationModal: React.FC<PromoGamificationModalProps> = ({
                 >
                   {!eligibility.canSpin ? (
                     <>
-                      <Lock className="w-5 h-5 text-slate-500" />
+                      {eligibility.isNotReadyForPickup ? (
+                        <Clock className="w-5 h-5 text-cyan-400 animate-pulse" />
+                      ) : (
+                        <Lock className="w-5 h-5 text-slate-500" />
+                      )}
                       <span>
-                        {eligibility.isClaimedBlocked
+                        {eligibility.isNotReadyForPickup
+                          ? 'DAPAT DIPUTAR SAAT AMBIL CUCIAN (STATUS: SIAP AMBIL)'
+                          : eligibility.isClaimedBlocked
                           ? '1X SPIN NOTA TELAH DIGUNAKAN (LOCKED)'
                           : 'PROMO DI LUAR PERIODE AKTIF'}
                       </span>
@@ -649,13 +682,19 @@ export const PromoGamificationModal: React.FC<PromoGamificationModalProps> = ({
                 {/* Ineligible Lock Overlay */}
                 {!eligibility.canSpin && (
                   <div className="absolute inset-0 z-20 bg-slate-950/85 backdrop-blur-xs flex flex-col items-center justify-center text-center p-4">
-                    <Lock className="w-8 h-8 text-amber-400 mb-1.5" />
+                    {eligibility.isNotReadyForPickup ? (
+                      <Clock className="w-8 h-8 text-cyan-400 mb-1.5 animate-pulse" />
+                    ) : (
+                      <Lock className="w-8 h-8 text-amber-400 mb-1.5" />
+                    )}
                     <span className="font-extrabold text-xs text-white">
-                      {eligibility.isClaimedBlocked
+                      {eligibility.isNotReadyForPickup
+                        ? 'Kartu Gosok Dibuka Saat Pengambilan Cucian'
+                        : eligibility.isClaimedBlocked
                         ? 'Jatah Gosok Kartu Nota Sudah Digunakan'
                         : 'Promo Gosok Kartu Sedang Tidak Aktif'}
                     </span>
-                    <span className="text-[10px] text-slate-400 mt-1 max-w-[240px]">
+                    <span className="text-[10px] text-slate-300 mt-1 max-w-[240px]">
                       {eligibility.reason}
                     </span>
                   </div>
@@ -734,6 +773,7 @@ export const PromoGamificationModal: React.FC<PromoGamificationModalProps> = ({
                 Aturan:{' '}
                 <strong className="text-slate-200">
                   {gamificationSettings.oneSpinPerOrder ? '1 Nota = 1x Spin' : 'Bebas Re-spin'}
+                  {gamificationSettings.onlyOnPickup ? ' • Khusus Pas Ambil' : ''}
                 </strong>{' '}
                 • Periode:{' '}
                 <strong className="text-slate-200">

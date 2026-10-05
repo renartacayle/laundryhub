@@ -110,6 +110,7 @@ export function checkOrderSpinEligibility(
   prizeClaimed?: string;
   isPeriodBlocked?: boolean;
   isClaimedBlocked?: boolean;
+  isNotReadyForPickup?: boolean;
 } {
   // 1. Period check
   const periodStatus = checkGamificationPeriod(settings);
@@ -121,12 +122,13 @@ export function checkOrderSpinEligibility(
     };
   }
 
-  // 2. Order limit check
+  // 2. Order check
   if (!order) {
     // If no order attached (e.g. Owner preview testing), allow spin
     return { canSpin: true };
   }
 
+  // 3. Limit 1 nota 1 spin check
   if (settings.oneSpinPerOrder && order.hasClaimedGamification) {
     return {
       canSpin: false,
@@ -135,6 +137,27 @@ export function checkOrderSpinEligibility(
       prizeClaimed: order.gamificationRewardClaimed || order.appliedPromoReward || 'Hadiah Telah Diklaim',
       isClaimedBlocked: true,
     };
+  }
+
+  // 4. Khusus Pas Ambil Cucian Saja (status: siap / diantar / selesai)
+  if (settings.onlyOnPickup) {
+    const isPickupReady = order.currentStatus === 'siap' || order.currentStatus === 'diantar' || order.currentStatus === 'selesai';
+    if (!isPickupReady) {
+      const statusLabels: Record<string, string> = {
+        antrean: 'Antrean Masuk',
+        sortir: 'Proses Sortir',
+        cuci: 'Proses Cuci',
+        kering: 'Proses Pengeringan',
+        setrika: 'Proses Setrika Uap',
+        packing: 'Proses Pengemasan',
+      };
+      const currLabel = statusLabels[order.currentStatus] || order.currentStatus;
+      return {
+        canSpin: false,
+        reason: `Nota #${order.invoiceNo} masih dalam tahap "${currLabel}". Lucky Spin khusus dibuka saat pakaian sudah selesai & siap diambil di outlet (Status: Siap Ambil / Selesai).`,
+        isNotReadyForPickup: true,
+      };
+    }
   }
 
   return { canSpin: true };

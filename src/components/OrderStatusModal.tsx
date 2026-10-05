@@ -38,10 +38,14 @@ import {
   Award,
   Navigation,
   Bot,
+  Download,
+  Printer,
+  Gift,
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { useApp } from '../context/AppContext';
 import { formatCurrency } from '../utils/currency';
+import { downloadReceiptPdf } from '../utils/pdfReceipt';
 import { QrisModal } from './QrisModal';
 import { DopamineJackpotModal } from './DopamineJackpotModal';
 import { GeofenceRadarMap } from './GeofenceRadarMap';
@@ -308,6 +312,19 @@ export const OrderStatusModal: React.FC<OrderStatusModalProps> = ({
                 <span className="hidden sm:inline">AI Scanner</span>
               </button>
 
+              <button
+                type="button"
+                onClick={() => {
+                  const targetBranch = branches.find((b) => b.id === currentOrder.branchId) || branches[0];
+                  downloadReceiptPdf(currentOrder, targetBranch, 'a4');
+                }}
+                className="px-2.5 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-slate-950 text-xs font-black transition flex items-center gap-1.5 shadow-sm active:scale-95"
+                title="Download Nota Resmi PDF (A4 Standar / Thermal)"
+              >
+                <Download className="w-3.5 h-3.5 text-slate-950" />
+                <span className="hidden sm:inline">PDF Nota</span>
+              </button>
+
               {gamificationSettings.isEnabled && (
                 <button
                   type="button"
@@ -321,17 +338,25 @@ export const OrderStatusModal: React.FC<OrderStatusModalProps> = ({
                   className={`px-2.5 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 shadow-sm ${
                     currentOrder.hasClaimedGamification
                       ? 'bg-slate-800 text-amber-300 border border-amber-500/40 hover:bg-slate-700'
-                      : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950'
+                      : (gamificationSettings.onlyOnPickup && currentOrder.currentStatus !== 'siap' && currentOrder.currentStatus !== 'diantar' && currentOrder.currentStatus !== 'selesai')
+                      ? 'bg-slate-800 text-amber-400/80 border border-amber-500/30 hover:bg-slate-700'
+                      : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 animate-pulse'
                   }`}
                   title={
                     currentOrder.hasClaimedGamification
                       ? `Spin sudah diklaim: ${currentOrder.gamificationRewardClaimed || '1x Terpakai'}`
+                      : (gamificationSettings.onlyOnPickup && currentOrder.currentStatus !== 'siap' && currentOrder.currentStatus !== 'diantar' && currentOrder.currentStatus !== 'selesai')
+                      ? `Lucky Spin dibuka saat pakaian siap diambil (saat ini: ${currentOrder.currentStatus})`
                       : 'Putar Roda Keberuntungan / Gosok Kartu Hadiah'
                   }
                 >
                   <span>🎡</span>
                   <span className="hidden sm:inline">
-                    {currentOrder.hasClaimedGamification ? 'Spin Terklaim' : 'Lucky Spin'}
+                    {currentOrder.hasClaimedGamification
+                      ? 'Spin Terklaim'
+                      : (gamificationSettings.onlyOnPickup && currentOrder.currentStatus !== 'siap' && currentOrder.currentStatus !== 'diantar' && currentOrder.currentStatus !== 'selesai')
+                      ? 'Spin (Pas Ambil)'
+                      : 'Lucky Spin!'}
                   </span>
                 </button>
               )}
@@ -572,6 +597,20 @@ export const OrderStatusModal: React.FC<OrderStatusModalProps> = ({
                       <span>Bayar via QRIS</span>
                     </button>
                   )}
+
+                  {/* Prominent PDF Nota Download */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const targetBranch = branches.find((b) => b.id === currentOrder.branchId) || branches[0];
+                      downloadReceiptPdf(currentOrder, targetBranch, 'a4');
+                    }}
+                    className="px-3 py-1 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-black text-xs transition-all active:scale-95 flex items-center gap-1.5 shadow-sm"
+                    title="Download Dokumen Resmi PDF Nota Laundry (Format A4 Standar)"
+                  >
+                    <Download className="w-3.5 h-3.5 text-slate-950" />
+                    <span>Download PDF Nota</span>
+                  </button>
                 </div>
               </div>
 
@@ -594,6 +633,79 @@ export const OrderStatusModal: React.FC<OrderStatusModalProps> = ({
                 <div className="text-[9px] text-slate-500">Kamera HP / QR Scanner</div>
               </div>
             </div>
+
+            {/* Pickup & Lucky Spin Celebration Banner */}
+            {gamificationSettings.isEnabled && (
+              <>
+                {(currentOrder.currentStatus === 'siap' || currentOrder.currentStatus === 'diantar' || currentOrder.currentStatus === 'selesai') ? (
+                  !currentOrder.hasClaimedGamification ? (
+                    <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-yellow-500/20 border-2 border-amber-400/50 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg shadow-amber-500/10 animate-in fade-in">
+                      <div className="flex items-center gap-3 text-center sm:text-left">
+                        <div className="p-2.5 rounded-2xl bg-amber-500 text-slate-950 font-black text-xl shrink-0 shadow-md">
+                          🎁
+                        </div>
+                        <div>
+                          <div className="flex items-center justify-center sm:justify-start gap-2">
+                            <h4 className="text-sm font-black text-amber-300">
+                              Cucian Siap Diambil! Klaim Promo Lucky Spin Anda
+                            </h4>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-500 text-slate-950">
+                              BISA DIPUTAR
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-300 mt-0.5">
+                            Pakaian Anda sudah selesai & siap diambil. Putar roda hadiah atau gosok kartu untuk dapat voucher & diskon cuan!
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          triggerGamification({
+                            orderId: currentOrder.id,
+                            customerName: currentOrder.customerName,
+                            finalPrice: currentOrder.finalPrice,
+                          })
+                        }
+                        className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 via-orange-500 to-yellow-400 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black text-xs shadow-md transition-all transform hover:scale-105 active:scale-95 shrink-0 flex items-center gap-1.5"
+                      >
+                        <Sparkles className="w-4 h-4 text-slate-950" />
+                        <span>KLAIM LUCKY SPIN PAS AMBIL</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="p-3 rounded-2xl bg-slate-800/60 border border-amber-500/30 flex items-center justify-between text-xs text-slate-300">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">🎉</span>
+                        <span>
+                          Hadiah Promo Telah Diklaim:{' '}
+                          <strong className="text-amber-300 font-bold">
+                            {currentOrder.gamificationRewardClaimed || '1x Spin Terpakai'}
+                          </strong>
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        Nota #{currentOrder.invoiceNo}
+                      </span>
+                    </div>
+                  )
+                ) : (
+                  gamificationSettings.onlyOnPickup && (
+                    <div className="p-3 rounded-2xl bg-slate-800/40 border border-slate-700/80 flex items-center justify-between text-xs text-slate-400">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-cyan-400 shrink-0" />
+                        <span>
+                          <strong className="text-cyan-300">Lucky Spin Khusus Pas Ambil Cucian:</strong> Roda promo akan otomatis aktif saat cucian Anda berstatus <strong>Siap Ambil</strong> atau <strong>Selesai</strong>.
+                        </span>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-700 text-slate-300 uppercase">
+                        {currentOrder.currentStatus}
+                      </span>
+                    </div>
+                  )
+                )}
+              </>
+            )}
 
             {/* 7-STAGES TIMELINE STEPPER */}
             <div className="p-4 sm:p-5 rounded-2xl bg-slate-800/40 border border-slate-700 space-y-3">

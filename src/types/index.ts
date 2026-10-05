@@ -399,11 +399,13 @@ export interface GamificationPrize {
 export interface GamificationSettings {
   isEnabled: boolean; // Owner can toggle ON/OFF!
   gameType: 'wheel' | 'scratch' | 'both';
-  triggerEvent: 'after_payment' | 'after_review' | 'min_spend' | 'manual';
+  triggerEvent: 'on_pickup' | 'after_payment' | 'after_review' | 'min_spend' | 'manual';
   minSpendAmount: number; // e.g. Rp 30.000
   prizes: GamificationPrize[];
   // Limit 1 Nota = 1x Spin
   oneSpinPerOrder: boolean; // limit 1 nota 1 kali spin
+  // Khusus Pas Ambil Cucian
+  onlyOnPickup: boolean; // promo cuma bisa customer pas ambil aja (status: siap_ambil / selesai)
   // Periode Promo Tertentu
   hasPeriodLimit: boolean; // toggle apakah promo dibatasi periode tanggal tertentu
   startDate?: string; // Format YYYY-MM-DD (e.g. '2026-10-01')

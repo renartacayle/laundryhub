@@ -19,10 +19,12 @@ import {
   ClipboardCheck,
   AlertTriangle,
   QrCode,
+  Download,
 } from 'lucide-react';
 import { ReceiptModal } from '../components/ReceiptModal';
 import { WhatsAppSimulatorModal } from '../components/WhatsAppSimulatorModal';
 import { formatCurrency } from '../utils/currency';
+import { downloadReceiptPdf } from '../utils/pdfReceipt';
 import confetti from 'canvas-confetti';
 
 interface PelangganPortalProps {
@@ -235,6 +237,17 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
                   >
                     <QrCode className="w-4 h-4 text-cyan-200" />
                     <span>{language === 'en' ? 'Live QR Tracking' : 'Status & QR Nota'}</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      const branch = branches.find((b) => b.id === activeOrder.branchId) || branches[0];
+                      downloadReceiptPdf(activeOrder, branch, 'a4');
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-slate-950 text-xs font-black transition-all active:scale-95 shadow-sm"
+                    title="Download Nota Resmi PDF (A4 Standar)"
+                  >
+                    <Download className="w-4 h-4 text-slate-950" />
+                    <span>Download PDF</span>
                   </button>
                   <button
                     id="open-receipt-btn"
@@ -579,6 +592,17 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
                         className="px-2.5 py-1 rounded-lg bg-cyan-600/25 hover:bg-cyan-600 text-cyan-300 hover:text-white border border-cyan-500/40 font-semibold text-xs transition-colors"
                       >
                         {language === 'en' ? 'Track' : 'Status'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          const branch = branches.find((b) => b.id === ord.branchId) || branches[0];
+                          downloadReceiptPdf(ord, branch, 'a4');
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-cyan-600/25 hover:bg-cyan-600 text-cyan-300 hover:text-white border border-cyan-500/40 font-semibold text-xs transition-colors inline-flex items-center gap-1"
+                        title="Download Dokumen Resmi PDF Nota"
+                      >
+                        <Download className="w-3 h-3" />
+                        <span>PDF</span>
                       </button>
                       <button
                         onClick={() => {

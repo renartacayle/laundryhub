@@ -39,6 +39,7 @@ import {
   Settings,
   ClipboardCheck,
   Camera,
+  Download,
 } from 'lucide-react';
 import { ReceiptModal } from '../components/ReceiptModal';
 import { WhatsAppSimulatorModal } from '../components/WhatsAppSimulatorModal';
@@ -48,6 +49,7 @@ import { OutletQrisConfigModal } from '../components/OutletQrisConfigModal';
 import { ClothesDetailModal } from '../components/ClothesDetailModal';
 import { formatCurrency } from '../utils/currency';
 import { checkGamificationPeriod } from '../utils/gamification';
+import { downloadReceiptPdf } from '../utils/pdfReceipt';
 import { dbService } from '../services/api';
 
 interface KasirPOSProps {
@@ -343,7 +345,12 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
       setIsReceiptOpen(true);
 
       // Trigger owner-configured gamification promo reward if eligible
-      if (gamificationSettings.isEnabled && gamificationSettings.triggerEvent === 'after_payment') {
+      // If onlyOnPickup is true or triggerEvent is on_pickup, spin is saved for when customer picks up laundry!
+      if (
+        gamificationSettings.isEnabled &&
+        !gamificationSettings.onlyOnPickup &&
+        gamificationSettings.triggerEvent === 'after_payment'
+      ) {
         const periodStatus = checkGamificationPeriod(gamificationSettings);
         if (periodStatus.isActive) {
           setTimeout(() => {
@@ -1132,11 +1139,21 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
                       <td className="p-3.5 text-right space-x-1.5">
                         <button
                           onClick={() => {
+                            const branch = branches.find((b) => b.id === ord.branchId) || branches[0];
+                            downloadReceiptPdf(ord, branch, 'a4');
+                          }}
+                          className="p-1.5 rounded-lg bg-cyan-950/60 hover:bg-cyan-900 text-cyan-400 transition-colors"
+                          title="Download Dokumen Resmi PDF Nota"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => {
                             setActiveOrderForReceipt(ord);
                             setIsReceiptOpen(true);
                           }}
                           className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
-                          title="Cetak Struk"
+                          title="Cetak Struk Thermal"
                         >
                           <Printer className="w-3.5 h-3.5" />
                         </button>
