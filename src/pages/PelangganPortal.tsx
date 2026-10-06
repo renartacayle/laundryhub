@@ -136,8 +136,9 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
   return (
     <div className="space-y-6">
       {/* Top Customer Portal Header */}
-      <div className="flex items-center justify-between gap-4 border-b border-slate-800 pb-3 flex-wrap">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-4 border-b border-slate-200/80 dark:border-slate-800 pb-3 flex-wrap">
+        {/* Mobile Horizontal Tabs (md:hidden) */}
+        <div className="flex md:hidden items-center gap-2 overflow-x-auto no-scrollbar flex-nowrap pb-1 max-w-full">
           <button
             onClick={() => setActiveTab('tracking')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
@@ -182,6 +183,17 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
             <Bike className="w-4 h-4" />
             <span>{t.portal.tabPickup}</span>
           </button>
+        </div>
+
+        {/* Desktop Section Title (hidden md:flex) */}
+        <div className="hidden md:flex items-center gap-2.5">
+          <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-glow-emerald" />
+          <h1 className="text-base font-black text-slate-900 dark:text-white tracking-tight">
+            {activeTab === 'tracking' && 'Lacak Status Perjalanan & Bukti Cucian'}
+            {activeTab === 'wallet' && 'Dompet Saldo Deposit & Poin Reward Member'}
+            {activeTab === 'history' && `Riwayat Transaksi & Nota Digital (${customerOrders.length})`}
+            {activeTab === 'pickup' && 'Formulir Request Penjemputan Cucian ke Rumah'}
+          </h1>
         </div>
 
         {/* Switch demo customer */}

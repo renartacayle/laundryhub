@@ -208,17 +208,21 @@ const MainLayout: React.FC = () => {
         <div className="absolute -bottom-40 left-1/3 w-96 h-96 bg-amber-600/10 rounded-full blur-3xl" />
       </div>
 
-      {/* Top 1-Click Role Switcher (Hidden on mobile to eliminate clutter) */}
-      <RoleSwitcherBar />
+      {/* Top 1-Click Role Switcher (Hidden: fully unified into Sidebar) */}
+      <div className="hidden">
+        <RoleSwitcherBar />
+      </div>
 
-      {/* Main Topbar Navigation (With Laundry Photo, Name, and Pindah Laundry on mobile) */}
-      <Navbar />
+      {/* Main Topbar Navigation (Visible on mobile only; on desktop the unified Sidebar is the single navigation) */}
+      <div className="md:hidden">
+        <Navbar />
+      </div>
 
-      {/* Content Area with Collapsible Sidebar */}
-      <div className="flex-1 flex max-w-7xl w-full mx-auto relative z-10 overflow-x-hidden">
+      {/* Content Area with Single Unified Left Sidebar on Desktop */}
+      <div className="flex-1 flex w-full relative z-10 overflow-x-hidden">
         <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
-        <main className="flex-1 p-3 sm:p-6 lg:p-8 pb-24 md:pb-8 overflow-x-hidden min-h-[calc(100vh-120px)] w-full max-w-full">
+        <main className="flex-1 p-3 sm:p-6 lg:p-8 pb-24 md:pb-8 overflow-x-hidden min-h-screen w-full max-w-full">
           {/* Mobile Direct View (md:hidden) */}
           <div className="md:hidden w-full">
             {currentRole === 'pelanggan' ? (

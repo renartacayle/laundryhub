@@ -559,8 +559,9 @@ Konsultasi Admin WA: 081228263200`;
   return (
     <div className="space-y-6">
       {/* Top Owner Header & Sub-nav */}
-      <div className="flex items-center justify-between gap-4 border-b border-slate-800 pb-3 flex-wrap">
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar flex-nowrap md:flex-wrap pb-1 max-w-full">
+      <div className="flex items-center justify-between gap-4 border-b border-slate-200/80 dark:border-slate-800 pb-3 flex-wrap">
+        {/* Mobile Horizontal Sub-nav (md:hidden) */}
+        <div className="flex md:hidden items-center gap-2 overflow-x-auto no-scrollbar flex-nowrap pb-1 max-w-full">
           <button
             onClick={() => setActiveTab('overview')}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
@@ -682,6 +683,23 @@ Konsultasi Admin WA: 081228263200`;
             <FileText className="w-4 h-4" />
             <span>Audit Log</span>
           </button>
+        </div>
+
+        {/* Desktop Section Title (hidden md:flex) */}
+        <div className="hidden md:flex items-center gap-2.5">
+          <div className="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-glow-amber" />
+          <h1 className="text-base font-black text-slate-900 dark:text-white tracking-tight">
+            {activeTab === 'overview' && 'Ringkasan Eksekutif & Omzet Konsolidasi'}
+            {activeTab === 'pnl' && 'Laporan Laba Rugi Riil (P&L Cash Flow)'}
+            {activeTab === 'stats' && 'Statistik Performa Bulanan & Tahunan (2024-2026)'}
+            {activeTab === 'branches' && 'Monitoring Performa Multi-Cabang Outlet'}
+            {activeTab === 'dropship' && `Jaringan Kemitraan Dropship & Payout (${dropshipAgents.length} Mitra)`}
+            {activeTab === 'supplies' && 'Manajemen Pasokan Bahan Baku B2B Dropship'}
+            {activeTab === 'inventory' && `Monitoring Stok & Pengadaan Gudang (${lowStockItems.length} Menipis)`}
+            {activeTab === 'staff' && 'Karyawan, Presensi Borongan & Slip Gaji'}
+            {activeTab === 'marketing' && 'Pusat Marketing & Program Cuan Gamifikasi'}
+            {activeTab === 'audit' && 'Riwayat Log Audit & Integritas Keamanan'}
+          </h1>
         </div>
 
         {/* Branch Filter dropdown */}

@@ -401,8 +401,9 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
   return (
     <div className="space-y-6">
       {/* Kasir Sub-view switcher */}
-      <div className="flex items-center justify-between gap-3 border-b border-slate-800 pb-3 flex-wrap">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-3 border-b border-slate-200/80 dark:border-slate-800 pb-3 flex-wrap">
+        {/* Mobile Sub-view tabs (md:hidden) */}
+        <div className="flex md:hidden items-center gap-2 overflow-x-auto no-scrollbar flex-nowrap pb-1 max-w-full">
           <button
             onClick={() => setActiveSubView('pos')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
@@ -436,6 +437,16 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
             <Wallet className="w-4 h-4" />
             <span>Pelanggan & Saldo Deposit ({customers.length})</span>
           </button>
+        </div>
+
+        {/* Desktop Section Title (hidden md:flex) */}
+        <div className="hidden md:flex items-center gap-2.5">
+          <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-glow-cyan" />
+          <h1 className="text-base font-black text-slate-900 dark:text-white tracking-tight">
+            {activeSubView === 'pos' && 'Point of Sale (Input Pesanan Laundry Baru)'}
+            {activeSubView === 'orders' && `Daftar Transaksi & Riwayat Order (${orders.length})`}
+            {activeSubView === 'customers' && `Database Pelanggan & Saldo Deposit (${customers.length})`}
+          </h1>
         </div>
 
         <div className="flex items-center gap-3">
