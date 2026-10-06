@@ -343,7 +343,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
                     className="w-24 h-24 mx-auto object-contain rounded-lg"
                   />
                 ) : (
-                  <div className="w-24 h-24 flex items-center justify-center bg-slate-100 text-[10px] text-slate-500 rounded">
+                  <div className="w-24 h-24 flex items-center justify-center bg-gray-100 text-[10px] text-gray-500 rounded">
                     Membuat QR...
                   </div>
                 )}
@@ -364,9 +364,9 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
                     setIsCopied(true);
                     setTimeout(() => setIsCopied(false), 2000);
                   }}
-                  className="inline-flex items-center gap-1 text-[9px] font-bold px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition-colors"
+                  className="inline-flex items-center gap-1 text-[9px] font-bold px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300 transition-colors"
                 >
-                  {isCopied ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3 text-slate-600" />}
+                  {isCopied ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3 text-gray-600" />}
                   <span>{isCopied ? (language === 'en' ? 'Copied' : 'Tersalin') : (language === 'en' ? 'Copy Link' : 'Salin Link')}</span>
                 </button>
 

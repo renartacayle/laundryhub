@@ -688,7 +688,7 @@ Konsultasi Admin WA: 081228263200`;
         {/* Desktop Section Title (hidden md:flex) */}
         <div className="hidden md:flex items-center gap-2.5">
           <div className="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-glow-amber" />
-          <h1 className="text-base font-black text-slate-900 dark:text-white tracking-tight">
+          <h1 className="text-base font-black text-slate-100 tracking-tight">
             {activeTab === 'overview' && 'Ringkasan Eksekutif & Omzet Konsolidasi'}
             {activeTab === 'pnl' && 'Laporan Laba Rugi Riil (P&L Cash Flow)'}
             {activeTab === 'stats' && 'Statistik Performa Bulanan & Tahunan (2024-2026)'}
@@ -708,7 +708,7 @@ Konsultasi Admin WA: 081228263200`;
           <select
             value={selectedBranchFilter}
             onChange={(e) => setSelectedBranchFilter(e.target.value)}
-            className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500 font-semibold"
+            className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-amber-500 font-semibold"
           >
             <option value="all">Semua Cabang (Konsolidasi)</option>
             {branches.map((b) => (
@@ -803,16 +803,16 @@ Konsultasi Admin WA: 081228263200`;
 
           {/* Low Stock Warning Banner if any */}
           {lowStockItems.length > 0 && (
-            <div className="p-4 rounded-2xl bg-rose-950/40 border border-rose-500/40 flex items-center justify-between gap-3 flex-wrap">
+            <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 dark:bg-rose-950/40 dark:border-rose-500/40 dark:text-rose-200 flex items-center justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-rose-500/20 text-rose-400 rounded-xl">
+                <div className="p-2 bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-xl">
                   <AlertTriangle className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-white">
+                  <h4 className="text-xs font-bold text-rose-900 dark:text-white">
                     Peringatan: {lowStockItems.length} Bahan Operasional Menipis!
                   </h4>
-                  <p className="text-[11px] text-rose-200/80">
+                  <p className="text-[11px] text-rose-700 dark:text-rose-200/80">
                     {lowStockItems.map((i) => `${i.name} (Sisa ${i.stock} ${i.unit})`).join(', ')}
                   </p>
                 </div>
@@ -829,10 +829,10 @@ Konsultasi Admin WA: 081228263200`;
           {/* Charts Row with Interactive Time Period Switcher */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Revenue Trend Chart */}
-            <div className="lg:col-span-8 p-5 rounded-3xl glass-panel border border-slate-800 space-y-3">
+            <div className="lg:col-span-8 p-5 rounded-3xl glass-panel border border-slate-700 space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div>
-                  <h3 className="text-sm font-bold text-white">
+                  <h3 className="text-sm font-bold text-slate-100">
                     {overviewPeriod === '7days' && 'Tren Pendapatan Harian (7 Hari Terakhir)'}
                     {overviewPeriod === 'monthly' && 'Grafik Tren Bulanan (12 Bulan 2026)'}
                     {overviewPeriod === 'yearly' && 'Grafik Pertumbuhan Tahunan (2024 - 2026 YoY)'}
@@ -845,13 +845,13 @@ Konsultasi Admin WA: 081228263200`;
                 </div>
 
                 {/* Period Pills Toggle */}
-                <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800 text-[11px]">
+                <div className="flex items-center gap-1 bg-slate-800 p-1 rounded-xl border border-slate-700 text-[11px]">
                   <button
                     onClick={() => setOverviewPeriod('7days')}
                     className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
                       overviewPeriod === '7days'
                         ? 'bg-amber-500 text-slate-950 shadow-glow-amber'
-                        : 'text-slate-400 hover:text-white'
+                        : 'text-slate-400 hover:text-slate-100'
                     }`}
                   >
                     7 Hari
@@ -861,7 +861,7 @@ Konsultasi Admin WA: 081228263200`;
                     className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
                       overviewPeriod === 'monthly'
                         ? 'bg-amber-500 text-slate-950 shadow-glow-amber'
-                        : 'text-slate-400 hover:text-white'
+                        : 'text-slate-400 hover:text-slate-100'
                     }`}
                   >
                     12 Bulan
@@ -871,7 +871,7 @@ Konsultasi Admin WA: 081228263200`;
                     className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
                       overviewPeriod === 'yearly'
                         ? 'bg-amber-500 text-slate-950 shadow-glow-amber'
-                        : 'text-slate-400 hover:text-white'
+                        : 'text-slate-400 hover:text-slate-100'
                     }`}
                   >
                     Tahunan (YoY)
@@ -985,9 +985,9 @@ Konsultasi Admin WA: 081228263200`;
             </div>
 
             {/* Service Category Pie Chart */}
-            <div className="lg:col-span-4 p-5 rounded-3xl glass-panel border border-slate-800 space-y-3 flex flex-col justify-between">
+            <div className="lg:col-span-4 p-5 rounded-3xl glass-panel border border-slate-700 space-y-3 flex flex-col justify-between">
               <div>
-                <h3 className="text-sm font-bold text-white">Distribusi Pendapatan Layanan</h3>
+                <h3 className="text-sm font-bold text-slate-100">Distribusi Pendapatan Layanan</h3>
                 <p className="text-xs text-slate-400">Proporsi Kiloan vs Satuan & Dry Clean</p>
               </div>
 
@@ -1021,14 +1021,14 @@ Konsultasi Admin WA: 081228263200`;
               </div>
 
               {/* Legend List */}
-              <div className="space-y-1.5 pt-2 border-t border-slate-800 text-xs">
+              <div className="space-y-1.5 pt-2 border-t border-slate-700 text-xs">
                 {categoryChartData.map((item) => (
                   <div key={item.name} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
                       <span className="text-slate-300 text-[11px]">{item.name}</span>
                     </div>
-                    <span className="font-bold text-white font-mono">{item.value}%</span>
+                    <span className="font-bold text-slate-100 font-mono">{item.value}%</span>
                   </div>
                 ))}
               </div>

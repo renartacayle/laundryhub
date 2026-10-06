@@ -351,9 +351,9 @@ export const AiGarmentScannerModal: React.FC<AiGarmentScannerModalProps> = ({
             <div className="space-y-4 flex flex-col justify-between">
               <div className="space-y-3">
                 {/* Garment Classification Card */}
-                <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700">
+                <div className="p-4 bg-slate-800/80 rounded-2xl border border-slate-700">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
                       Klasifikasi Jenis Kain & Bahan
                     </span>
                     <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
@@ -361,10 +361,10 @@ export const AiGarmentScannerModal: React.FC<AiGarmentScannerModalProps> = ({
                       Terverifikasi AI
                     </span>
                   </div>
-                  <h4 className="font-extrabold text-sm text-slate-900 dark:text-white mt-1">
+                  <h4 className="font-extrabold text-sm text-slate-100 mt-1">
                     {selectedPreset.garmentType}
                   </h4>
-                  <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 flex items-start gap-1.5">
+                  <p className="text-xs text-slate-300 mt-1 flex items-start gap-1.5">
                     <Info className="w-3.5 h-3.5 text-indigo-500 shrink-0 mt-0.5" />
                     <span>{selectedPreset.fabricCareNote}</span>
                   </p>
@@ -372,7 +372,7 @@ export const AiGarmentScannerModal: React.FC<AiGarmentScannerModalProps> = ({
 
                 {/* Detected Stains List */}
                 <div className="space-y-2">
-                  <p className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <p className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
                     <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
                     <span>Daftar Noda & Kerusakan Bawaan ({selectedPreset.stains.length}):</span>
                   </p>
@@ -388,11 +388,11 @@ export const AiGarmentScannerModal: React.FC<AiGarmentScannerModalProps> = ({
                           className={`p-3 rounded-2xl border transition-all cursor-pointer ${
                             isSelected
                               ? 'bg-indigo-50 dark:bg-indigo-950/30 border-indigo-400 dark:border-indigo-600 shadow-sm'
-                              : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-slate-300'
+                              : 'bg-slate-900 border-slate-700 hover:border-slate-600'
                           }`}
                         >
                           <div className="flex items-center justify-between">
-                            <span className="font-bold text-xs text-slate-900 dark:text-white">
+                            <span className="font-bold text-xs text-slate-100">
                               {stain.label}
                             </span>
                             <span
@@ -408,7 +408,7 @@ export const AiGarmentScannerModal: React.FC<AiGarmentScannerModalProps> = ({
                             </span>
                           </div>
 
-                          <div className="mt-2 text-[11px] text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-900/60 p-2 rounded-xl flex items-start gap-1.5">
+                          <div className="mt-2 text-[11px] text-slate-300 bg-slate-800 p-2 rounded-xl flex items-start gap-1.5">
                             <Droplets className="w-3 h-3 text-cyan-500 shrink-0 mt-0.5" />
                             <span>
                               <strong className="text-indigo-600 dark:text-indigo-400">Treatment:</strong>{' '}

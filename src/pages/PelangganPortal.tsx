@@ -389,8 +389,8 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
                     <span
                       className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
                         activeOrder.paymentStatus === 'lunas'
-                          ? 'bg-emerald-950 text-emerald-300'
-                          : 'bg-amber-950 text-amber-300'
+                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                          : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
                       }`}
                     >
                       {activeOrder.paymentStatus === 'lunas'
@@ -398,7 +398,7 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
                         : (language === 'en' ? '⚠️ Payment Pending' : '⚠️ Belum Lunas')}
                     </span>
                   </div>
-                  <div className="font-mono text-emerald-400 font-bold mt-1">
+                  <div className="font-mono text-emerald-500 dark:text-emerald-400 font-bold mt-1">
                     {formatCurrency(activeOrder.finalPrice, currency)}
                   </div>
                 </div>
@@ -415,29 +415,29 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
 
               {/* Detail Isi Pakaian & Catatan Sortir Pelanggan */}
               {activeOrder.clothesDetails && activeOrder.clothesDetails.length > 0 && (
-                <div className="p-4 rounded-2xl bg-indigo-950/20 border border-indigo-500/30 space-y-2.5">
+                <div className="p-4 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/20 border border-indigo-200/80 dark:border-indigo-500/30 space-y-2.5">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-extrabold text-indigo-300 flex items-center gap-1.5">
-                      <ClipboardCheck className="w-4 h-4 text-indigo-400" />
+                    <span className="font-extrabold text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5">
+                      <ClipboardCheck className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                       <span>{language === 'en' ? 'Verified Garment Breakdown:' : 'Rincian Pakaian Terdata di Outlet:'}</span>
                     </span>
-                    <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px] font-mono font-bold">
+                    <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300 text-[10px] font-mono font-bold">
                       {activeOrder.totalPieces || activeOrder.clothesDetails.reduce((a, b) => a + (b.quantity || 0), 0)} Pcs / Helai
                     </span>
                   </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
                     {activeOrder.clothesDetails.filter((c) => c.quantity > 0).map((c, i) => (
-                      <div key={i} className="p-2 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between">
-                        <span className="text-slate-300 font-medium truncate">• {c.name} {c.notes ? `(${c.notes})` : ''}</span>
-                        <strong className="text-indigo-400 font-mono shrink-0 ml-1">{c.quantity} pcs</strong>
+                      <div key={i} className="p-2 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-between">
+                        <span className="text-slate-200 font-medium truncate">• {c.name} {c.notes ? `(${c.notes})` : ''}</span>
+                        <strong className="text-indigo-600 dark:text-indigo-400 font-mono shrink-0 ml-1">{c.quantity} pcs</strong>
                       </div>
                     ))}
                   </div>
 
                   {activeOrder.sortingNotes && (
-                    <div className="p-2.5 rounded-xl bg-amber-950/30 border border-amber-500/30 text-[11px] text-amber-200 flex items-start gap-1.5">
-                      <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                    <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-500/30 text-[11px] text-amber-900 dark:text-amber-200 flex items-start gap-1.5">
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                       <div>
                         <strong>{language === 'en' ? 'Inspection Notes:' : 'Catatan Pemeriksaan Stasiun Sortir:'}</strong>{' '}
                         <span>{activeOrder.sortingNotes}</span>

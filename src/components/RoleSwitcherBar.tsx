@@ -123,7 +123,7 @@ export const RoleSwitcherBar: React.FC = () => {
                   className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold transition-all whitespace-nowrap active:scale-95 ${
                     isActive
                       ? `${r.bgActive} shadow-xs ring-1 ring-white/10`
-                      : 'bg-white/80 dark:bg-slate-900/60 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-800/60 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                      : 'bg-slate-900/80 hover:bg-slate-800 border border-slate-700/80 text-slate-300 hover:text-slate-100'
                   }`}
                 >
                   <span className={r.color}>{r.icon}</span>
@@ -153,7 +153,7 @@ export const RoleSwitcherBar: React.FC = () => {
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold border transition-all active:scale-95 ${
                 activeGmailAccount
                   ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-700 dark:text-cyan-300'
-                  : 'bg-white/80 dark:bg-slate-900/60 border-slate-200/80 dark:border-slate-800/60 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                  : 'bg-slate-900/80 border-slate-700/80 text-slate-300 hover:text-slate-100 hover:bg-slate-800'
               }`}
               title="Kelola Akun Google Karyawan"
             >

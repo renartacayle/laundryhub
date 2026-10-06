@@ -833,8 +833,8 @@ export const StaffAttendanceModal: React.FC<StaffAttendanceModalProps> = ({ isOp
                   </thead>
                   <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
                     {attendances.map((item) => (
-                      <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                        <td className="p-3 font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                      <tr key={item.id} className="hover:bg-slate-800/70 transition-colors">
+                        <td className="p-3 font-semibold text-slate-100 flex items-center gap-2">
                           <span className="w-2 h-2 rounded-full bg-emerald-500" />
                           {item.userName}
                         </td>
@@ -905,20 +905,20 @@ export const StaffAttendanceModal: React.FC<StaffAttendanceModalProps> = ({ isOp
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1">
+                <div className="p-4 bg-slate-800/80 rounded-2xl border border-slate-700">
+                  <label className="block text-xs font-bold text-slate-200 mb-1">
                     Gaji Pokok Harian (Rp / Hari Hadir)
                   </label>
                   <input
                     type="number"
                     value={baseSalaryInput}
                     onChange={(e) => setBaseSalaryInput(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl text-sm font-bold text-slate-800 dark:text-white"
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm font-bold text-slate-100"
                   />
                   <p className="text-[11px] text-slate-400 mt-1">Diberikan setiap hari staf masuk kerja</p>
                 </div>
 
-                <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
+                <div className="p-4 bg-slate-800/80 rounded-2xl border border-slate-700">
                   <label className="block text-xs font-bold text-rose-600 dark:text-rose-400 mb-1">
                     Pengurangan Gaji per Tidak Masuk (Rp / Hari)
                   </label>
@@ -926,12 +926,12 @@ export const StaffAttendanceModal: React.FC<StaffAttendanceModalProps> = ({ isOp
                     type="number"
                     value={absenceDeductionInput}
                     onChange={(e) => setAbsenceDeductionInput(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-rose-300 dark:border-rose-700 rounded-xl text-sm font-bold text-rose-600 dark:text-rose-400"
+                    className="w-full px-3 py-2 bg-slate-900 border border-rose-500/40 rounded-xl text-sm font-bold text-rose-600 dark:text-rose-400"
                   />
                   <p className="text-[11px] text-slate-400 mt-1">Potongan otomatis jika status Alpha</p>
                 </div>
 
-                <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
+                <div className="p-4 bg-slate-800/80 rounded-2xl border border-slate-700">
                   <label className="block text-xs font-bold text-amber-600 dark:text-amber-400 mb-1">
                     Pengurangan Gaji Terlambat (Rp / Kali)
                   </label>
@@ -939,7 +939,7 @@ export const StaffAttendanceModal: React.FC<StaffAttendanceModalProps> = ({ isOp
                     type="number"
                     value={lateDeductionInput}
                     onChange={(e) => setLateDeductionInput(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-700 rounded-xl text-sm font-bold text-amber-600 dark:text-amber-400"
+                    className="w-full px-3 py-2 bg-slate-900 border border-amber-500/40 rounded-xl text-sm font-bold text-amber-600 dark:text-amber-400"
                   />
                   <p className="text-[11px] text-slate-400 mt-1">Potongan jika clock-in lewat 08:15</p>
                 </div>

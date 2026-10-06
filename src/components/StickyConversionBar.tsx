@@ -48,21 +48,21 @@ export const StickyConversionBar: React.FC<StickyConversionBarProps> = ({ onOpen
 
   return (
     <div className="fixed bottom-20 right-3 sm:bottom-6 sm:right-6 z-40 max-w-md w-[calc(100%-1.5rem)] sm:w-auto animate-in fade-in slide-in-from-bottom-4 duration-300">
-      <div className="p-3.5 sm:px-4 sm:py-3 rounded-2xl bg-gradient-to-r from-slate-900/95 via-emerald-950/90 to-slate-900/95 border border-emerald-500/40 shadow-2xl backdrop-blur-md flex items-center justify-between gap-3">
+      <div className="p-3.5 sm:px-4 sm:py-3 rounded-2xl bg-white/95 dark:bg-slate-900/95 border border-emerald-500/40 shadow-2xl backdrop-blur-md flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex-shrink-0">
+          <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30 flex-shrink-0">
             <Sparkles className="w-4 h-4 animate-spin-slow" />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="font-extrabold text-xs text-white">
+              <span className="font-extrabold text-xs text-slate-900 dark:text-white">
                 Bebas Biaya Bulanan!
               </span>
               <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-emerald-500 text-slate-950">
                 RP 25/NOTA
               </span>
             </div>
-            <p className="text-[10px] text-slate-300 hidden sm:block">
+            <p className="text-[10px] text-slate-600 dark:text-slate-300 hidden sm:block">
               Uang laundry 100% masuk rekening sendiri. Coba gratis 50 nota pertama.
             </p>
           </div>
@@ -79,15 +79,15 @@ export const StickyConversionBar: React.FC<StickyConversionBarProps> = ({ onOpen
 
           <button
             onClick={onOpenShowcase}
-            className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors"
+            className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-700 transition-colors"
             title="Kalkulator ROI"
           >
-            <Calculator className="w-3.5 h-3.5 text-cyan-400" />
+            <Calculator className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
           </button>
 
           <button
             onClick={() => setIsMinimized(true)}
-            className="p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors"
+            className="p-1.5 text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             title="Sembunyikan"
           >
             <ChevronDown className="w-3.5 h-3.5" />

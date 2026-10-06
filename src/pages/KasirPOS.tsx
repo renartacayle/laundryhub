@@ -830,7 +830,7 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
                     onClick={() => setIsClothesModalOpen(true)}
                     className={`w-full p-2.5 rounded-2xl border text-left transition-all flex items-center justify-between gap-2 active:scale-98 ${
                       cartTotalPieces > 0
-                        ? 'bg-indigo-950/40 border-indigo-500/50 text-indigo-300'
+                        ? 'bg-indigo-50 border-indigo-200 text-indigo-800 dark:bg-indigo-950/40 dark:border-indigo-500/50 dark:text-indigo-300'
                         : 'bg-slate-900/80 border-slate-700/80 hover:border-indigo-500/50 text-slate-300'
                     }`}
                   >
@@ -987,7 +987,7 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
 
                   {/* Customer Deposit info */}
                   {paymentMethod === 'deposit' && (
-                    <div className="p-2.5 rounded-xl bg-emerald-950/30 border border-emerald-500/30 text-xs text-emerald-300 flex items-center justify-between">
+                    <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-500/30 dark:text-emerald-300 text-xs flex items-center justify-between">
                       <span>Saldo Deposit Pelanggan:</span>
                       <span className="font-bold font-mono">
                         Rp {selectedCustomer.depositBalance.toLocaleString('id-ID')}
@@ -1140,8 +1140,8 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
                         <span
                           className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
                             ord.paymentStatus === 'lunas'
-                              ? 'bg-emerald-950 text-emerald-400'
-                              : 'bg-rose-950 text-rose-400'
+                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-400'
+                              : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-400'
                           }`}
                         >
                           {ord.paymentStatus === 'lunas' ? 'LUNAS' : 'BELUM LUNAS'}
@@ -1153,7 +1153,7 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
                             const branch = branches.find((b) => b.id === ord.branchId) || branches[0];
                             downloadReceiptPdf(ord, branch, 'a4');
                           }}
-                          className="p-1.5 rounded-lg bg-cyan-950/60 hover:bg-cyan-900 text-cyan-400 transition-colors"
+                          className="p-1.5 rounded-lg bg-cyan-100 hover:bg-cyan-200 text-cyan-700 dark:bg-cyan-950/60 dark:hover:bg-cyan-900 dark:text-cyan-400 transition-colors"
                           title="Download Dokumen Resmi PDF Nota"
                         >
                           <Download className="w-3.5 h-3.5" />
@@ -1170,17 +1170,17 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
                         </button>
                         <button
                           onClick={() => openWhatsAppBot(ord)}
-                          className="p-1.5 rounded-lg bg-emerald-950/60 hover:bg-emerald-900 text-emerald-400 transition-colors"
+                          className="p-1.5 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-700 dark:bg-emerald-950/60 dark:hover:bg-emerald-900 dark:text-emerald-400 transition-colors"
                           title="WhatsApp Auto-Pilot Bot (e-Nota, Update Status, Reminder)"
                         >
                           <MessageSquare className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => openAiScanner(ord.id)}
-                          className="p-1.5 rounded-lg bg-indigo-950/60 hover:bg-indigo-900 text-indigo-400 transition-colors"
+                          className="p-1.5 rounded-lg bg-indigo-100 hover:bg-indigo-200 text-indigo-700 dark:bg-indigo-950/60 dark:hover:bg-indigo-900 dark:text-indigo-400 transition-colors"
                           title="AI Garment & Stain Scanner (Inspeksi Noda & Cacat)"
                         >
-                          <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
+                          <Sparkles className="w-3.5 h-3.5 text-amber-500 dark:text-yellow-300" />
                         </button>
                       </td>
                     </tr>

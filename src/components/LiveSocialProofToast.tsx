@@ -117,7 +117,7 @@ export const LiveSocialProofToast: React.FC<LiveSocialProofToastProps> = ({ onOp
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="font-bold text-xs text-white leading-tight">
+                <span className="font-bold text-xs text-slate-100 leading-tight">
                   {current.title}
                 </span>
                 <span className="text-[9px] text-slate-400 font-mono">• {current.time}</span>
@@ -133,14 +133,14 @@ export const LiveSocialProofToast: React.FC<LiveSocialProofToastProps> = ({ onOp
               e.stopPropagation();
               setIsDismissed(true);
             }}
-            className="p-1 text-slate-500 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+            className="p-1 text-slate-400 hover:text-slate-100 rounded-lg hover:bg-slate-800 transition-colors"
             title="Tutup Notifikasi Aktivitas"
           >
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        <div className="mt-2.5 flex items-center justify-between text-[10px] pt-2 border-t border-slate-800/80">
+        <div className="mt-2.5 flex items-center justify-between text-[10px] pt-2 border-t border-slate-700/80">
           <span className={`px-2 py-0.5 rounded-full font-bold border ${current.tagColor}`}>
             {current.tag}
           </span>

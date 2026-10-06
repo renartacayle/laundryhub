@@ -623,14 +623,14 @@ export const OrderStatusModal: React.FC<OrderStatusModalProps> = ({
                     className="w-28 h-28 object-contain"
                   />
                 ) : (
-                  <div className="w-28 h-28 bg-slate-100 flex items-center justify-center text-slate-400 text-xs">
+                  <div className="w-28 h-28 bg-gray-100 flex items-center justify-center text-gray-400 text-xs rounded-xl">
                     Generating QR...
                   </div>
                 )}
-                <div className="text-[10px] font-mono font-bold text-slate-800 mt-1">
+                <div className="text-[10px] font-mono font-bold text-gray-800 mt-1">
                   Scan Live Tracking
                 </div>
-                <div className="text-[9px] text-slate-500">Kamera HP / QR Scanner</div>
+                <div className="text-[9px] text-gray-500">Kamera HP / QR Scanner</div>
               </div>
             </div>
 

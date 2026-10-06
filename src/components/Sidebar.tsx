@@ -401,7 +401,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
                 className={`p-1.5 rounded-lg border transition-all text-xs ${
                   activeGmailAccount
                     ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-600 dark:text-cyan-400'
-                    : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-800 dark:hover:text-white'
+                    : 'bg-slate-800 hover:bg-slate-700/80 border border-slate-700 text-slate-300 hover:text-slate-100'
                 }`}
                 title={activeGmailAccount ? `Akun Google: ${activeGmailAccount}` : 'Login Akun Google'}
               >
@@ -418,7 +418,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
           {/* Active Branch Outlet Card */}
           <div
             onClick={() => setIsBranchModalOpen(true)}
-            className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 cursor-pointer group transition-all"
+            className="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 cursor-pointer group transition-all"
             title="Klik untuk memilih atau pindah cabang laundry"
           >
             <div className="flex items-center justify-between gap-2">
@@ -436,7 +436,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
                 </div>
                 <div className="min-w-0 text-left">
                   <div className="flex items-center gap-1">
-                    <span className="font-extrabold text-xs text-slate-800 dark:text-white truncate">
+                    <span className="font-extrabold text-xs text-slate-100 truncate">
                       {activeBranch.name}
                     </span>
                     {activeBranch.isPusat && (
@@ -490,7 +490,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
                   className="fixed inset-0 z-40"
                   onClick={() => setIsRoleDropdownOpen(false)}
                 />
-                <div className="absolute left-0 right-0 top-full mt-1.5 p-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl z-50 animate-in fade-in zoom-in-95 space-y-1">
+                <div className="absolute left-0 right-0 top-full mt-1.5 p-1.5 bg-slate-900 border border-slate-700 rounded-2xl shadow-xl z-50 animate-in fade-in zoom-in-95 space-y-1">
                   <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400 px-2 py-1">
                     Pilih Role (Mode: {isCommercialMode ? 'Komersial PIN' : 'Demo 1-Click'})
                   </div>
@@ -505,7 +505,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
                         className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold transition-all ${
                           isActive
                             ? `${r.activeBg} font-bold`
-                            : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/70'
+                            : 'text-slate-300 hover:text-slate-100 hover:bg-slate-800'
                         }`}
                       >
                         <div className="flex items-center gap-2">
@@ -591,7 +591,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
             <button
               type="button"
               onClick={() => setIsCommandPaletteOpen(true)}
-              className="py-1.5 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-[10px] font-bold flex items-center justify-center gap-1 border border-slate-200 dark:border-slate-700 transition-all"
+              className="py-1.5 px-2 rounded-lg bg-slate-800/90 hover:bg-slate-800 text-slate-200 hover:text-slate-100 text-[10px] font-bold flex items-center justify-center gap-1 border border-slate-700 transition-all"
               title="Cari Cepat (Ctrl + K)"
             >
               <Search className="w-3 h-3 text-cyan-500" />
@@ -601,7 +601,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
             <button
               type="button"
               onClick={() => setIsQrScannerOpen(true)}
-              className="py-1.5 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-[10px] font-bold flex items-center justify-center gap-1 border border-slate-200 dark:border-slate-700 transition-all"
+              className="py-1.5 px-2 rounded-lg bg-slate-800/90 hover:bg-slate-800 text-slate-200 hover:text-slate-100 text-[10px] font-bold flex items-center justify-center gap-1 border border-slate-700 transition-all"
               title="Scan QR Code Nota Laundry"
             >
               <Camera className="w-3 h-3 text-emerald-500" />
@@ -611,7 +611,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
             <button
               type="button"
               onClick={() => setIsAttendanceModalOpen(true)}
-              className="py-1.5 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-[10px] font-bold flex items-center justify-center gap-1 border border-slate-200 dark:border-slate-700 transition-all"
+              className="py-1.5 px-2 rounded-lg bg-slate-800/90 hover:bg-slate-800 text-slate-200 hover:text-slate-100 text-[10px] font-bold flex items-center justify-center gap-1 border border-slate-700 transition-all"
               title="Presensi & Absensi Karyawan"
             >
               <Clock className="w-3 h-3 text-purple-500" />
@@ -636,8 +636,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
                 onClick={() => setActiveTab(item.id)}
                 className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
                   isActive
-                    ? 'bg-slate-900 text-white dark:bg-slate-800 dark:text-white font-bold shadow-xs border border-slate-700/60'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                    ? `${currentRoleMeta.activeBg} font-bold shadow-xs border`
+                    : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/70'
                 }`}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
@@ -661,18 +661,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
         {/* =========================================================
             5. FOOTER & USER CONTROLS
             ========================================================= */}
-        <div className="p-3 border-t border-slate-200/80 dark:border-slate-800/80 space-y-2 bg-slate-50/50 dark:bg-slate-950/40">
+        <div className="p-3 border-t border-slate-700/80 space-y-2 bg-slate-850/60">
           {/* Machine & Orders Live Status */}
-          <div className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[10px] font-bold flex items-center justify-between">
-            <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400">
+          <div className="p-2 rounded-xl bg-slate-900 border border-slate-700 text-[10px] font-bold flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-slate-300">
               <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />
               <span>Mesin ON:</span>
-              <span className="text-cyan-600 dark:text-cyan-400 font-mono">{runningMachinesCount}</span>
+              <span className="text-cyan-500 font-mono">{runningMachinesCount}</span>
             </div>
-            <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400">
+            <div className="flex items-center gap-1.5 text-slate-300">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               <span>Order Aktif:</span>
-              <span className="text-emerald-600 dark:text-emerald-400 font-mono">{activeOrdersCount}</span>
+              <span className="text-emerald-500 font-mono">{activeOrdersCount}</span>
             </div>
           </div>
 
@@ -684,7 +684,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
                 {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
               </div>
               <div className="min-w-0 text-left">
-                <div className="text-xs font-bold text-slate-800 dark:text-white truncate">
+                <div className="text-xs font-bold text-slate-100 truncate">
                   {currentUser?.name || 'Karyawan'}
                 </div>
                 <div className="text-[9px] text-slate-400 uppercase font-mono truncate">
@@ -700,7 +700,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
                 <button
                   type="button"
                   onClick={() => setIsNotifOpen(!isNotifOpen)}
-                  className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors relative"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors relative"
                   title="Lihat Notifikasi"
                 >
                   <Bell className="w-4 h-4" />
@@ -716,12 +716,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
                 {isNotifOpen && (
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setIsNotifOpen(false)} />
-                    <div className="absolute bottom-full left-0 mb-2 w-72 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl p-3 z-50 animate-in fade-in zoom-in-95 space-y-2">
-                      <div className="flex items-center justify-between pb-1.5 border-b border-slate-100 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-white">
+                    <div className="absolute bottom-full left-0 mb-2 w-72 bg-slate-900 border border-slate-700 rounded-2xl shadow-xl p-3 z-50 animate-in fade-in zoom-in-95 space-y-2">
+                      <div className="flex items-center justify-between pb-1.5 border-b border-slate-800 text-xs font-bold text-slate-100">
                         <span>Notifikasi ({notifications.length})</span>
                         <button
                           onClick={() => setIsNotifOpen(false)}
-                          className="text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                          className="text-slate-400 hover:text-slate-100"
                         >
                           <X className="w-3.5 h-3.5" />
                         </button>
@@ -736,15 +736,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
                               onClick={() => markNotificationRead(n.id)}
                               className={`p-2 rounded-xl border text-xs cursor-pointer transition-colors ${
                                 n.read
-                                  ? 'bg-slate-50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 text-slate-500'
-                                  : 'bg-emerald-50/50 dark:bg-slate-800/70 border-emerald-200 dark:border-slate-700 text-slate-800 dark:text-slate-200'
+                                  ? 'bg-slate-800/40 border-slate-700 text-slate-400'
+                                  : 'bg-emerald-500/10 border-emerald-500/30 text-slate-200'
                               }`}
                             >
                               <div className="flex items-center justify-between font-bold text-[11px]">
-                                <span>{n.title}</span>
+                                <span className="text-slate-100">{n.title}</span>
                                 <span className="text-[9px] text-slate-400">{n.timestamp}</span>
                               </div>
-                              <p className="text-[10px] mt-0.5 text-slate-600 dark:text-slate-400">{n.message}</p>
+                              <p className="text-[10px] mt-0.5 text-slate-300">{n.message}</p>
                             </div>
                           ))
                         )}
@@ -758,7 +758,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
               <button
                 type="button"
                 onClick={toggleDarkMode}
-                className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors"
                 title={isDarkMode ? 'Mode Terang' : 'Mode Gelap'}
               >
                 {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-cyan-400" />}

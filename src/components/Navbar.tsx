@@ -183,14 +183,14 @@ export const Navbar: React.FC = () => {
           <div className="hidden lg:flex items-center flex-1 max-w-sm mx-2">
             <button
               onClick={() => setIsCommandPaletteOpen(true)}
-              className="w-full h-9 flex items-center justify-between px-3 rounded-xl bg-slate-100/90 dark:bg-slate-800/70 hover:bg-white dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-700/70 hover:border-emerald-500/40 dark:hover:border-cyan-500/40 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-all cursor-pointer shadow-xs group"
+              className="w-full h-9 flex items-center justify-between px-3 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 hover:border-emerald-500/40 dark:hover:border-cyan-500/40 text-xs text-slate-400 hover:text-slate-100 transition-all cursor-pointer shadow-xs group"
               title="Cari Cepat & Navigasi (Ctrl+K)"
             >
               <div className="flex items-center gap-2 min-w-0">
                 <Search className="w-3.5 h-3.5 text-slate-400 group-hover:text-emerald-500 dark:group-hover:text-cyan-400 transition-colors" />
                 <span className="text-[12px] truncate">Cari nota, pelanggan, mesin...</span>
               </div>
-              <kbd className="text-[10px] px-1.5 py-0.5 rounded-md bg-white dark:bg-slate-700/80 border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-300 font-mono font-medium shadow-xs shrink-0">
+              <kbd className="text-[10px] px-1.5 py-0.5 rounded-md bg-slate-900 border border-slate-700 text-slate-400 font-mono font-medium shadow-xs shrink-0">
                 ⌘K
               </kbd>
             </button>
@@ -203,7 +203,7 @@ export const Navbar: React.FC = () => {
             {/* Mobile Search Icon Button */}
             <button
               onClick={() => setIsCommandPaletteOpen(true)}
-              className="lg:hidden w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 text-slate-600 dark:text-cyan-400 hover:scale-105 active:scale-95 transition-all"
+              className="lg:hidden w-9 h-9 flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-750 border border-slate-700/80 text-slate-300 dark:text-cyan-400 hover:scale-105 active:scale-95 transition-all"
               title="Pencarian Cepat & Navigasi"
             >
               <Search className="w-4 h-4" />
@@ -247,7 +247,7 @@ export const Navbar: React.FC = () => {
             <button
               id="theme-toggle-btn"
               onClick={toggleDarkMode}
-              className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100/80 hover:bg-slate-200/70 dark:bg-slate-800/70 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 transition-all hover:scale-105 active:scale-95 shadow-xs"
+              className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 transition-all hover:scale-105 active:scale-95 shadow-xs"
               title={isDarkMode ? 'Ganti ke Pastel Light Mode' : 'Ganti ke Midnight Dark Mode'}
             >
               {isDarkMode ? (
@@ -261,7 +261,7 @@ export const Navbar: React.FC = () => {
             <div className="relative">
               <button
                 onClick={() => setIsNotifOpen(!isNotifOpen)}
-                className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100/80 hover:bg-slate-200/70 dark:bg-slate-800/70 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all relative active:scale-95 shadow-xs"
+                className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-slate-400 hover:text-slate-100 transition-all relative active:scale-95 shadow-xs"
                 title="Notifikasi Sistem"
               >
                 <Bell className="w-4 h-4" />
@@ -458,14 +458,14 @@ export const Navbar: React.FC = () => {
             {/* Mobile Hamburger Button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 text-slate-700 dark:text-slate-300 transition-colors"
+              className="md:hidden w-9 h-9 flex items-center justify-center rounded-xl bg-slate-800 border border-slate-700/80 text-slate-300 transition-colors"
               title="Menu Lainnya"
             >
               <Menu className="w-4 h-4 text-emerald-600 dark:text-cyan-400" />
             </button>
 
             {/* Divider (Desktop) */}
-            <div className="hidden sm:block h-5 w-px bg-slate-200 dark:bg-slate-800 mx-0.5" />
+            <div className="hidden sm:block h-5 w-px bg-slate-700 mx-0.5" />
 
             {/* =========================================================
                 DEMO VERSION OR GOOGLE ACCOUNT PROFILE PILL
@@ -481,7 +481,7 @@ export const Navbar: React.FC = () => {
                   <Sparkles className="w-3 h-3 text-slate-950" />
                 </div>
                 <div className="flex flex-col text-left leading-none">
-                  <div className="text-xs font-black tracking-tight flex items-center gap-1 text-slate-900 dark:text-white">
+                  <div className="text-xs font-black tracking-tight flex items-center gap-1 text-slate-100">
                     <span>Coba Versi Demo</span>
                     <span className="hidden sm:inline text-[8px] px-1 py-0.2 rounded font-black bg-emerald-500/25 text-emerald-800 dark:text-cyan-300">
                       TUTORIAL
@@ -497,11 +497,11 @@ export const Navbar: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsGoogleAuthModalOpen(true)}
-                className="h-9 flex items-center gap-2 pl-1.5 pr-2.5 rounded-xl border border-slate-200/90 dark:border-slate-750 bg-white/90 dark:bg-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-750 hover:border-slate-300 dark:hover:border-slate-600 transition-all cursor-pointer group shadow-xs active:scale-95"
+                className="h-9 flex items-center gap-2 pl-1.5 pr-2.5 rounded-xl border border-slate-700 bg-slate-900 hover:bg-slate-800 transition-all cursor-pointer group shadow-xs active:scale-95"
                 title={`Akun Google: ${activeGmailAccount} (Klik untuk ganti akun)`}
               >
                 {/* Google G mini icon */}
-                <div className="w-6 h-6 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-700 flex items-center justify-center shrink-0 shadow-xs">
+                <div className="w-6 h-6 rounded-lg bg-slate-900 border border-slate-700 flex items-center justify-center shrink-0 shadow-xs">
                   <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                     <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
@@ -548,7 +548,7 @@ export const Navbar: React.FC = () => {
               </div>
               <button
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                className="p-1.5 rounded-xl bg-slate-800 text-slate-400 hover:text-slate-100"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -560,7 +560,7 @@ export const Navbar: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
                     <Sparkles className="w-4 h-4 text-emerald-600 dark:text-cyan-400" />
-                    <span className="text-xs font-black text-slate-900 dark:text-white">
+                    <span className="text-xs font-black text-slate-100">
                       Versi Demo Interaktif
                     </span>
                   </div>
@@ -592,7 +592,7 @@ export const Navbar: React.FC = () => {
                       setIsMobileMenuOpen(false);
                       setIsGoogleAuthModalOpen(true);
                     }}
-                    className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs shadow-xs"
+                    className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700/80 border border-slate-700 text-slate-200 font-bold text-xs shadow-xs"
                   >
                     <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24">
                       <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -605,7 +605,7 @@ export const Navbar: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950/90 border border-slate-200 dark:border-slate-800 space-y-2">
+              <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                     <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24">
@@ -675,7 +675,7 @@ export const Navbar: React.FC = () => {
                   setIsMobileMenuOpen(false);
                   setIsIotModalOpen(true);
                 }}
-                className="flex items-center gap-2 p-3 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs"
+                className="flex items-center gap-2 p-3 rounded-2xl bg-slate-850 hover:bg-slate-800 border border-slate-700 text-slate-200 font-bold text-xs"
               >
                 <Cpu className="w-4 h-4 text-cyan-500" />
                 <span>Mesin IoT ({runningMachinesCount} ON)</span>
@@ -686,7 +686,7 @@ export const Navbar: React.FC = () => {
                   setIsMobileMenuOpen(false);
                   window.dispatchEvent(new CustomEvent('lh_open_intro'));
                 }}
-                className="flex items-center gap-2 p-3 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs"
+                className="flex items-center gap-2 p-3 rounded-2xl bg-slate-850 hover:bg-slate-800 border border-slate-700 text-slate-200 font-bold text-xs"
               >
                 <HelpCircle className="w-4 h-4 text-emerald-500" />
                 <span>Panduan Intro</span>
@@ -694,8 +694,8 @@ export const Navbar: React.FC = () => {
             </div>
 
             {/* Outlet Branch Selector */}
-            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
-              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+            <div className="p-3.5 rounded-2xl bg-slate-850 border border-slate-700 space-y-2">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                 Pilih Outlet Cabang:
               </span>
               <div className="grid grid-cols-1 gap-1.5">
@@ -709,7 +709,7 @@ export const Navbar: React.FC = () => {
                     className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between ${
                       b.id === currentBranchId
                         ? 'bg-emerald-500/15 text-emerald-800 dark:text-cyan-300 border border-emerald-500/30'
-                        : 'text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800'
+                        : 'text-slate-300 bg-slate-900 hover:bg-slate-800'
                     }`}
                   >
                     <span>{b.name}</span>
@@ -728,7 +728,7 @@ export const Navbar: React.FC = () => {
                   if (nextLang === 'en') setCurrency('USD');
                   else setCurrency('IDR');
                 }}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-200"
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-slate-850 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-200"
               >
                 <Globe className="w-4 h-4 text-cyan-500" />
                 <span>Bahasa: {language === 'id' ? '🇮🇩 ID' : '🇬🇧 EN'}</span>
@@ -736,7 +736,7 @@ export const Navbar: React.FC = () => {
 
               <button
                 onClick={() => setCurrency(currency === 'IDR' ? 'USD' : 'IDR')}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-200"
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-slate-850 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-200"
               >
                 <DollarSign className="w-4 h-4 text-emerald-500" />
                 <span>Mata Uang: {currency}</span>
@@ -744,10 +744,10 @@ export const Navbar: React.FC = () => {
             </div>
 
             {/* Theme & Reset */}
-            <div className="flex items-center gap-2 pt-1 border-t border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-2 pt-1 border-t border-slate-700">
               <button
                 onClick={toggleDarkMode}
-                className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold"
+                className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl bg-slate-850 hover:bg-slate-800 border border-slate-700 text-slate-300 text-xs font-semibold"
               >
                 {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-cyan-400" />}
                 <span>{isDarkMode ? 'Mode Terang' : 'Mode Gelap'}</span>
@@ -760,7 +760,7 @@ export const Navbar: React.FC = () => {
                     setIsMobileMenuOpen(false);
                   }
                 }}
-                className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-rose-500"
+                className="p-2 rounded-xl bg-slate-850 hover:bg-slate-800 border border-slate-700 text-slate-400 hover:text-rose-500"
                 title="Reset Data"
               >
                 <RotateCcw className="w-4 h-4" />

@@ -200,7 +200,7 @@ const MainLayout: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F6F8FD] dark:bg-slate-950 text-slate-800 dark:text-slate-100 flex flex-col selection:bg-emerald-500/30 selection:text-emerald-200 w-full max-w-full overflow-x-hidden">
+    <div className="min-h-screen bg-[#F6F8FD] dark:bg-slate-950 text-slate-200 dark:text-slate-100 flex flex-col selection:bg-emerald-500/30 selection:text-emerald-200 w-full max-w-full overflow-x-hidden">
       {/* Background Glow Decorations */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
         <div className="absolute -top-40 -left-40 w-96 h-96 bg-emerald-600/10 rounded-full blur-3xl" />

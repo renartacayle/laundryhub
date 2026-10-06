@@ -306,7 +306,7 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({
         </div>
 
         {/* Action Controls & Alternative Options */}
-        <div className="p-4 bg-slate-50 dark:bg-slate-900/90 space-y-3">
+        <div className="p-4 bg-slate-800/80 border-t border-slate-700 space-y-3">
           {/* Quick Demo Action: Scan Example Order */}
           <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 px-1">
             <span className="flex items-center gap-1 font-medium">
