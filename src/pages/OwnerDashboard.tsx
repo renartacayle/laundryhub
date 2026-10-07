@@ -162,7 +162,9 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
     updateWorker,
     loginWithGmail,
     setCurrentRole,
+    currentUser,
     setCurrentUser,
+    switchUserAccount,
     stationRates,
     updateStationRates,
     language,
@@ -188,6 +190,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
   const [newWorkerEmail, setNewWorkerEmail] = useState('');
   const [newWorkerPhone, setNewWorkerPhone] = useState('');
   const [newWorkerRole, setNewWorkerRole] = useState<Role>('kasir');
+  const [newWorkerAllowedRoles, setNewWorkerAllowedRoles] = useState<Role[]>(['kasir']);
   const [newWorkerBranchId, setNewWorkerBranchId] = useState(branches[0]?.id || 'br-kemang');
   const [newWorkerRateKg, setNewWorkerRateKg] = useState(300);
   const [newWorkerRateItem, setNewWorkerRateItem] = useState(1000);
@@ -2099,34 +2102,32 @@ Konsultasi Admin WA: 081228263200`;
                             className="w-10 h-10 rounded-xl object-cover border border-slate-700 shrink-0"
                           />
                           <div>
-                            <h4 className="text-xs font-bold text-white leading-tight">{u.name}</h4>
-                            <span
-                              className={`inline-block mt-1 text-[9px] px-2 py-0.2 rounded-full font-bold uppercase border ${
-                                u.role === 'owner'
-                                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-                                  : u.role === 'operator'
-                                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-glow-emerald'
-                                  : u.role === 'kasir'
-                                  ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
-                                  : u.role === 'produksi'
-                                  ? 'bg-orange-500/20 text-orange-300 border-orange-500/40'
-                                  : u.role === 'kurir'
-                                  ? 'bg-purple-500/20 text-purple-300 border-purple-500/40'
-                                  : 'bg-teal-500/20 text-teal-300 border-teal-500/40'
-                              }`}
-                            >
-                              {u.role === 'owner'
-                                ? '👑 Owner'
-                                : u.role === 'operator'
-                                ? '⭐ Operator All-in-One'
-                                : u.role === 'kasir'
-                                ? '🖥️ Kasir'
-                                : u.role === 'produksi'
-                                ? '🧺 Produksi'
-                                : u.role === 'kurir'
-                                ? '🛵 Kurir'
-                                : '🏪 Agen'}
-                            </span>
+                            <h4 className="text-xs font-bold text-slate-800 dark:text-white leading-tight">{u.name}</h4>
+                            {/* Role Badges */}
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {isOwner ? (
+                                <span className="inline-block text-[9px] px-2 py-0.5 rounded-full font-bold uppercase border bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/40">
+                                  👑 Owner (Akses Penuh Seluruh Sistem)
+                                </span>
+                              ) : (
+                                (u.allowedRoles && u.allowedRoles.length > 0 ? u.allowedRoles : [u.role]).map((r) => (
+                                  <span
+                                    key={r}
+                                    className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase border ${
+                                      r === 'kasir'
+                                        ? 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border-cyan-500/40'
+                                        : r === 'produksi'
+                                        ? 'bg-orange-500/15 text-orange-700 dark:text-orange-300 border-orange-500/40'
+                                        : r === 'kurir'
+                                        ? 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/40'
+                                        : 'bg-teal-500/15 text-teal-700 dark:text-teal-300 border-teal-500/40'
+                                    }`}
+                                  >
+                                    {r === 'kasir' ? '🖥️ Kasir' : r === 'produksi' ? '🧺 Produksi' : r === 'kurir' ? '🛵 Kurir' : '🏪 Agen'}
+                                  </span>
+                                ))
+                              )}
+                            </div>
                           </div>
                         </div>
 
@@ -2138,7 +2139,7 @@ Konsultasi Admin WA: 081228263200`;
                                 removeWorker(u.id);
                               }
                             }}
-                            className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition-colors"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                             title="Hapus Karyawan"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -2147,8 +2148,8 @@ Konsultasi Admin WA: 081228263200`;
                       </div>
 
                       {/* Gmail Account Badge */}
-                      <div className="mt-3 p-2 rounded-xl bg-slate-950/80 border border-slate-800/80 space-y-1">
-                        <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
+                      <div className="mt-3 p-2 rounded-xl bg-slate-100 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800/80 space-y-1">
+                        <div className="flex items-center gap-1.5 text-[10px] text-slate-500 dark:text-slate-400">
                           {/* Google G mini icon */}
                           <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24">
                             <path
@@ -2168,11 +2169,11 @@ Konsultasi Admin WA: 081228263200`;
                               d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
                             />
                           </svg>
-                          <span className="font-mono text-cyan-300 font-semibold truncate select-all">
+                          <span className="font-mono text-cyan-700 dark:text-cyan-300 font-semibold truncate select-all">
                             {u.email}
                           </span>
                         </div>
-                        <div className="flex items-center justify-between text-[9px] text-emerald-400 font-medium">
+                        <div className="flex items-center justify-between text-[9px] text-emerald-600 dark:text-emerald-400 font-medium">
                           <span>✓ Akun Google Siap Login</span>
                           <span className="text-slate-500 font-mono">
                             {u.lastLoginAt ? `Login: ${u.lastLoginAt.slice(5, 16)}` : 'Belum login'}
@@ -2181,10 +2182,10 @@ Konsultasi Admin WA: 081228263200`;
                       </div>
 
                       {/* Outlet & Contact */}
-                      <div className="mt-2.5 text-[11px] text-slate-400 space-y-1">
+                      <div className="mt-2.5 text-[11px] text-slate-600 dark:text-slate-400 space-y-1">
                         <div className="flex items-center justify-between">
                           <span>Penempatan:</span>
-                          <strong className="text-slate-200">{branch?.name || 'Pusat'}</strong>
+                          <strong className="text-slate-800 dark:text-slate-200">{branch?.name || 'Pusat'}</strong>
                         </div>
                         <div className="flex items-center justify-between">
                           <span>WhatsApp:</span>
@@ -2192,7 +2193,7 @@ Konsultasi Admin WA: 081228263200`;
                             href={`https://wa.me/${u.phone.replace(/[^0-9]/g, '')}`}
                             target="_blank"
                             rel="noreferrer"
-                            className="font-mono text-cyan-400 hover:underline"
+                            className="font-mono text-cyan-600 dark:text-cyan-400 hover:underline"
                           >
                             {u.phone}
                           </a>
@@ -2200,20 +2201,78 @@ Konsultasi Admin WA: 081228263200`;
                         {!isOwner && (
                           <div className="flex items-center justify-between">
                             <span>Rate Komisi:</span>
-                            <span className="font-mono text-emerald-300 text-[10px]">
+                            <span className="font-mono text-emerald-600 dark:text-emerald-300 text-[10px]">
                               Rp {u.commissionRateKg}/kg • Rp {u.commissionRateItem}/item
                             </span>
                           </div>
                         )}
                       </div>
+
+                      {/* Checkbox Hak Akses & Tugas Pekerjaan (Hanya Karyawan/Non-Owner) */}
+                      {!isOwner && (
+                        <div className="mt-3 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                              Tugas Diizinkan Owner (Checkbox):
+                            </span>
+                            <span className="text-[9px] px-1.5 py-0.5 rounded font-mono font-bold bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30">
+                              {(u.allowedRoles || [u.role]).length} Tugas Aktif
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-1.5">
+                            {[
+                              { id: 'kasir', label: 'Kasir POS', icon: '🖥️' },
+                              { id: 'produksi', label: 'Workshop Produksi', icon: '🧺' },
+                              { id: 'kurir', label: 'Armada Kurir', icon: '🛵' },
+                              { id: 'agen', label: 'Agen Dropship', icon: '🏪' },
+                            ].map((station) => {
+                              const currentAllowed = u.allowedRoles && u.allowedRoles.length > 0 ? u.allowedRoles : [u.role];
+                              const isChecked = currentAllowed.includes(station.id as Role);
+                              return (
+                                <label
+                                  key={station.id}
+                                  className={`flex items-center gap-1.5 p-1.5 rounded-lg border text-[11px] font-semibold cursor-pointer transition-all select-none ${
+                                    isChecked
+                                      ? 'bg-emerald-500/15 border-emerald-500/50 text-emerald-800 dark:text-emerald-300 font-bold'
+                                      : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
+                                  }`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={(e) => {
+                                      const nextRoles = e.target.checked
+                                        ? [...currentAllowed, station.id as Role]
+                                        : currentAllowed.filter((r) => r !== station.id);
+                                      if (nextRoles.length === 0) {
+                                        alert('Karyawan minimal harus memiliki 1 tugas pekerjaan!');
+                                        return;
+                                      }
+                                      updateWorker(u.id, {
+                                        allowedRoles: nextRoles,
+                                        role: nextRoles[0],
+                                      });
+                                    }}
+                                    className="w-3.5 h-3.5 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer accent-emerald-500"
+                                  />
+                                  <span className="truncate">{station.icon} {station.label}</span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                          <p className="text-[9px] text-slate-500 dark:text-slate-400 italic">
+                            *Staf hanya dapat mengakses stasiun kerja yang dicentang di atas.
+                          </p>
+                        </div>
+                      )}
                     </div>
 
                     {/* Bottom Commission & 1-Click Simulation */}
-                    <div className="space-y-2 pt-2 border-t border-slate-800">
+                    <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-800">
                       {!isOwner && (
-                        <div className="p-2 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between">
-                          <span className="text-[10px] text-slate-400">Total Komisi:</span>
-                          <span className="text-xs font-black font-mono text-amber-400">
+                        <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400">Total Komisi:</span>
+                          <span className="text-xs font-black font-mono text-amber-600 dark:text-amber-400">
                             Rp {u.totalCommissionEarned.toLocaleString('id-ID')}
                           </span>
                         </div>
@@ -2222,12 +2281,25 @@ Konsultasi Admin WA: 081228263200`;
                       <button
                         type="button"
                         onClick={() => {
-                          loginWithGmail(u.email);
+                          switchUserAccount(u.id);
                         }}
-                        className="w-full py-1.5 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 text-[11px] font-bold border border-cyan-500/30 transition-all flex items-center justify-center gap-1.5"
+                        className={`w-full py-1.5 px-2 rounded-xl text-[11px] font-bold border transition-all flex items-center justify-center gap-1.5 ${
+                          currentUser.id === u.id
+                            ? 'bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-emerald-500/50 shadow-xs'
+                            : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-cyan-700 dark:text-cyan-300 border-cyan-500/30'
+                        }`}
                       >
-                        <Zap className="w-3.5 h-3.5 text-cyan-400" />
-                        <span>Simulasi Login Staf Ini</span>
+                        {currentUser.id === u.id ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                            <span>✓ Sesi Akun Aktif Saat Ini</span>
+                          </>
+                        ) : (
+                          <>
+                            <Zap className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
+                            <span>Masuk Sesi Akun Ini (Simulasi)</span>
+                          </>
+                        )}
                       </button>
                     </div>
                   </div>
@@ -2497,11 +2569,16 @@ Konsultasi Admin WA: 081228263200`;
                       return;
                     }
                     try {
+                      if (newWorkerAllowedRoles.length === 0) {
+                        setWorkerFormError('Pilih minimal 1 tugas pekerjaan karyawan!');
+                        return;
+                      }
                       addWorker({
                         name: newWorkerName.trim(),
                         email: email,
                         phone: newWorkerPhone.trim() || '0812-0000-0000',
-                        role: newWorkerRole,
+                        role: newWorkerAllowedRoles[0] || 'kasir',
+                        allowedRoles: newWorkerAllowedRoles,
                         branchId: newWorkerBranchId,
                         commissionRateKg: Number(newWorkerRateKg) || 0,
                         commissionRateItem: Number(newWorkerRateItem) || 0,
@@ -2514,6 +2591,7 @@ Konsultasi Admin WA: 081228263200`;
                         setNewWorkerName('');
                         setNewWorkerEmail('');
                         setNewWorkerPhone('');
+                        setNewWorkerAllowedRoles(['kasir']);
                       }, 1200);
                     } catch (err: any) {
                       setWorkerFormError(err.message || 'Gagal menambahkan karyawan');
@@ -2585,36 +2663,63 @@ Konsultasi Admin WA: 081228263200`;
                     </div>
                   </div>
 
-                  {/* Peran / Hak Akses (Role) */}
+                  {/* Tugas & Hak Akses Staf (Checkbox Multi-Job) */}
                   <div>
-                    <label className="text-[11px] font-bold text-slate-300 block mb-1.5">
-                      Peran Hak Akses (Role):
-                    </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                      {[
-                        { id: 'operator', label: '⭐ Operator All-in-One', desc: '1 Karyawan Cabang (Kasir + Cuci + Setrika + Packing)', highlight: true },
-                        { id: 'kasir', label: 'Kasir POS', desc: 'Input & Bayar Nota' },
-                        { id: 'produksi', label: 'Produksi', desc: 'Cuci, Setrika, IoT' },
-                        { id: 'kurir', label: 'Kurir Delivery', desc: 'Jemput Antar & COD' },
-                        { id: 'agen', label: 'Mitra Agen', desc: 'Drop Point & Komisi' },
-                      ].map((r) => (
-                        <button
-                          key={r.id}
-                          type="button"
-                          onClick={() => setNewWorkerRole(r.id as Role)}
-                          className={`p-2.5 rounded-xl border text-left transition-all ${
-                            newWorkerRole === r.id
-                              ? r.id === 'operator'
-                                ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 shadow-glow-emerald ring-1 ring-emerald-400'
-                                : 'bg-cyan-500/20 border-cyan-500 text-cyan-300 shadow-glow-cyan'
-                              : 'bg-slate-800/80 border-slate-700 text-slate-400 hover:text-slate-200'
-                          }`}
-                        >
-                          <div className="font-bold text-xs">{r.label}</div>
-                          <div className="text-[10px] text-slate-400">{r.desc}</div>
-                        </button>
-                      ))}
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-[11px] font-bold text-slate-300">
+                        Tugas & Hak Akses yang Diizinkan Owner (Centang Checkbox): <span className="text-rose-400">*</span>
+                      </label>
+                      <span className="text-[10px] text-cyan-400 font-mono font-bold">
+                        {newWorkerAllowedRoles.length} Pekerjaan Terpilih
+                      </span>
                     </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {[
+                        { id: 'kasir', label: 'Kasir POS', desc: 'Input pesanan & cetak struk nota', icon: '🖥️' },
+                        { id: 'produksi', label: 'Workshop Produksi', desc: 'Cuci, setrika, QC, & IoT', icon: '🧺' },
+                        { id: 'kurir', label: 'Armada Kurir', desc: 'Antar jemput laundry & COD', icon: '🛵' },
+                        { id: 'agen', label: 'Mitra Agen', desc: 'Loket drop point & komisi', icon: '🏪' },
+                      ].map((item) => {
+                        const isChecked = newWorkerAllowedRoles.includes(item.id as Role);
+                        return (
+                          <label
+                            key={item.id}
+                            className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all flex items-start gap-2.5 select-none ${
+                              isChecked
+                                ? 'bg-emerald-500/15 border-emerald-500/60 text-emerald-300 shadow-glow-emerald ring-1 ring-emerald-500/50'
+                                : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-slate-200 hover:border-slate-600'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setNewWorkerAllowedRoles((prev) => [...prev, item.id as Role]);
+                                } else {
+                                  if (newWorkerAllowedRoles.length <= 1) {
+                                    alert('Karyawan minimal harus memiliki 1 tugas pekerjaan!');
+                                    return;
+                                  }
+                                  setNewWorkerAllowedRoles((prev) => prev.filter((r) => r !== item.id));
+                                }
+                              }}
+                              className="mt-0.5 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 accent-emerald-500 cursor-pointer"
+                            />
+                            <div>
+                              <div className="font-bold text-xs flex items-center gap-1">
+                                <span>{item.icon}</span>
+                                <span>{item.label}</span>
+                              </div>
+                              <div className="text-[10px] text-slate-400 mt-0.5">{item.desc}</div>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-1 italic">
+                      *Owner dapat memilih lebih dari satu pekerjaan agar staf dapat bertugas di berbagai stasiun (misal: Kasir + Produksi).
+                    </p>
                   </div>
 
                   {/* Penempatan Outlet / Cabang */}

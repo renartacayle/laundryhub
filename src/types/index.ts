@@ -14,6 +14,7 @@ export interface User {
   id: string;
   name: string;
   role: Role;
+  allowedRoles?: Role[]; // Specific jobs assigned to this account by owner (e.g. ['kasir', 'produksi'])
   email: string;
   phone: string;
   avatar: string;

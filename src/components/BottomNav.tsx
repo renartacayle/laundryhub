@@ -22,38 +22,44 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   activeMobileTab,
   setActiveMobileTab,
 }) => {
-  const { orders } = useApp();
+  const { orders, currentUser } = useApp();
 
   const activeOrdersCount = orders.filter((o) => o.currentStatus !== 'selesai').length;
 
-  const tabs: {
+  const allTabs: {
     id: MobileTab;
     label: string;
     icon: React.ReactNode;
     badge?: number | string;
     badgeColor?: string;
+    ownerOnly?: boolean;
+    requiredRole?: 'kasir' | 'produksi';
   }[] = [
     {
       id: 'stats',
       label: 'Statistik',
       icon: <BarChart3 className="w-5 h-5" />,
+      ownerOnly: true,
     },
     {
       id: 'staff',
       label: 'Karyawan',
       icon: <Users className="w-5 h-5" />,
+      ownerOnly: true,
     },
     {
       id: 'progress',
-      label: 'Progress',
+      label: 'Workshop',
       icon: <WashingMachine className="w-5 h-5" />,
       badge: activeOrdersCount > 0 ? activeOrdersCount : undefined,
       badgeColor: 'bg-orange-500 text-white',
+      requiredRole: 'produksi',
     },
     {
       id: 'kasir',
       label: 'Kasir POS',
       icon: <ShoppingCart className="w-5 h-5" />,
+      requiredRole: 'kasir',
     },
     {
       id: 'settings',
@@ -61,6 +67,14 @@ export const BottomNav: React.FC<BottomNavProps> = ({
       icon: <Settings className="w-5 h-5" />,
     },
   ];
+
+  const userAllowed = currentUser.allowedRoles || [currentUser.role];
+  const tabs = allTabs.filter((t) => {
+    if (currentUser.role === 'owner') return true;
+    if (t.ownerOnly) return false;
+    if (t.requiredRole && !userAllowed.includes(t.requiredRole)) return false;
+    return true;
+  });
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 border-t border-slate-800/90 backdrop-blur-xl px-2 py-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.5)]">

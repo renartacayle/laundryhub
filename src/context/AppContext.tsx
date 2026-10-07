@@ -54,6 +54,7 @@ interface AppContextType {
   setCurrentRole: (role: Role) => void;
   currentUser: User;
   setCurrentUser: (user: User) => void;
+  switchUserAccount: (userId: string) => void;
   currentCustomer: Customer;
   setCurrentCustomer: (customer: Customer) => void;
   currentBranchId: string;
@@ -251,7 +252,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Load initial from localStorage or seed
-  const [currentRole, setCurrentRole] = useState<Role>(() => {
+  const [currentRole, _setCurrentRole] = useState<Role>(() => {
     return (localStorage.getItem('lh_role') as Role) || 'owner';
   });
 
@@ -289,7 +290,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [branches] = useState<Branch[]>(INITIAL_BRANCHES);
   const [users, setUsers] = useState<User[]>(() => {
     const saved = localStorage.getItem('lh_users');
-    return saved ? JSON.parse(saved) : INITIAL_USERS;
+    if (!saved) return INITIAL_USERS;
+    try {
+      const parsed: User[] = JSON.parse(saved);
+      return parsed.map((u) => {
+        if (!u.allowedRoles || u.allowedRoles.length === 0) {
+          const seedMatch = INITIAL_USERS.find((s) => s.id === u.id);
+          return {
+            ...u,
+            allowedRoles: seedMatch?.allowedRoles || (u.role === 'owner' ? ['owner', 'kasir', 'produksi', 'kurir', 'agen'] : [u.role]),
+          };
+        }
+        return u;
+      });
+    } catch (e) {
+      return INITIAL_USERS;
+    }
   });
 
   const [customers, setCustomers] = useState<Customer[]>(() => {
@@ -415,9 +431,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
 
-  // Active user selection depending on current role
+  // Active logged-in user ID (defaults to owner 'usr-owner')
+  const [currentUserId, setCurrentUserId] = useState<string>(() => {
+    return localStorage.getItem('lh_user_id') || 'usr-owner';
+  });
+
+  // Active user account object
   const [currentUser, setCurrentUser] = useState<User>(() => {
-    return users.find((u) => u.role === currentRole) || users[0];
+    const savedId = localStorage.getItem('lh_user_id') || 'usr-owner';
+    const found = users.find((u) => u.id === savedId);
+    return found || users.find((u) => u.role === 'owner') || users[0];
   });
 
   // Active customer selection for Member portal
@@ -425,14 +448,75 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return customers[0];
   });
 
-  // Sync role to user
+  // Synchronize currentUser whenever users or currentUserId changes
   useEffect(() => {
-    const matchingUser = users.find((u) => u.role === currentRole);
-    if (matchingUser) {
-      setCurrentUser(matchingUser);
+    const matched = users.find((u) => u.id === currentUserId);
+    if (matched) {
+      setCurrentUser(matched);
+      // If current user is worker, clamp current role to allowed roles
+      if (matched.role !== 'owner') {
+        const allowed = matched.allowedRoles || [matched.role];
+        if (!allowed.includes(currentRole) || currentRole === 'owner') {
+          const fallback = allowed[0] || matched.role || 'kasir';
+          _setCurrentRole(fallback);
+          localStorage.setItem('lh_role', fallback);
+        }
+      }
     }
-    localStorage.setItem('lh_role', currentRole);
-  }, [currentRole, users]);
+  }, [users, currentUserId, currentRole]);
+
+  // Set active operational role with permission check
+  const setCurrentRole = (role: Role) => {
+    // If worker account (not owner)
+    if (currentUser.role !== 'owner') {
+      const allowed = currentUser.allowedRoles || [currentUser.role];
+      if (role === 'owner') {
+        // Block worker from accessing Owner Dashboard
+        console.warn('Akses ditolak: Akun staf tidak memiliki izin ke Owner Dashboard.');
+        return;
+      }
+      if (!allowed.includes(role)) {
+        console.warn(`Akses ditolak: Staf ${currentUser.name} tidak memiliki izin ke stasiun ${role}`);
+        return;
+      }
+    }
+    _setCurrentRole(role);
+    localStorage.setItem('lh_role', role);
+  };
+
+  // Switch active user account
+  const switchUserAccount = (userId: string) => {
+    const target = users.find((u) => u.id === userId);
+    if (!target) return;
+
+    setCurrentUserId(target.id);
+    localStorage.setItem('lh_user_id', target.id);
+    setCurrentUser(target);
+    setCurrentBranchId(target.branchId);
+
+    if (target.role === 'owner') {
+      _setCurrentRole('owner');
+      localStorage.setItem('lh_role', 'owner');
+    } else {
+      const allowed = target.allowedRoles || [target.role];
+      if (!allowed.includes(currentRole) || currentRole === 'owner') {
+        const fallbackRole = allowed[0] || target.role || 'kasir';
+        _setCurrentRole(fallbackRole);
+        localStorage.setItem('lh_role', fallbackRole);
+      }
+    }
+
+    const newLog: AuditLog = {
+      id: `log-${Date.now()}`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      actorName: target.name,
+      actorRole: target.role,
+      action: 'SWITCH_ACCOUNT',
+      details: `Beralih ke sesi akun: ${target.name} (${target.role.toUpperCase()}) - Cabang ${target.branchId}`,
+      branchId: target.branchId,
+    };
+    setAuditLogs((prev) => [newLog, ...prev]);
+  };
 
   // Sync dark mode class
   useEffect(() => {
@@ -1342,12 +1426,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       };
 
       setUsers((prev) => prev.map((u) => (u.id === matchedUser.id ? updatedUser : u)));
+      setCurrentUserId(updatedUser.id);
+      localStorage.setItem('lh_user_id', updatedUser.id);
       setCurrentUser(updatedUser);
-      setCurrentRole(updatedUser.role);
+      const targetRole = updatedUser.role === 'owner' ? 'owner' : (updatedUser.allowedRoles?.[0] || updatedUser.role);
+      _setCurrentRole(targetRole);
       setCurrentBranchId(updatedUser.branchId);
       setActiveGmailAccount(cleanEmail);
       localStorage.setItem('lh_active_gmail', cleanEmail);
-      localStorage.setItem('lh_role', updatedUser.role);
+      localStorage.setItem('lh_role', targetRole);
 
       const branchName = branches.find((b) => b.id === updatedUser.branchId)?.name || 'LaundryHub';
       const newLog: AuditLog = {
@@ -1372,7 +1459,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Unregistered Gmail: login as Pelanggan / Guest member
     setActiveGmailAccount(cleanEmail);
     localStorage.setItem('lh_active_gmail', cleanEmail);
-    setCurrentRole('pelanggan');
+    _setCurrentRole('pelanggan');
     localStorage.setItem('lh_role', 'pelanggan');
 
     const newLog: AuditLog = {
@@ -1405,10 +1492,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       throw new Error(`Email ${cleanEmail} sudah digunakan oleh staf ${existing.name}!`);
     }
 
+    const assignedAllowed = workerData.allowedRoles && workerData.allowedRoles.length > 0
+      ? workerData.allowedRoles
+      : [workerData.role];
+
     const newWorker: User = {
       ...workerData,
       id: `usr-${Date.now()}`,
       email: cleanEmail,
+      allowedRoles: assignedAllowed,
       totalCommissionEarned: 0,
       isGmailLinked: true,
       invitedAt: new Date().toISOString().replace('T', ' ').substring(0, 19),
@@ -1423,7 +1515,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       actorName: currentUser.name,
       actorRole: currentUser.role,
       action: 'TAMBAH_KARYAWAN_GMAIL',
-      details: `Owner mendaftarkan staf baru: ${newWorker.name} (${cleanEmail}) role: ${newWorker.role.toUpperCase()} cabang: ${newWorker.branchId}`,
+      details: `Owner mendaftarkan staf baru: ${newWorker.name} (${cleanEmail}) peran: ${assignedAllowed.join(', ')} cabang: ${newWorker.branchId}`,
       branchId: newWorker.branchId,
     };
     setAuditLogs((prev) => [newLog, ...prev]);
@@ -1451,6 +1543,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateWorker = (userId: string, data: Partial<User>) => {
     setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, ...data } : u)));
+
+    // If updated user is currently logged-in account, keep session in sync
+    if (currentUser.id === userId) {
+      const updated = { ...currentUser, ...data };
+      setCurrentUser(updated);
+
+      if (updated.role !== 'owner' && data.allowedRoles) {
+        if (!data.allowedRoles.includes(currentRole) || currentRole === 'owner') {
+          const fallback = data.allowedRoles[0] || 'kasir';
+          _setCurrentRole(fallback);
+          localStorage.setItem('lh_role', fallback);
+        }
+      }
+    }
+
+    // Record audit log if allowedRoles were updated by Owner
+    if (data.allowedRoles) {
+      const target = users.find((u) => u.id === userId);
+      const roleNames = data.allowedRoles.join(', ').toUpperCase();
+      const newLog: AuditLog = {
+        id: `log-${Date.now()}`,
+        timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+        actorName: currentUser.name,
+        actorRole: 'owner',
+        action: 'UPDATE_HAK_AKSES',
+        details: `Owner memperbarui hak akses tugas staf ${target?.name || userId}: [${roleNames}]`,
+        branchId: target?.branchId || currentBranchId,
+      };
+      setAuditLogs((prev) => [newLog, ...prev]);
+    }
   };
 
   // Step-by-Step Interactive Tutorial & Demo System
@@ -2045,6 +2167,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setCurrentRole,
         currentUser,
         setCurrentUser,
+        switchUserAccount,
         currentCustomer,
         setCurrentCustomer,
         currentBranchId,

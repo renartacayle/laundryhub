@@ -30,6 +30,7 @@ const MainLayout: React.FC = () => {
   const {
     currentRole,
     setCurrentRole,
+    currentUser,
     activeTutorial,
     tutorialStep,
     isDemoTutorialModalOpen,
@@ -179,8 +180,34 @@ const MainLayout: React.FC = () => {
     }
   }, [currentRole]);
 
+  // Guard: If logged in as non-owner (worker), strictly prevent access to owner tabs!
+  useEffect(() => {
+    if (currentUser.role !== 'owner') {
+      const userAllowed = currentUser.allowedRoles || [currentUser.role];
+      if (currentRole === 'owner' || activeTab.startsWith('owner-')) {
+        const fallbackRole = userAllowed[0] || 'kasir';
+        setCurrentRole(fallbackRole);
+        if (fallbackRole === 'kasir') {
+          setActiveTab('kasir-pos');
+          setMobileTab('kasir');
+        } else if (fallbackRole === 'produksi') {
+          setActiveTab('prod-kanban');
+          setMobileTab('progress');
+        } else if (fallbackRole === 'kurir') {
+          setActiveTab('kurir-tasks');
+        } else if (fallbackRole === 'agen') {
+          setActiveTab('agen-pos');
+        }
+      }
+    }
+  }, [currentUser, currentRole, activeTab, setCurrentRole]);
+
   // Synchronize mobile tabs with role & dashboard subtab
   const handleMobileTabChange = (tab: MobileTab) => {
+    if (currentUser.role !== 'owner' && (tab === 'stats' || tab === 'staff')) {
+      alert('Akses Ditolak: Menu statistik & data staf hanya dapat diakses oleh Owner.');
+      return;
+    }
     setMobileTab(tab);
     if (tab === 'stats') {
       setCurrentRole('owner');
@@ -195,7 +222,9 @@ const MainLayout: React.FC = () => {
       setCurrentRole('kasir');
       setActiveTab('kasir-pos');
     } else if (tab === 'settings') {
-      setCurrentRole('owner');
+      if (currentUser.role === 'owner') {
+        setCurrentRole('owner');
+      }
     }
   };
 

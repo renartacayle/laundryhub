@@ -57,6 +57,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
     currentRole,
     setCurrentRole,
     currentUser,
+    users,
+    switchUserAccount,
     activeGmailAccount,
     setIsGoogleAuthModalOpen,
     setIsDemoTutorialModalOpen,
@@ -88,6 +90,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
   const [isLandingOpen, setIsLandingOpen] = useState(false);
   const [authModalTargetRole, setAuthModalTargetRole] = useState<Role | null>(null);
   const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
+  const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
 
   // Commercial (PIN Protected) vs Demo Mode
@@ -104,6 +107,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
   const handleRoleClick = (roleId: Role) => {
     setIsRoleDropdownOpen(false);
     if (roleId === currentRole) return;
+
+    if (currentUser.role !== 'owner') {
+      if (roleId === 'owner') {
+        alert('Akses Ditolak: Akun staf tidak memiliki hak akses ke Owner Dashboard!');
+        return;
+      }
+      const allowed = currentUser.allowedRoles || [currentUser.role];
+      if (!allowed.includes(roleId) && roleId !== 'pelanggan') {
+        alert(`Akses Ditolak: Staf ${currentUser.name} belum memiliki izin pekerjaan untuk stasiun ini.`);
+        return;
+      }
+    }
 
     if (isCommercialMode) {
       setAuthModalTargetRole(roleId);
@@ -456,10 +471,110 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
         </div>
 
         {/* =========================================================
-            2. ROLE SWITCHER & ACCESS SECURITY
+            2. ROLE SWITCHER & ACCESS SECURITY (PER-ACCOUNT)
             ========================================================= */}
         <div className="p-3 border-b border-slate-200/80 dark:border-slate-800/80 space-y-2">
-          {/* Active Role Selector Button */}
+          {/* Active Account Switcher Card */}
+          <div className="relative">
+            <button
+              id="sidebar-account-switcher-btn"
+              type="button"
+              onClick={() => setIsAccountDropdownOpen(!isAccountDropdownOpen)}
+              className="w-full flex items-center justify-between p-2 rounded-xl bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-800/80 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700/80 text-left transition-all group"
+              title="Klik untuk memilih atau beralih akun pengguna"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <img
+                  src={currentUser.avatar}
+                  alt={currentUser.name}
+                  className="w-7 h-7 rounded-lg object-cover border border-slate-300 dark:border-slate-700 shrink-0"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLElement).style.display = 'none';
+                  }}
+                />
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-bold text-xs text-slate-800 dark:text-slate-100 truncate">
+                      {currentUser.name}
+                    </span>
+                    {currentUser.role === 'owner' ? (
+                      <span className="text-[8px] px-1 py-0.2 rounded font-black bg-amber-500/20 text-amber-700 dark:text-amber-300 shrink-0">
+                        OWNER
+                      </span>
+                    ) : (
+                      <span className="text-[8px] px-1 py-0.2 rounded font-bold bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 shrink-0">
+                        STAF
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                    {currentUser.role === 'owner'
+                      ? '👑 Hak Akses Penuh Sistem'
+                      : `Tugas: ${(currentUser.allowedRoles || [currentUser.role]).join(', ')}`}
+                  </div>
+                </div>
+              </div>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-transform shrink-0" />
+            </button>
+
+            {/* Account Switcher Dropdown */}
+            {isAccountDropdownOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setIsAccountDropdownOpen(false)} />
+                <div className="absolute left-0 right-0 top-full mt-1.5 p-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl z-50 animate-in fade-in zoom-in-95 space-y-1 max-h-72 overflow-y-auto no-scrollbar">
+                  <div className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 px-2 py-1 flex items-center justify-between">
+                    <span>Ganti Akun Pengguna</span>
+                    <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-mono">Per Akun</span>
+                  </div>
+                  {users.map((u) => {
+                    const isSelected = currentUser.id === u.id;
+                    const isOwnerUser = u.role === 'owner';
+                    return (
+                      <button
+                        key={u.id}
+                        type="button"
+                        onClick={() => {
+                          setIsAccountDropdownOpen(false);
+                          switchUserAccount(u.id);
+                        }}
+                        className={`w-full flex items-center justify-between p-2 rounded-xl text-xs transition-all text-left ${
+                          isSelected
+                            ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-800 dark:text-emerald-300 font-bold'
+                            : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <img
+                            src={u.avatar}
+                            alt={u.name}
+                            className="w-6 h-6 rounded-lg object-cover border border-slate-300 dark:border-slate-700 shrink-0"
+                          />
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-bold truncate text-[11px]">{u.name}</span>
+                              {isOwnerUser && (
+                                <span className="text-[8px] px-1 py-0.2 rounded font-black bg-amber-500/20 text-amber-700 dark:text-amber-300 shrink-0">
+                                  OWNER
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[9px] text-slate-500 dark:text-slate-400 truncate">
+                              {isOwnerUser
+                                ? '👑 Akses Penuh Sistem'
+                                : `Tugas: ${(u.allowedRoles || [u.role]).join(', ')}`}
+                            </div>
+                          </div>
+                        </div>
+                        {isSelected && <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Active Operational Station / Role Selector Button */}
           <div className="relative">
             <button
               id="sidebar-role-selector-btn"
@@ -471,7 +586,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
                 <span className={currentRoleMeta.color}>{currentRoleMeta.icon}</span>
                 <div className="text-left">
                   <div className="text-[9px] font-bold uppercase tracking-wider opacity-70">
-                    Akses Role Aktif
+                    Stasiun Kerja Aktif
                   </div>
                   <div className="font-black truncate">{currentRoleMeta.label}</div>
                 </div>
@@ -490,33 +605,57 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
                   className="fixed inset-0 z-40"
                   onClick={() => setIsRoleDropdownOpen(false)}
                 />
-                <div className="absolute left-0 right-0 top-full mt-1.5 p-1.5 bg-slate-900 border border-slate-700 rounded-2xl shadow-xl z-50 animate-in fade-in zoom-in-95 space-y-1">
-                  <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400 px-2 py-1">
-                    Pilih Role (Mode: {isCommercialMode ? 'Komersial PIN' : 'Demo 1-Click'})
+                <div className="absolute left-0 right-0 top-full mt-1.5 p-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl z-50 animate-in fade-in zoom-in-95 space-y-1">
+                  <div className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 px-2 py-1 flex items-center justify-between">
+                    <span>Pilih Stasiun Kerja</span>
+                    <span className="text-[9px] text-cyan-600 dark:text-cyan-400 font-mono">
+                      {currentUser.role === 'owner' ? 'Owner (Akses Penuh)' : 'Sesuai Izin Checkbox'}
+                    </span>
                   </div>
                   {rolesList.map((r) => {
                     const isActive = currentRole === r.id;
+                    const isOwnerAccount = currentUser.role === 'owner';
+                    const userAllowed = currentUser.allowedRoles || [currentUser.role];
+                    const isRoleAllowed = isOwnerAccount || (r.id !== 'owner' && userAllowed.includes(r.id)) || r.id === 'pelanggan';
+
                     return (
                       <button
                         key={r.id}
                         id={`sidebar-role-opt-${r.id}`}
                         type="button"
-                        onClick={() => handleRoleClick(r.id)}
+                        disabled={!isRoleAllowed}
+                        onClick={() => {
+                          if (!isRoleAllowed) return;
+                          handleRoleClick(r.id);
+                        }}
                         className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold transition-all ${
-                          isActive
+                          !isRoleAllowed
+                            ? 'opacity-40 cursor-not-allowed text-slate-400 bg-slate-100/50 dark:bg-slate-800/30'
+                            : isActive
                             ? `${r.activeBg} font-bold`
-                            : 'text-slate-300 hover:text-slate-100 hover:bg-slate-800'
+                            : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800'
                         }`}
                       >
                         <div className="flex items-center gap-2">
                           <span className={r.color}>{r.icon}</span>
                           <span>{r.label}</span>
                         </div>
-                        {isCommercialMode ? (
+                        {!isRoleAllowed ? (
+                          <span className="text-[9px] font-mono text-rose-500 flex items-center gap-1">
+                            <Lock className="w-2.5 h-2.5" />
+                            <span>Terkunci</span>
+                          </span>
+                        ) : isCommercialMode ? (
                           <span className="text-[9px] font-mono opacity-60">PIN: {r.pin}</span>
                         ) : isActive ? (
                           <Check className="w-3.5 h-3.5 text-emerald-500" />
-                        ) : null}
+                        ) : (
+                          !isOwnerAccount && (
+                            <span className="text-[8px] font-mono px-1 py-0.2 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold">
+                              ✓ Diizinkan
+                            </span>
+                          )
+                        )}
                       </button>
                     );
                   })}
@@ -679,16 +818,25 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
           {/* User Profile Info & System Actions */}
           <div className="flex items-center justify-between pt-1">
             {/* User Avatar & Name */}
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-emerald-500 to-cyan-500 text-slate-950 font-black text-xs flex items-center justify-center shrink-0">
-                {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
-              </div>
+            <div
+              onClick={() => setIsAccountDropdownOpen(true)}
+              className="flex items-center gap-2 min-w-0 cursor-pointer p-1 rounded-lg hover:bg-slate-800/50 transition-colors"
+              title="Klik untuk beralih akun staf / owner"
+            >
+              <img
+                src={currentUser?.avatar}
+                alt={currentUser?.name}
+                className="w-7 h-7 rounded-lg object-cover border border-slate-700 shrink-0"
+                onError={(e) => {
+                  (e.currentTarget as HTMLElement).style.display = 'none';
+                }}
+              />
               <div className="min-w-0 text-left">
                 <div className="text-xs font-bold text-slate-100 truncate">
                   {currentUser?.name || 'Karyawan'}
                 </div>
-                <div className="text-[9px] text-slate-400 uppercase font-mono truncate">
-                  {currentRole}
+                <div className="text-[9px] text-cyan-400 font-mono truncate">
+                  {currentUser.role === 'owner' ? '👑 OWNER' : (currentUser.allowedRoles || [currentUser.role]).join(' • ').toUpperCase()}
                 </div>
               </div>
             </div>
