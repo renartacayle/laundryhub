@@ -38,6 +38,7 @@ import {
   Check,
   X,
   Plus,
+  Tag,
 } from 'lucide-react';
 import { CoinTopupModal } from './CoinTopupModal';
 import { BranchSwitcherModal } from './BranchSwitcherModal';
@@ -76,6 +77,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
     dropshipAgents,
     withdrawalRequests,
     notifications,
+    services,
     markNotificationRead,
     resetAllData,
     setIsQrScannerOpen,
@@ -253,6 +255,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
             badgeColor: 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30',
           },
           { id: 'owner-staff', label: 'Karyawan & Komisi', icon: <Users className="w-4 h-4" /> },
+          {
+            id: 'owner-services',
+            label: 'Katalog & Tarif Jasa',
+            icon: <Tag className="w-4 h-4 text-cyan-500" />,
+            badge: `${services.length} Jasa`,
+            badgeColor: 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border-cyan-500/30',
+          },
           {
             id: 'owner-marketing',
             label: 'Pusat Marketing & Cuan',

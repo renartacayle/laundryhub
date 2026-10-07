@@ -46,11 +46,12 @@ export interface Service {
   name: string;
   category: ServiceCategory;
   price: number;
-  unit: string; // 'kg' | 'pcs' | 'pasang' | 'set'
+  unit: string; // 'kg' | 'pcs' | 'pasang' | 'set' | 'm2'
   minWeight?: number;
   estHours: number;
   icon: string;
   description?: string;
+  isActive?: boolean;
 }
 
 export interface Fragrance {

@@ -26,6 +26,8 @@ import {
   GamificationSettings,
   AiGarmentInspection,
   DigitalScaleReading,
+  Service,
+  Fragrance,
 } from '../types';
 import { soundEngine } from '../utils/audio';
 import { Language, Translations, translations } from '../utils/i18n';
@@ -46,6 +48,8 @@ import {
   INITIAL_ATTENDANCE,
   DEFAULT_PAYROLL_SETTINGS,
   DEFAULT_GAMIFICATION_SETTINGS,
+  INITIAL_SERVICES,
+  INITIAL_FRAGRANCES,
 } from '../data/seedData';
 
 interface AppContextType {
@@ -83,6 +87,16 @@ interface AppContextType {
   courierTasks: CourierTask[];
   auditLogs: AuditLog[];
   notifications: NotificationItem[];
+
+  // Laundry Services & Fragrances Catalog
+  services: Service[];
+  fragrances: Fragrance[];
+  addService: (serviceData: Omit<Service, 'id'>) => Service;
+  updateService: (id: string, updates: Partial<Service>) => void;
+  deleteService: (id: string) => void;
+  toggleServiceActive: (id: string) => void;
+  addFragrance: (fragranceData: Omit<Fragrance, 'id'>) => Fragrance;
+  deleteFragrance: (id: string) => void;
 
   // Dropship Ecosystem State
   dropshipAgents: DropshipAgent[];
@@ -337,6 +351,41 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const saved = localStorage.getItem('lh_audit_logs');
     return saved ? JSON.parse(saved) : INITIAL_AUDIT_LOGS;
   });
+
+  // Laundry Services & Fragrances state
+  const [services, setServices] = useState<Service[]>(() => {
+    const saved = localStorage.getItem('lh_services');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {
+        console.error('Failed to parse saved services', e);
+      }
+    }
+    return INITIAL_SERVICES;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('lh_services', JSON.stringify(services));
+  }, [services]);
+
+  const [fragrances, setFragrances] = useState<Fragrance[]>(() => {
+    const saved = localStorage.getItem('lh_fragrances');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {
+        console.error('Failed to parse saved fragrances', e);
+      }
+    }
+    return INITIAL_FRAGRANCES;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('lh_fragrances', JSON.stringify(fragrances));
+  }, [fragrances]);
 
   // Dropship states
   const [dropshipAgents, setDropshipAgents] = useState<DropshipAgent[]>(() => {
@@ -1575,6 +1624,96 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  // Laundry Services & Fragrances Catalog Management
+  const addService = (serviceData: Omit<Service, 'id'>): Service => {
+    const newService: Service = {
+      ...serviceData,
+      id: `srv-${Date.now()}`,
+      isActive: serviceData.isActive !== false,
+    };
+    setServices((prev) => [newService, ...prev]);
+
+    const newLog: AuditLog = {
+      id: `log-${Date.now()}`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      actorName: currentUser.name,
+      actorRole: currentUser.role,
+      action: 'TAMBAH_JASA_LAUNDRY',
+      details: `Owner menambah layanan baru: "${newService.name}" (Rp ${newService.price.toLocaleString('id-ID')}/${newService.unit})`,
+      branchId: currentBranchId,
+    };
+    setAuditLogs((prev) => [newLog, ...prev]);
+    soundEngine.playCashChime();
+    return newService;
+  };
+
+  const updateService = (id: string, updates: Partial<Service>) => {
+    setServices((prev) =>
+      prev.map((s) => {
+        if (s.id === id) {
+          return { ...s, ...updates };
+        }
+        return s;
+      })
+    );
+    const target = services.find((s) => s.id === id);
+    const newLog: AuditLog = {
+      id: `log-${Date.now()}`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      actorName: currentUser.name,
+      actorRole: currentUser.role,
+      action: 'UPDATE_TARIF_JASA',
+      details: `Owner memperbarui tarif/layanan: "${target?.name || id}" (${updates.price ? `Rp ${updates.price.toLocaleString('id-ID')}` : 'Detail diubah'})`,
+      branchId: currentBranchId,
+    };
+    setAuditLogs((prev) => [newLog, ...prev]);
+    soundEngine.playStationDing();
+  };
+
+  const deleteService = (id: string) => {
+    const target = services.find((s) => s.id === id);
+    setServices((prev) => prev.filter((s) => s.id !== id));
+    const newLog: AuditLog = {
+      id: `log-${Date.now()}`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      actorName: currentUser.name,
+      actorRole: currentUser.role,
+      action: 'HAPUS_JASA_LAUNDRY',
+      details: `Owner menghapus layanan: "${target?.name || id}"`,
+      branchId: currentBranchId,
+    };
+    setAuditLogs((prev) => [newLog, ...prev]);
+    soundEngine.playSpinClick();
+  };
+
+  const toggleServiceActive = (id: string) => {
+    setServices((prev) =>
+      prev.map((s) => {
+        if (s.id === id) {
+          const nextActive = s.isActive === false;
+          return { ...s, isActive: nextActive };
+        }
+        return s;
+      })
+    );
+    soundEngine.playSpinClick();
+  };
+
+  const addFragrance = (fragranceData: Omit<Fragrance, 'id'>): Fragrance => {
+    const newFragrance: Fragrance = {
+      ...fragranceData,
+      id: `fr-${Date.now()}`,
+    };
+    setFragrances((prev) => [...prev, newFragrance]);
+    soundEngine.playStationDing();
+    return newFragrance;
+  };
+
+  const deleteFragrance = (id: string) => {
+    setFragrances((prev) => prev.filter((f) => f.id !== id));
+    soundEngine.playSpinClick();
+  };
+
   // Step-by-Step Interactive Tutorial & Demo System
   const [activeTutorial, setActiveTutorial] = useState<'owner' | 'pekerja' | 'pelanggan' | null>(() => {
     return (localStorage.getItem('lh_active_tutorial') as any) || null;
@@ -2152,6 +2291,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setWithdrawalRequests(INITIAL_WITHDRAWAL_REQUESTS);
     setAttendances(INITIAL_ATTENDANCE);
     setPayrollSettings(DEFAULT_PAYROLL_SETTINGS);
+    setServices(INITIAL_SERVICES);
+    setFragrances(INITIAL_FRAGRANCES);
     setTokenCoins(1850);
     setCurrentRole('owner');
     setCurrentBranchId('br-kemang');
@@ -2192,6 +2333,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         courierTasks,
         auditLogs,
         notifications,
+        services,
+        fragrances,
+        addService,
+        updateService,
+        deleteService,
+        toggleServiceActive,
+        addFragrance,
+        deleteFragrance,
         dropshipAgents,
         dropshipSupplies,
         dropshipSupplyOrders,

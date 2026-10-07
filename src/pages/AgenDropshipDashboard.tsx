@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Order, OrderStatus, Service, OrderItem } from '../types';
-import { INITIAL_SERVICES, INITIAL_FRAGRANCES } from '../data/seedData';
 import {
   Store,
   Wallet,
@@ -40,6 +39,8 @@ export const AgenDropshipDashboard: React.FC<AgenDropshipDashboardProps> = ({ cu
     setCurrentAgentId,
     currentAgent,
     orders,
+    services,
+    fragrances,
     createAgentDropshipOrder,
     requestAgentWithdrawal,
     withdrawalRequests,
@@ -52,8 +53,8 @@ export const AgenDropshipDashboard: React.FC<AgenDropshipDashboardProps> = ({ cu
   const [custName, setCustName] = useState('');
   const [custPhone, setCustPhone] = useState('');
   const [weightKg, setWeightKg] = useState<number>(4.0);
-  const [selectedServiceId, setSelectedServiceId] = useState<string>(INITIAL_SERVICES[0].id);
-  const [selectedPerfumeId, setSelectedPerfumeId] = useState<string>(INITIAL_FRAGRANCES[0].id);
+  const [selectedServiceId, setSelectedServiceId] = useState<string>(services[0]?.id || '');
+  const [selectedPerfumeId, setSelectedPerfumeId] = useState<string>(fragrances[0]?.id || '');
   const [notes, setNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'tunai' | 'qris' | 'piutang'>('tunai');
 
@@ -67,8 +68,20 @@ export const AgenDropshipDashboard: React.FC<AgenDropshipDashboardProps> = ({ cu
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [isWhatsAppOpen, setIsWhatsAppOpen] = useState(false);
 
-  const selectedService = INITIAL_SERVICES.find((s) => s.id === selectedServiceId) || INITIAL_SERVICES[0];
-  const selectedPerfume = INITIAL_FRAGRANCES.find((f) => f.id === selectedPerfumeId) || INITIAL_FRAGRANCES[0];
+  const selectedService = services.find((s) => s.id === selectedServiceId) || services[0] || {
+    id: 'srv-fallback',
+    name: 'Cuci + Setrika',
+    price: 9000,
+    unit: 'kg',
+    category: 'kiloan',
+    estHours: 48,
+    icon: 'Sparkles',
+  };
+  const selectedPerfume = fragrances.find((f) => f.id === selectedPerfumeId) || fragrances[0] || {
+    id: 'fr-fallback',
+    name: 'Standard Fresh',
+    description: 'Aroma segar bersih',
+  };
   const centralBranch = branches.find((b) => b.id === currentAgent.branchId) || branches[0];
 
   // Pricing & Commission calculations
@@ -364,11 +377,13 @@ export const AgenDropshipDashboard: React.FC<AgenDropshipDashboardProps> = ({ cu
                     onChange={(e) => setSelectedServiceId(e.target.value)}
                     className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500 font-semibold"
                   >
-                    {INITIAL_SERVICES.map((srv) => (
-                      <option key={srv.id} value={srv.id}>
-                        {srv.name} — Rp {(srv.price + 1000).toLocaleString('id-ID')}/{srv.unit}
-                      </option>
-                    ))}
+                    {services
+                      .filter((s) => s.isActive !== false)
+                      .map((srv) => (
+                        <option key={srv.id} value={srv.id}>
+                          {srv.name} — Rp {(srv.price + 1000).toLocaleString('id-ID')}/{srv.unit}
+                        </option>
+                      ))}
                   </select>
                 </div>
 
@@ -430,7 +445,7 @@ export const AgenDropshipDashboard: React.FC<AgenDropshipDashboardProps> = ({ cu
                       onChange={(e) => setSelectedPerfumeId(e.target.value)}
                       className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
                     >
-                      {INITIAL_FRAGRANCES.map((f) => (
+                      {fragrances.map((f) => (
                         <option key={f.id} value={f.id}>
                           {f.name}
                         </option>

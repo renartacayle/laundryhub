@@ -11,10 +11,6 @@ import {
   ClothesItem,
 } from '../types';
 import {
-  INITIAL_SERVICES,
-  INITIAL_FRAGRANCES,
-} from '../data/seedData';
-import {
   ShoppingCart,
   Scale,
   Plus,
@@ -63,6 +59,8 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
     currentBranchId,
     currentUser,
     branches,
+    services,
+    fragrances,
     createOrder,
     updateOrderStatus,
     addCustomer,
@@ -100,7 +98,7 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
   const [customerSearchQuery, setCustomerSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'kiloan' | 'satuan'>('all');
   const [cartItems, setCartItems] = useState<OrderItem[]>([]);
-  const [selectedPerfumeId, setSelectedPerfumeId] = useState<string>(INITIAL_FRAGRANCES[0].id);
+  const [selectedPerfumeId, setSelectedPerfumeId] = useState<string>(fragrances[0]?.id || '');
   const [specialNotes, setSpecialNotes] = useState('');
   const [isExpress, setIsExpress] = useState(false);
   const [pickupDeliveryType, setPickupDeliveryType] = useState<'outlet' | 'delivery'>('outlet');
@@ -143,13 +141,15 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
 
   const selectedCustomer = customers.find((c) => c.id === selectedCustomerId) || customers[0];
   const activeBranch = branches.find((b) => b.id === currentBranchId) || branches[0];
-  const selectedPerfume = INITIAL_FRAGRANCES.find((f) => f.id === selectedPerfumeId) || INITIAL_FRAGRANCES[0];
+  const selectedPerfume = fragrances.find((f) => f.id === selectedPerfumeId) || fragrances[0];
 
-  // Services
-  const filteredServices = INITIAL_SERVICES.filter((s) => {
-    if (categoryFilter === 'all') return true;
-    return s.category === categoryFilter;
-  });
+  // Services (filtered by active status and category)
+  const filteredServices = services
+    .filter((s) => s.isActive !== false)
+    .filter((s) => {
+      if (categoryFilter === 'all') return true;
+      return s.category === categoryFilter;
+    });
 
   // Add Kiloan Service to Cart
   const handleAddKiloan = (service: Service) => {
@@ -707,7 +707,7 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
                   onChange={(e) => setSelectedPerfumeId(e.target.value)}
                   className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
                 >
-                  {INITIAL_FRAGRANCES.map((f) => (
+                  {fragrances.map((f) => (
                     <option key={f.id} value={f.id}>
                       {f.name} — {f.description}
                     </option>

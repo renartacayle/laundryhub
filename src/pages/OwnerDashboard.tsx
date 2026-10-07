@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { DropshipSupplyItem, Role, StationCommissionRates, GamificationSettings, GamificationPrize } from '../types';
+import { DropshipSupplyItem, Role, StationCommissionRates, GamificationSettings, GamificationPrize, Service, Fragrance } from '../types';
 import {
   TrendingUp,
   DollarSign,
@@ -56,6 +56,15 @@ import {
   Eye,
   Printer,
   AlertCircle,
+  Tag,
+  Edit3,
+  Search,
+  Wind,
+  Footprints,
+  Briefcase,
+  Crown,
+  Smile,
+  Sliders,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -182,6 +191,14 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
     triggerGamification,
     openWhatsAppBot,
     machines,
+    services,
+    addService,
+    updateService,
+    deleteService,
+    toggleServiceActive,
+    fragrances,
+    addFragrance,
+    deleteFragrance,
   } = useApp();
 
   // Add Worker Modal State
@@ -222,7 +239,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
     setEditingStationRates(stationRates);
   }, [stationRates]);
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'stats' | 'branches' | 'inventory' | 'staff' | 'audit' | 'dropship' | 'supplies' | 'marketing' | 'pnl'>(
+  const [activeTab, setActiveTab] = useState<'overview' | 'stats' | 'branches' | 'inventory' | 'staff' | 'services' | 'audit' | 'dropship' | 'supplies' | 'marketing' | 'pnl'>(
     currentSubTab === 'owner-stats'
       ? 'stats'
       : currentSubTab === 'owner-branches'
@@ -231,6 +248,8 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
       ? 'inventory'
       : currentSubTab === 'owner-staff'
       ? 'staff'
+      : currentSubTab === 'owner-services'
+      ? 'services'
       : currentSubTab === 'owner-audit'
       ? 'audit'
       : currentSubTab === 'owner-dropship'
@@ -252,6 +271,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
       else if (currentSubTab === 'owner-branches') setActiveTab('branches');
       else if (currentSubTab === 'owner-inventory') setActiveTab('inventory');
       else if (currentSubTab === 'owner-staff') setActiveTab('staff');
+      else if (currentSubTab === 'owner-services') setActiveTab('services');
       else if (currentSubTab === 'owner-audit') setActiveTab('audit');
       else if (currentSubTab === 'owner-dropship') setActiveTab('dropship');
       else if (currentSubTab === 'owner-supplies') setActiveTab('supplies');
@@ -260,6 +280,40 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
       else setActiveTab('overview');
     }
   }, [currentSubTab]);
+
+  // Services & Pricing Management State
+  const [serviceSearchQuery, setServiceSearchQuery] = useState('');
+  const [serviceCategoryFilter, setServiceCategoryFilter] = useState<'all' | 'kiloan' | 'satuan'>('all');
+  const [isAddServiceModalOpen, setIsAddServiceModalOpen] = useState(false);
+  const [isEditServiceModalOpen, setIsEditServiceModalOpen] = useState(false);
+  const [serviceToEdit, setServiceToEdit] = useState<Service | null>(null);
+
+  // New Service Form State
+  const [newServiceName, setNewServiceName] = useState('');
+  const [newServiceCategory, setNewServiceCategory] = useState<'kiloan' | 'satuan'>('kiloan');
+  const [newServicePrice, setNewServicePrice] = useState<number>(10000);
+  const [newServiceUnit, setNewServiceUnit] = useState<string>('kg');
+  const [newServiceMinWeight, setNewServiceMinWeight] = useState<number>(3);
+  const [newServiceEstHours, setNewServiceEstHours] = useState<number>(48);
+  const [newServiceIcon, setNewServiceIcon] = useState<string>('Sparkles');
+  const [newServiceDescription, setNewServiceDescription] = useState('');
+  const [serviceFormError, setServiceFormError] = useState<string | null>(null);
+
+  // Edit Service Form State
+  const [editServiceName, setEditServiceName] = useState('');
+  const [editServiceCategory, setEditServiceCategory] = useState<'kiloan' | 'satuan'>('kiloan');
+  const [editServicePrice, setEditServicePrice] = useState<number>(0);
+  const [editServiceUnit, setEditServiceUnit] = useState<string>('kg');
+  const [editServiceMinWeight, setEditServiceMinWeight] = useState<number>(0);
+  const [editServiceEstHours, setEditServiceEstHours] = useState<number>(24);
+  const [editServiceIcon, setEditServiceIcon] = useState<string>('Sparkles');
+  const [editServiceDescription, setEditServiceDescription] = useState('');
+  const [editServiceIsActive, setEditServiceIsActive] = useState<boolean>(true);
+
+  // Fragrances Form State
+  const [isAddFragranceModalOpen, setIsAddFragranceModalOpen] = useState(false);
+  const [newFragranceName, setNewFragranceName] = useState('');
+  const [newFragranceDescription, setNewFragranceDescription] = useState('');
 
   const [isCoinModalOpen, setIsCoinModalOpen] = useState(false);
   const [isOutletQrisModalOpen, setIsOutletQrisModalOpen] = useState(false);
@@ -621,6 +675,17 @@ Konsultasi Admin WA: 081228263200`;
             <span>Karyawan & Komisi</span>
           </button>
           <button
+            onClick={() => setActiveTab('services')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+              activeTab === 'services'
+                ? 'bg-cyan-500 text-slate-950 shadow-glow-cyan'
+                : 'bg-slate-800/80 text-cyan-300 hover:bg-slate-800 border border-cyan-500/30'
+            }`}
+          >
+            <Tag className="w-4 h-4 text-cyan-400" />
+            <span>Tarif Jasa ({services.length})</span>
+          </button>
+          <button
             onClick={() => setActiveTab('dropship')}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
               activeTab === 'dropship'
@@ -700,6 +765,7 @@ Konsultasi Admin WA: 081228263200`;
             {activeTab === 'supplies' && 'Manajemen Pasokan Bahan Baku B2B Dropship'}
             {activeTab === 'inventory' && `Monitoring Stok & Pengadaan Gudang (${lowStockItems.length} Menipis)`}
             {activeTab === 'staff' && 'Karyawan, Presensi Borongan & Slip Gaji'}
+            {activeTab === 'services' && 'Katalog Jasa & Setup Tarif Laundry'}
             {activeTab === 'marketing' && 'Pusat Marketing & Program Cuan Gamifikasi'}
             {activeTab === 'audit' && 'Riwayat Log Audit & Integritas Keamanan'}
           </h1>
@@ -2790,6 +2856,990 @@ Konsultasi Admin WA: 081228263200`;
                     >
                       <CheckCircle2 className="w-4 h-4" />
                       <span>Simpan & Beri Hak Akses</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 5B. KATALOG & TARIF JASA LAUNDRY (OWNER SETUP) */}
+      {activeTab === 'services' && (
+        <div className="space-y-6 animate-fade-in">
+          {/* Header Banner & Stat Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+            <div className="p-4 rounded-3xl glass-card border border-cyan-500/30 bg-gradient-to-br from-cyan-950/30 via-slate-900/60 to-slate-900/80">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-cyan-300">Total Layanan</span>
+                <div className="p-2 rounded-xl bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                  <Tag className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-2xl font-black font-mono text-white tracking-tight">
+                {services.length} <span className="text-xs font-normal text-slate-400">Jasa</span>
+              </div>
+              <div className="flex items-center gap-1.5 mt-2 text-[10px] text-emerald-400 font-semibold">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>{services.filter((s) => s.isActive !== false).length} Aktif di Kasir POS</span>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-3xl glass-card border border-emerald-500/30 bg-gradient-to-br from-emerald-950/30 via-slate-900/60 to-slate-900/80">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-300">Layanan Kiloan</span>
+                <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-2xl font-black font-mono text-white tracking-tight">
+                {services.filter((s) => s.category === 'kiloan').length} <span className="text-xs font-normal text-slate-400">Paket</span>
+              </div>
+              <p className="mt-2 text-[10px] text-slate-400 truncate">
+                Mulai Rp {Math.min(...services.filter((s) => s.category === 'kiloan').map((s) => s.price), 6000).toLocaleString('id-ID')} / kg
+              </p>
+            </div>
+
+            <div className="p-4 rounded-3xl glass-card border border-amber-500/30 bg-gradient-to-br from-amber-950/30 via-slate-900/60 to-slate-900/80">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-300">Satuan & Dry Clean</span>
+                <div className="p-2 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  <Shirt className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-2xl font-black font-mono text-white tracking-tight">
+                {services.filter((s) => s.category === 'satuan').length} <span className="text-xs font-normal text-slate-400">Item</span>
+              </div>
+              <p className="mt-2 text-[10px] text-slate-400 truncate">
+                Bed cover, Jas, Sepatu, Tas, Kebaya, dll
+              </p>
+            </div>
+
+            <div className="p-4 rounded-3xl glass-card border border-purple-500/30 bg-gradient-to-br from-purple-950/30 via-slate-900/60 to-slate-900/80">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-purple-300">Aroma Parfum</span>
+                <div className="p-2 rounded-xl bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-2xl font-black font-mono text-white tracking-tight">
+                {fragrances.length} <span className="text-xs font-normal text-slate-400">Varian</span>
+              </div>
+              <p className="mt-2 text-[10px] text-purple-300/80 truncate">
+                Pilihan aroma premium untuk pelanggan
+              </p>
+            </div>
+          </div>
+
+          {/* Action Bar, Filter & Quick Presets */}
+          <div className="p-5 rounded-3xl glass-card border border-slate-700/80 space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+              {/* Filter Tabs */}
+              <div className="flex items-center gap-1.5 p-1 bg-slate-900/90 rounded-2xl border border-slate-800 self-start">
+                <button
+                  type="button"
+                  onClick={() => setServiceCategoryFilter('all')}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    serviceCategoryFilter === 'all'
+                      ? 'bg-cyan-500 text-slate-950 shadow-glow-cyan'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Semua ({services.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setServiceCategoryFilter('kiloan')}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    serviceCategoryFilter === 'kiloan'
+                      ? 'bg-emerald-500 text-slate-950 shadow-glow-emerald'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Kiloan ({services.filter((s) => s.category === 'kiloan').length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setServiceCategoryFilter('satuan')}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    serviceCategoryFilter === 'satuan'
+                      ? 'bg-amber-500 text-slate-950 shadow-glow-amber'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Satuan & Dry Clean ({services.filter((s) => s.category === 'satuan').length})
+                </button>
+              </div>
+
+              {/* Search & Action Buttons */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="relative min-w-[200px]">
+                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Cari nama layanan..."
+                    value={serviceSearchQuery}
+                    onChange={(e) => setServiceSearchQuery(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-500 placeholder:text-slate-500"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setServiceFormError(null);
+                    setNewServiceName('');
+                    setNewServiceCategory('kiloan');
+                    setNewServicePrice(10000);
+                    setNewServiceUnit('kg');
+                    setNewServiceMinWeight(3);
+                    setNewServiceEstHours(48);
+                    setNewServiceIcon('Sparkles');
+                    setNewServiceDescription('');
+                    setIsAddServiceModalOpen(true);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-slate-950 font-black text-xs shadow-glow-cyan transition-all flex items-center gap-1.5"
+                >
+                  <Plus className="w-4 h-4 stroke-[3]" />
+                  <span>Tambah Jasa Baru</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNewFragranceName('');
+                    setNewFragranceDescription('');
+                    setIsAddFragranceModalOpen(true);
+                  }}
+                  className="px-3 py-2 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/30 text-xs font-bold transition-all flex items-center gap-1.5"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                  <span>+ Parfum</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Quick 1-Click Recommendation Presets */}
+            <div className="pt-2 border-t border-slate-800/80">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  💡 Preset Cepat Jasa Rekomendasi (Klik untuk Tambah Langsung):
+                </span>
+              </div>
+              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+                {[
+                  {
+                    name: 'Cuci Karpet Masjid/Rumah',
+                    category: 'satuan' as const,
+                    price: 15000,
+                    unit: 'm2',
+                    estHours: 48,
+                    icon: 'Layers',
+                    desc: 'Cuci basah deep clean karpet tebal, disikat mesin rotary dan dikeringkan wangi.',
+                  },
+                  {
+                    name: 'Deep Clean Helm Full Face',
+                    category: 'satuan' as const,
+                    price: 25000,
+                    unit: 'pcs',
+                    estHours: 24,
+                    icon: 'Zap',
+                    desc: 'Pembersihan busa helm, visor antifog, dan sterilisasi ozon anti-bakteri.',
+                  },
+                  {
+                    name: 'Cuci Gorden & Vitrase',
+                    category: 'satuan' as const,
+                    price: 12000,
+                    unit: 'm2',
+                    estHours: 48,
+                    icon: 'Shirt',
+                    desc: 'Cuci lembut dan setrika uap vertikal menjaga bentuk jatuh kain gorden.',
+                  },
+                  {
+                    name: 'Cuci Stroller Bayi / Car Seat',
+                    category: 'satuan' as const,
+                    price: 50000,
+                    unit: 'pcs',
+                    estHours: 72,
+                    icon: 'Smile',
+                    desc: 'Disinfeksi higienis bahan hypoallergenic ramah bayi tanpa deterjen keras.',
+                  },
+                ].map((preset) => {
+                  const alreadyExists = services.some((s) => s.name.toLowerCase() === preset.name.toLowerCase());
+                  return (
+                    <button
+                      key={preset.name}
+                      type="button"
+                      disabled={alreadyExists}
+                      onClick={() => {
+                        addService({
+                          name: preset.name,
+                          category: preset.category,
+                          price: preset.price,
+                          unit: preset.unit,
+                          estHours: preset.estHours,
+                          icon: preset.icon,
+                          description: preset.desc,
+                          isActive: true,
+                        });
+                      }}
+                      className={`px-3 py-1.5 rounded-xl border text-[11px] font-bold shrink-0 transition-all flex items-center gap-1.5 ${
+                        alreadyExists
+                          ? 'bg-slate-900 border-slate-800 text-slate-500 cursor-not-allowed opacity-60'
+                          : 'bg-slate-800/80 hover:bg-slate-700/80 border-slate-700 text-cyan-300 hover:text-white'
+                      }`}
+                    >
+                      <span>+</span>
+                      <span>{preset.name}</span>
+                      <span className="font-mono text-emerald-400">Rp {preset.price.toLocaleString('id-ID')}</span>
+                      {alreadyExists && <span className="text-[9px] text-slate-500">(Ada)</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Services Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {services
+              .filter((s) => {
+                const matchCategory = serviceCategoryFilter === 'all' || s.category === serviceCategoryFilter;
+                const matchQuery =
+                  !serviceSearchQuery ||
+                  s.name.toLowerCase().includes(serviceSearchQuery.toLowerCase()) ||
+                  (s.description && s.description.toLowerCase().includes(serviceSearchQuery.toLowerCase()));
+                return matchCategory && matchQuery;
+              })
+              .map((srv) => {
+                const isKiloan = srv.category === 'kiloan';
+                const isActive = srv.isActive !== false;
+
+                return (
+                  <div
+                    key={srv.id}
+                    className={`p-4 rounded-3xl glass-card border transition-all flex flex-col justify-between relative overflow-hidden ${
+                      isActive
+                        ? isKiloan
+                          ? 'border-emerald-500/40 bg-gradient-to-b from-slate-900/90 to-slate-950/90 hover:border-emerald-400/60'
+                          : 'border-cyan-500/40 bg-gradient-to-b from-slate-900/90 to-slate-950/90 hover:border-cyan-400/60'
+                        : 'border-slate-800 bg-slate-950/60 opacity-60'
+                    }`}
+                  >
+                    {/* Top Header Card */}
+                    <div>
+                      <div className="flex items-start justify-between gap-3 mb-2.5">
+                        <div className="flex items-center gap-2.5">
+                          <div
+                            className={`w-10 h-10 rounded-2xl flex items-center justify-center border shrink-0 ${
+                              isKiloan
+                                ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
+                                : 'bg-cyan-500/15 border-cyan-500/30 text-cyan-400'
+                            }`}
+                          >
+                            {srv.icon === 'Wind' && <Wind className="w-5 h-5" />}
+                            {srv.icon === 'Flame' && <Flame className="w-5 h-5" />}
+                            {srv.icon === 'Zap' && <Zap className="w-5 h-5" />}
+                            {srv.icon === 'Layers' && <Layers className="w-5 h-5" />}
+                            {srv.icon === 'Shirt' && <Shirt className="w-5 h-5" />}
+                            {srv.icon === 'Footprints' && <Footprints className="w-5 h-5" />}
+                            {srv.icon === 'Briefcase' && <Briefcase className="w-5 h-5" />}
+                            {srv.icon === 'Crown' && <Crown className="w-5 h-5" />}
+                            {srv.icon === 'Smile' && <Smile className="w-5 h-5" />}
+                            {srv.icon === 'Tag' && <Tag className="w-5 h-5" />}
+                            {!['Wind', 'Flame', 'Zap', 'Layers', 'Shirt', 'Footprints', 'Briefcase', 'Crown', 'Smile', 'Tag'].includes(
+                              srv.icon
+                            ) && <Sparkles className="w-5 h-5" />}
+                          </div>
+
+                          <div>
+                            <h4 className="text-sm font-bold text-white leading-snug">{srv.name}</h4>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <span
+                                className={`text-[9px] px-2 py-0.2 rounded-full font-bold uppercase tracking-wider ${
+                                  isKiloan
+                                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                                    : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+                                }`}
+                              >
+                                {isKiloan ? 'Kiloan' : 'Satuan'}
+                              </span>
+                              {srv.estHours <= 4 && (
+                                <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
+                                  ⚡ Kilat
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Status Toggle Switch */}
+                        <button
+                          type="button"
+                          onClick={() => toggleServiceActive(srv.id)}
+                          className={`px-2 py-1 rounded-xl text-[10px] font-bold border transition-all flex items-center gap-1 ${
+                            isActive
+                              ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
+                              : 'bg-slate-800 border-slate-700 text-slate-400'
+                          }`}
+                          title={isActive ? 'Klik untuk nonaktifkan jasa' : 'Klik untuk aktifkan jasa'}
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
+                          <span>{isActive ? 'Aktif' : 'Nonaktif'}</span>
+                        </button>
+                      </div>
+
+                      {/* Main Price Tag */}
+                      <div className="my-3 p-3 rounded-2xl bg-slate-950/70 border border-slate-800/80 flex items-baseline justify-between">
+                        <span className="text-[11px] text-slate-400 font-medium">Tarif Resmi:</span>
+                        <div className="text-right">
+                          <span className="text-xl font-black font-mono text-emerald-400">
+                            Rp {srv.price.toLocaleString('id-ID')}
+                          </span>
+                          <span className="text-xs text-slate-400 font-bold ml-1">/{srv.unit}</span>
+                        </div>
+                      </div>
+
+                      {/* Operational Specs */}
+                      <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-300 mb-3 font-medium">
+                        <div className="p-2 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center gap-1.5">
+                          <Clock className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                          <span className="truncate">
+                            {srv.estHours} Jam ({srv.estHours <= 4 ? 'Express' : `${Math.round(srv.estHours / 24)} Hari`})
+                          </span>
+                        </div>
+                        <div className="p-2 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center gap-1.5">
+                          <Package className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                          <span className="truncate">
+                            {srv.minWeight ? `Min. ${srv.minWeight} ${srv.unit}` : 'Bebas Minimum'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {srv.description && (
+                        <p className="text-xs text-slate-400 leading-relaxed line-clamp-2 mb-3">
+                          {srv.description}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="pt-3 border-t border-slate-800/80 flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setServiceToEdit(srv);
+                          setEditServiceName(srv.name);
+                          setEditServiceCategory(srv.category);
+                          setEditServicePrice(srv.price);
+                          setEditServiceUnit(srv.unit);
+                          setEditServiceMinWeight(srv.minWeight || 0);
+                          setEditServiceEstHours(srv.estHours);
+                          setEditServiceIcon(srv.icon);
+                          setEditServiceDescription(srv.description || '');
+                          setEditServiceIsActive(srv.isActive !== false);
+                          setIsEditServiceModalOpen(true);
+                        }}
+                        className="flex-1 py-1.5 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 hover:text-cyan-200 text-xs font-bold border border-slate-700 transition-all flex items-center justify-center gap-1.5"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                        <span>Ubah Tarif & Info</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (confirm(`Yakin ingin menghapus layanan "${srv.name}"?`)) {
+                            deleteService(srv.id);
+                          }
+                        }}
+                        className="p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 transition-all"
+                        title="Hapus Layanan"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+
+          {/* Fragrances Section (Pewangi Laundry) */}
+          <div className="p-5 rounded-3xl glass-card border border-purple-500/30 bg-gradient-to-r from-purple-950/20 via-slate-900/80 to-slate-900/80 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2.5 rounded-2xl bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                  <Sparkles className="w-5 h-5 text-purple-400" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                    <span>Manajemen Varian Parfum & Pewangi Laundry</span>
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-purple-500/20 text-purple-300 border border-purple-500/40">
+                      {fragrances.length} Pilihan Aroma
+                    </span>
+                  </h4>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Aroma ini muncul otomatis di formulir Kasir POS dan Agen Dropship untuk dipilih pelanggan.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setNewFragranceName('');
+                  setNewFragranceDescription('');
+                  setIsAddFragranceModalOpen(true);
+                }}
+                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-black text-xs shadow-glow-purple transition-all flex items-center gap-1.5 self-start sm:self-auto"
+              >
+                <Plus className="w-4 h-4 stroke-[3]" />
+                <span>Tambah Aroma Baru</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {fragrances.map((f) => (
+                <div
+                  key={f.id}
+                  className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3"
+                >
+                  <div className="min-w-0">
+                    <div className="font-bold text-xs text-purple-200 flex items-center gap-1.5">
+                      <span>🌸</span>
+                      <span className="truncate">{f.name}</span>
+                    </div>
+                    <div className="text-[11px] text-slate-400 mt-0.5 line-clamp-1">{f.description}</div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (fragrances.length <= 1) {
+                        alert('Minimal harus ada 1 varian aroma parfum!');
+                        return;
+                      }
+                      if (confirm(`Hapus aroma "${f.name}"?`)) {
+                        deleteFragrance(f.id);
+                      }
+                    }}
+                    className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition-colors shrink-0"
+                    title="Hapus Aroma"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* MODAL 1: TAMBAH JASA BARU */}
+          {isAddServiceModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in">
+              <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-lg w-full p-6 shadow-2xl relative space-y-4 max-h-[90vh] overflow-y-auto no-scrollbar">
+                <button
+                  type="button"
+                  onClick={() => setIsAddServiceModalOpen(false)}
+                  className="absolute top-4 right-4 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+
+                <div className="flex items-center gap-3 border-b border-slate-800 pb-3">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-cyan-500 to-emerald-500 flex items-center justify-center text-slate-950 shadow-md shrink-0 font-bold">
+                    <Tag className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white">Setup Layanan & Tarif Jasa Baru</h3>
+                    <p className="text-xs text-slate-400">
+                      Tentukan nama jasa, kategori kiloan/satuan, dan tarif resmi yang berlaku di POS.
+                    </p>
+                  </div>
+                </div>
+
+                {serviceFormError && (
+                  <div className="p-3 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-semibold flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
+                    <span>{serviceFormError}</span>
+                  </div>
+                )}
+
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    setServiceFormError(null);
+                    if (!newServiceName.trim()) {
+                      setServiceFormError('Nama layanan wajib diisi!');
+                      return;
+                    }
+                    if (newServicePrice <= 0) {
+                      setServiceFormError('Tarif harga harus lebih besar dari 0!');
+                      return;
+                    }
+                    addService({
+                      name: newServiceName.trim(),
+                      category: newServiceCategory,
+                      price: Number(newServicePrice),
+                      unit: newServiceUnit,
+                      minWeight: newServiceCategory === 'kiloan' ? Number(newServiceMinWeight) || 0 : undefined,
+                      estHours: Number(newServiceEstHours) || 24,
+                      icon: newServiceIcon,
+                      description: newServiceDescription.trim() || undefined,
+                      isActive: true,
+                    });
+                    setIsAddServiceModalOpen(false);
+                  }}
+                  className="space-y-4"
+                >
+                  {/* Nama Layanan */}
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                      Nama Layanan: <span className="text-rose-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Misal: Cuci Komplit Reguler, Bed Cover King, Dry Clean Jas"
+                      value={newServiceName}
+                      onChange={(e) => setNewServiceName(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500 font-semibold"
+                    />
+                  </div>
+
+                  {/* Kategori Jasa (Kiloan vs Satuan) */}
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-300 block mb-1.5">
+                      Kategori Layanan: <span className="text-rose-400">*</span>
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNewServiceCategory('kiloan');
+                          setNewServiceUnit('kg');
+                        }}
+                        className={`p-2.5 rounded-xl border text-center transition-all ${
+                          newServiceCategory === 'kiloan'
+                            ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 font-bold shadow-glow-emerald'
+                            : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        <div className="text-xs">🧺 Laundry Kiloan</div>
+                        <div className="text-[10px] text-slate-400">Dihitung per kg timbangan</div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNewServiceCategory('satuan');
+                          setNewServiceUnit('pcs');
+                        }}
+                        className={`p-2.5 rounded-xl border text-center transition-all ${
+                          newServiceCategory === 'satuan'
+                            ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300 font-bold shadow-glow-cyan'
+                            : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        <div className="text-xs">👔 Satuan & Dry Clean</div>
+                        <div className="text-[10px] text-slate-400">Dihitung per pcs / pasang / set</div>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Tarif Harga & Satuan Unit */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                        Tarif Harga (Rp): <span className="text-rose-400">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        step="500"
+                        min="500"
+                        required
+                        value={newServicePrice}
+                        onChange={(e) => setNewServicePrice(parseInt(e.target.value, 10) || 0)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-emerald-400 font-mono font-bold focus:outline-none focus:border-cyan-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                        Satuan Unit:
+                      </label>
+                      <select
+                        value={newServiceUnit}
+                        onChange={(e) => setNewServiceUnit(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                      >
+                        <option value="kg">kg (Kilogram)</option>
+                        <option value="pcs">pcs (Satuan Buah)</option>
+                        <option value="pasang">pasang (Sepatu / Kaos Kaki)</option>
+                        <option value="set">set (Sprei / Pakaian Set)</option>
+                        <option value="m2">m2 (Meter Persegi / Karpet)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Estimasi Durasi Pengerjaan & Minimal Berat */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                        Estimasi Pengerjaan (Jam):
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={newServiceEstHours}
+                        onChange={(e) => setNewServiceEstHours(parseInt(e.target.value, 10) || 24)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-cyan-400 font-mono font-bold focus:outline-none focus:border-cyan-500"
+                      />
+                      <span className="text-[9px] text-slate-400 mt-0.5 block">
+                        4 jam = Kilat, 24 jam = 1 Hari, 48 jam = 2 Hari
+                      </span>
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                        Minimal Order:
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        value={newServiceMinWeight}
+                        onChange={(e) => setNewServiceMinWeight(parseFloat(e.target.value) || 0)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-amber-400 font-mono font-bold focus:outline-none focus:border-cyan-500"
+                      />
+                      <span className="text-[9px] text-slate-400 mt-0.5 block">
+                        Misal: 3 kg (isi 0 jika tanpa batas minimal)
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Icon Selector */}
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-300 block mb-1.5">
+                      Pilih Ikon Visual:
+                    </label>
+                    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+                      {[
+                        { id: 'Sparkles', icon: <Sparkles className="w-4 h-4" /> },
+                        { id: 'Wind', icon: <Wind className="w-4 h-4" /> },
+                        { id: 'Flame', icon: <Flame className="w-4 h-4" /> },
+                        { id: 'Zap', icon: <Zap className="w-4 h-4" /> },
+                        { id: 'Layers', icon: <Layers className="w-4 h-4" /> },
+                        { id: 'Shirt', icon: <Shirt className="w-4 h-4" /> },
+                        { id: 'Footprints', icon: <Footprints className="w-4 h-4" /> },
+                        { id: 'Briefcase', icon: <Briefcase className="w-4 h-4" /> },
+                        { id: 'Crown', icon: <Crown className="w-4 h-4" /> },
+                        { id: 'Smile', icon: <Smile className="w-4 h-4" /> },
+                        { id: 'Tag', icon: <Tag className="w-4 h-4" /> },
+                      ].map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => setNewServiceIcon(item.id)}
+                          className={`p-2.5 rounded-xl border transition-all shrink-0 ${
+                            newServiceIcon === item.id
+                              ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300 shadow-glow-cyan'
+                              : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          {item.icon}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Deskripsi */}
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                      Deskripsi Layanan (Opsional):
+                    </label>
+                    <textarea
+                      rows={2}
+                      placeholder="Jelaskan proses cuci, deterjen, atau garansi..."
+                      value={newServiceDescription}
+                      onChange={(e) => setNewServiceDescription(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+
+                  {/* Buttons */}
+                  <div className="pt-2 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsAddServiceModalOpen(false)}
+                      className="flex-1 py-2.5 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs font-semibold"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="submit"
+                      className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500 text-slate-950 font-black text-xs shadow-glow-cyan hover:opacity-95 transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Simpan Jasa & Terapkan di POS</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* MODAL 2: EDIT JASA & UBAH TARIF */}
+          {isEditServiceModalOpen && serviceToEdit && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in">
+              <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-lg w-full p-6 shadow-2xl relative space-y-4 max-h-[90vh] overflow-y-auto no-scrollbar">
+                <button
+                  type="button"
+                  onClick={() => setIsEditServiceModalOpen(false)}
+                  className="absolute top-4 right-4 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+
+                <div className="flex items-center gap-3 border-b border-slate-800 pb-3">
+                  <div className="w-10 h-10 rounded-2xl bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 flex items-center justify-center shrink-0">
+                    <Edit3 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white">Ubah Tarif & Informasi Layanan</h3>
+                    <p className="text-xs text-slate-400">
+                      Edit tarif atau status aktif layanan &quot;{serviceToEdit.name}&quot;.
+                    </p>
+                  </div>
+                </div>
+
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!editServiceName.trim()) return;
+                    updateService(serviceToEdit.id, {
+                      name: editServiceName.trim(),
+                      category: editServiceCategory,
+                      price: Number(editServicePrice),
+                      unit: editServiceUnit,
+                      minWeight: editServiceCategory === 'kiloan' ? Number(editServiceMinWeight) || 0 : undefined,
+                      estHours: Number(editServiceEstHours) || 24,
+                      icon: editServiceIcon,
+                      description: editServiceDescription.trim() || undefined,
+                      isActive: editServiceIsActive,
+                    });
+                    setIsEditServiceModalOpen(false);
+                  }}
+                  className="space-y-4"
+                >
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                      Nama Layanan:
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={editServiceName}
+                      onChange={(e) => setEditServiceName(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500 font-semibold"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                        Tarif Harga (Rp):
+                      </label>
+                      <input
+                        type="number"
+                        step="500"
+                        min="500"
+                        required
+                        value={editServicePrice}
+                        onChange={(e) => setEditServicePrice(parseInt(e.target.value, 10) || 0)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-emerald-400 font-mono font-bold focus:outline-none focus:border-cyan-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                        Satuan Unit:
+                      </label>
+                      <select
+                        value={editServiceUnit}
+                        onChange={(e) => setEditServiceUnit(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                      >
+                        <option value="kg">kg (Kilogram)</option>
+                        <option value="pcs">pcs (Satuan Buah)</option>
+                        <option value="pasang">pasang (Sepatu / Kaos Kaki)</option>
+                        <option value="set">set (Sprei / Pakaian Set)</option>
+                        <option value="m2">m2 (Meter Persegi / Karpet)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                        Estimasi Pengerjaan (Jam):
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={editServiceEstHours}
+                        onChange={(e) => setEditServiceEstHours(parseInt(e.target.value, 10) || 24)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-cyan-400 font-mono font-bold focus:outline-none focus:border-cyan-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                        Minimal Order:
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        value={editServiceMinWeight}
+                        onChange={(e) => setEditServiceMinWeight(parseFloat(e.target.value) || 0)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-amber-400 font-mono font-bold focus:outline-none focus:border-cyan-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Status Aktif Switch */}
+                  <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-bold text-white block">Status Layanan di Kasir POS:</span>
+                      <span className="text-[10px] text-slate-400">
+                        {editServiceIsActive ? 'Layanan aktif dan dapat dipilih di kasir' : 'Layanan disembunyikan sementara dari kasir'}
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setEditServiceIsActive(!editServiceIsActive)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                        editServiceIsActive
+                          ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300'
+                          : 'bg-rose-500/20 border-rose-500 text-rose-300'
+                      }`}
+                    >
+                      {editServiceIsActive ? '✓ Aktif' : '✗ Nonaktif'}
+                    </button>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                      Deskripsi Layanan:
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={editServiceDescription}
+                      onChange={(e) => setEditServiceDescription(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+
+                  <div className="pt-2 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsEditServiceModalOpen(false)}
+                      className="flex-1 py-2.5 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs font-semibold"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="submit"
+                      className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-emerald-500 text-slate-950 font-black text-xs shadow-glow-cyan hover:opacity-95 transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Simpan Perubahan Tarif</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* MODAL 3: TAMBAH VARIAN PARFUM */}
+          {isAddFragranceModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in">
+              <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full p-6 shadow-2xl relative space-y-4">
+                <button
+                  type="button"
+                  onClick={() => setIsAddFragranceModalOpen(false)}
+                  className="absolute top-4 right-4 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+
+                <div className="flex items-center gap-3 border-b border-slate-800 pb-3">
+                  <div className="w-10 h-10 rounded-2xl bg-purple-500/20 text-purple-300 border border-purple-500/30 flex items-center justify-center shrink-0">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white">Tambah Varian Aroma Parfum</h3>
+                    <p className="text-xs text-slate-400">
+                      Varian aroma akan langsung dapat dipilih saat input order di kasir.
+                    </p>
+                  </div>
+                </div>
+
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!newFragranceName.trim()) return;
+                    addFragrance({
+                      name: newFragranceName.trim(),
+                      description: newFragranceDescription.trim() || 'Aroma wangi segar tahan lama',
+                    });
+                    setIsAddFragranceModalOpen(false);
+                  }}
+                  className="space-y-4"
+                >
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                      Nama Aroma Parfum: <span className="text-rose-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Misal: Vanilla Velvet, Baccarat Floral, Baby Soft"
+                      value={newFragranceName}
+                      onChange={(e) => setNewFragranceName(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500 font-semibold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                      Karakter Aroma & Deskripsi:
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Misal: Aroma manis elegan, wangi mewah tahan hingga 14 hari"
+                      value={newFragranceDescription}
+                      onChange={(e) => setNewFragranceDescription(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500"
+                    />
+                  </div>
+
+                  <div className="pt-2 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsAddFragranceModalOpen(false)}
+                      className="flex-1 py-2.5 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs font-semibold"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="submit"
+                      className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-black text-xs shadow-glow-purple hover:opacity-95 transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Simpan Aroma</span>
                     </button>
                   </div>
                 </form>
