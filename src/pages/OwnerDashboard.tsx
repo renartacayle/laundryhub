@@ -157,6 +157,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
     inventory,
     users,
     auditLogs,
+    activeOwnerUid,
     tokenCoins,
     updateInventoryStock,
     dropshipAgents,
@@ -794,6 +795,59 @@ Konsultasi Admin WA: 081228263200`;
       {/* 1. OVERVIEW TAB */}
       {activeTab === 'overview' && (
         <div className="space-y-6">
+          {/* Owner UID & Workspace Isolation Security Card */}
+          <div className="p-4 rounded-3xl bg-gradient-to-r from-amber-950/40 via-slate-900/90 to-slate-900 border border-amber-500/30 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-lg">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-2xl bg-amber-500/20 text-amber-300 border border-amber-500/40 shrink-0">
+                <Crown className="w-6 h-6 text-amber-400" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-sm font-extrabold text-white">
+                    {currentUser.name}
+                  </h3>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    👑 Pemilik Utama Outlet
+                  </span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                    <Shield className="w-3 h-3 text-emerald-400" />
+                    <span>Database Terisolasi Mandiri</span>
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 text-xs text-slate-400 mt-1 flex-wrap">
+                  <div className="flex items-center gap-1.5">
+                    <span>Owner UID:</span>
+                    <code className="text-xs font-mono font-bold text-amber-300 bg-amber-500/15 px-2 py-0.5 rounded border border-amber-500/30">
+                      {currentUser.ownerUid || activeOwnerUid}
+                    </code>
+                  </div>
+                  <div className="text-slate-500">•</div>
+                  <div>Email: <strong className="text-slate-300 font-mono">{currentUser.email}</strong></div>
+                  <div className="text-slate-500">•</div>
+                  <div>Outlet: <strong className="text-slate-300">{currentUser.outletName || 'LaundryHub Express'}</strong></div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  const uid = currentUser.ownerUid || activeOwnerUid;
+                  if (uid) {
+                    navigator.clipboard.writeText(uid);
+                    alert(`Owner UID (${uid}) berhasil disalin!`);
+                  }
+                }}
+                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 transition-all flex items-center gap-1.5"
+                title="Salin Owner UID unik toko Anda"
+              >
+                <Copy className="w-3.5 h-3.5 text-amber-400" />
+                <span>Salin UID Toko</span>
+              </button>
+            </div>
+          </div>
+
           {/* Key Metric Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Total Revenue */}
@@ -2144,6 +2198,8 @@ Konsultasi Admin WA: 081228263200`;
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {users
               .filter((u) => {
+                // Ensure other owner accounts never appear in staff list
+                if (u.role === 'owner' && u.id !== currentUser.id) return false;
                 if (staffRoleFilter !== 'all' && u.role !== staffRoleFilter) return false;
                 if (staffSearchText) {
                   const q = staffSearchText.toLowerCase();

@@ -5,7 +5,7 @@ import { Crown, Monitor, WashingMachine, Bike, UserCircle2, Store, Lock, Unlock,
 import { AuthGateModal } from './AuthGateModal';
 
 export const RoleSwitcherBar: React.FC = () => {
-  const { currentRole, setCurrentRole, activeGmailAccount, setIsGoogleAuthModalOpen, setIsDemoTutorialModalOpen } = useApp();
+  const { currentRole, setCurrentRole, activeGmailAccount, activeOwnerUid, currentUser, setIsGoogleAuthModalOpen, setIsDemoTutorialModalOpen } = useApp();
 
   // Mode: Flexible vs Commercial (PIN Protected) - Defaults to Real Commercial Mode
   const [isCommercialMode, setIsCommercialMode] = useState<boolean>(() => {
@@ -146,6 +146,14 @@ export const RoleSwitcherBar: React.FC = () => {
               <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
               <span>Tutorial Demo</span>
             </button>
+
+            {/* Owner UID Badge */}
+            {(currentUser.ownerUid || activeOwnerUid) && (
+              <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 font-mono text-[11px] font-bold">
+                <Crown className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                <span>{currentUser.ownerUid || activeOwnerUid}</span>
+              </div>
+            )}
 
             {/* Google Auth button in switcher */}
             <button

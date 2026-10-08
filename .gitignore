@@ -19,3 +19,4 @@ android/.gradle
 public/*.apk
 test_downloads/
 test_verification.mjs
+test_owner_uid_isolation.mjs

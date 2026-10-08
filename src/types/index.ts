@@ -10,8 +10,21 @@ export interface Branch {
   image?: string;
 }
 
+export interface OwnerProfile {
+  ownerUid: string; // Unique UID for each owner (e.g. "OWN-882194")
+  email: string;
+  name: string;
+  phone: string;
+  outletName: string;
+  avatar: string;
+  pin: string; // Security PIN (default "8888")
+  createdAt: string;
+  lastLoginAt?: string;
+}
+
 export interface User {
   id: string;
+  ownerUid?: string; // UID unik owner pemilik akun/outlet ini
   name: string;
   role: Role;
   allowedRoles?: Role[]; // Specific jobs assigned to this account by owner (e.g. ['kasir', 'produksi'])
@@ -22,6 +35,8 @@ export interface User {
   commissionRateKg: number; // Rp per kg (e.g. 500)
   commissionRateItem: number; // Rp per satuan (e.g. 1000)
   totalCommissionEarned: number;
+  pin?: string; // Security PIN
+  outletName?: string;
   isGmailLinked?: boolean;
   isDemo?: boolean;
   isPersonalGoogleAccount?: boolean;

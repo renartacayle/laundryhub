@@ -28,6 +28,7 @@ import {
   DigitalScaleReading,
   Service,
   Fragrance,
+  OwnerProfile,
 } from '../types';
 import { soundEngine } from '../utils/audio';
 import { Language, Translations, translations } from '../utils/i18n';
@@ -138,6 +139,23 @@ interface AppContextType {
   activeGmailAccount: string | null;
   isGoogleAuthModalOpen: boolean;
   setIsGoogleAuthModalOpen: (open: boolean) => void;
+
+  // Owner UID & Multi-Tenant Isolation
+  activeOwnerUid: string;
+  currentOwnerProfile: OwnerProfile | null;
+  loginOwnerWithGoogleAndPin: (
+    email: string,
+    pin: string
+  ) => { success: boolean; message: string; user?: User };
+  registerNewOwner: (params: {
+    email: string;
+    name: string;
+    outletName: string;
+    phone?: string;
+    pin: string;
+  }) => { success: boolean; message: string; user: User };
+  logoutOwner: () => void;
+
   loginWithGmail: (email: string, name?: string, avatar?: string) => { success: boolean; user?: User; role?: Role; message: string };
   loginWithPersonalGoogle: (account: {
     email: string;
@@ -146,6 +164,8 @@ interface AppContextType {
     role?: Role;
     branchName?: string;
     phone?: string;
+    pin?: string;
+    outletName?: string;
   }) => { success: boolean; user: User; message: string };
   deleteDemoAccounts: () => { success: boolean; removedCount: number; message: string };
   clearDemoOrders: () => { success: boolean; count: number; message: string };
@@ -312,35 +332,76 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return saved ? parseInt(saved, 10) : 1850;
   });
 
+  // Owners Registry Helper: Private Registry of all owner outlets on this device
+  const getOwnersRegistry = (): OwnerProfile[] => {
+    try {
+      const saved = localStorage.getItem('lh_owners_registry');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [];
+  };
+
+  // Active Owner Unique Identifier (UID)
+  const [activeOwnerUid, setActiveOwnerUid] = useState<string>(() => {
+    const saved = localStorage.getItem('lh_active_owner_uid');
+    if (saved) return saved;
+
+    const reg = getOwnersRegistry();
+    if (reg.length > 0) {
+      localStorage.setItem('lh_active_owner_uid', reg[0].ownerUid);
+      return reg[0].ownerUid;
+    }
+
+    const savedUsers = localStorage.getItem('lh_users');
+    if (savedUsers) {
+      try {
+        const parsed: User[] = JSON.parse(savedUsers);
+        const owner = parsed.find((u) => u.role === 'owner');
+        if (owner?.ownerUid) {
+          localStorage.setItem('lh_active_owner_uid', owner.ownerUid);
+          return owner.ownerUid;
+        }
+      } catch (e) {}
+    }
+
+    const defaultUid = 'OWN-DEMO-8801';
+    localStorage.setItem('lh_active_owner_uid', defaultUid);
+    return defaultUid;
+  });
+
   const [branches] = useState<Branch[]>(INITIAL_BRANCHES);
   const [users, setUsers] = useState<User[]>(() => {
     const demoCleared = localStorage.getItem('lh_demo_accounts_cleared') === 'true';
     const demoIds = ['usr-owner', 'usr-kasir-kmg', 'usr-kasir-btr', 'usr-prod-cuci', 'usr-prod-setrika', 'usr-prod-btr', 'usr-kurir-kmg', 'usr-kurir-btr', 'usr-agent-siti'];
     const saved = localStorage.getItem('lh_users');
+    let loadedUsers: User[] = [];
     if (!saved) {
-      return demoCleared ? [] : INITIAL_USERS;
+      loadedUsers = demoCleared ? [] : INITIAL_USERS;
+    } else {
+      try {
+        const parsed: User[] = JSON.parse(saved);
+        loadedUsers = demoCleared
+          ? parsed.filter((u) => !u.isDemo && !demoIds.includes(u.id))
+          : parsed;
+      } catch (e) {
+        loadedUsers = demoCleared ? [] : INITIAL_USERS;
+      }
     }
-    try {
-      const parsed: User[] = JSON.parse(saved);
-      const filtered = demoCleared
-        ? parsed.filter((u) => !u.isDemo && !demoIds.includes(u.id))
-        : parsed;
 
-      return filtered.map((u) => {
-        const isDemo = u.isDemo ?? (demoIds.includes(u.id) && !u.isPersonalGoogleAccount);
-        if (!u.allowedRoles || u.allowedRoles.length === 0) {
-          const seedMatch = INITIAL_USERS.find((s) => s.id === u.id);
-          return {
-            ...u,
-            isDemo,
-            allowedRoles: seedMatch?.allowedRoles || (u.role === 'owner' ? ['owner', 'kasir', 'produksi', 'kurir', 'agen'] : [u.role]),
-          };
-        }
-        return { ...u, isDemo };
-      });
-    } catch (e) {
-      return demoCleared ? [] : INITIAL_USERS;
-    }
+    const activeUid = localStorage.getItem('lh_active_owner_uid') || 'OWN-DEMO-8801';
+    return loadedUsers.map((u) => {
+      const isDemo = u.isDemo ?? (demoIds.includes(u.id) && !u.isPersonalGoogleAccount);
+      const ownerUid = u.ownerUid || (u.role === 'owner' ? activeUid : activeUid);
+      const allowedRoles: Role[] = u.allowedRoles && u.allowedRoles.length > 0
+        ? (u.allowedRoles as Role[])
+        : (u.role === 'owner' ? (['owner', 'kasir', 'produksi', 'kurir', 'agen'] as Role[]) : [u.role]);
+      return {
+        ...u,
+        ownerUid,
+        isDemo,
+        allowedRoles,
+      };
+    });
   });
 
   const [customers, setCustomers] = useState<Customer[]>(() => {
@@ -554,10 +615,44 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem('lh_role', role);
   };
 
-  // Switch active user account
+  // Compute current owner profile from registry
+  const currentOwnerProfile = React.useMemo<OwnerProfile | null>(() => {
+    const reg = getOwnersRegistry();
+    const found = reg.find((o) => o.ownerUid === activeOwnerUid);
+    if (found) return found;
+
+    const ownerUser = users.find((u) => u.role === 'owner');
+    if (ownerUser) {
+      return {
+        ownerUid: activeOwnerUid,
+        email: ownerUser.email,
+        name: ownerUser.name,
+        phone: ownerUser.phone || '0812-8899-7701',
+        outletName: ownerUser.outletName || 'LaundryHub Express',
+        avatar: ownerUser.avatar,
+        pin: ownerUser.pin || '8888',
+        createdAt: new Date().toISOString(),
+      };
+    }
+    return null;
+  }, [activeOwnerUid, users]);
+
+  // Switch active user account with strict owner isolation
   const switchUserAccount = (userId: string) => {
     const target = users.find((u) => u.id === userId);
     if (!target) return;
+
+    // Security check: Staf cannot switch to an owner account without Google login / PIN
+    if (target.role === 'owner' && currentUser.role !== 'owner') {
+      alert('Akses Ditolak: Staf tidak dapat mengakses akun Owner tanpa autentikasi Google/PIN!');
+      return;
+    }
+
+    // Security check: Block cross-owner account switching
+    if (target.ownerUid && target.ownerUid !== activeOwnerUid) {
+      alert('Akses Ditolak: Pengguna ini berasal dari outlet owner lain.');
+      return;
+    }
 
     setCurrentUserId(target.id);
     localStorage.setItem('lh_user_id', target.id);
@@ -1554,6 +1649,221 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     (u) => u.isDemo || ['usr-owner', 'usr-kasir-kmg', 'usr-kasir-btr', 'usr-prod-cuci', 'usr-prod-setrika', 'usr-prod-btr', 'usr-kurir-kmg', 'usr-kurir-btr', 'usr-agent-siti'].includes(u.id)
   );
 
+  const loginOwnerWithGoogleAndPin = (
+    email: string,
+    pin: string
+  ): { success: boolean; message: string; user?: User } => {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPin = pin.trim();
+
+    const registry = getOwnersRegistry();
+    let matchedOwner = registry.find((o) => o.email.toLowerCase() === cleanEmail);
+
+    // If not found in registry but exists in users list as owner:
+    if (!matchedOwner) {
+      const existingUserOwner = users.find((u) => u.email.toLowerCase() === cleanEmail && u.role === 'owner');
+      if (existingUserOwner) {
+        matchedOwner = {
+          ownerUid: existingUserOwner.ownerUid || activeOwnerUid,
+          email: cleanEmail,
+          name: existingUserOwner.name,
+          phone: existingUserOwner.phone || '0812-8899-7701',
+          outletName: existingUserOwner.outletName || 'LaundryHub Express',
+          avatar: existingUserOwner.avatar,
+          pin: existingUserOwner.pin || '8888',
+          createdAt: new Date().toISOString(),
+          lastLoginAt: new Date().toISOString(),
+        };
+        const updatedReg = [...registry, matchedOwner];
+        localStorage.setItem('lh_owners_registry', JSON.stringify(updatedReg));
+      }
+    }
+
+    if (!matchedOwner) {
+      return {
+        success: false,
+        message: 'Email belum terdaftar sebagai Owner. Silakan gunakan tab "Daftar Owner Baru" untuk mendaftar dan menerbitkan UID Toko Anda.',
+      };
+    }
+
+    // Verify PIN: Default to 8888 if not set
+    const expectedPin = matchedOwner.pin || '8888';
+    if (cleanPin && expectedPin !== cleanPin) {
+      return {
+        success: false,
+        message: 'PIN Keamanan salah! Akses ditolak demi melindungi data outlet pemilik.',
+      };
+    }
+
+    // PIN is correct! Activate this owner's UID
+    const targetUid = matchedOwner.ownerUid;
+    setActiveOwnerUid(targetUid);
+    localStorage.setItem('lh_active_owner_uid', targetUid);
+
+    // Find or create the user object for this owner
+    let ownerUser = users.find((u) => u.email.toLowerCase() === cleanEmail && u.role === 'owner');
+    if (!ownerUser) {
+      ownerUser = {
+        id: `usr-owner-${Date.now()}`,
+        ownerUid: targetUid,
+        name: matchedOwner.name,
+        role: 'owner',
+        allowedRoles: ['owner', 'kasir', 'produksi', 'kurir', 'agen'],
+        email: cleanEmail,
+        phone: matchedOwner.phone,
+        avatar: matchedOwner.avatar,
+        branchId: currentBranchId,
+        commissionRateKg: 0,
+        commissionRateItem: 0,
+        totalCommissionEarned: 0,
+        pin: matchedOwner.pin,
+        outletName: matchedOwner.outletName,
+        isGmailLinked: true,
+        isPersonalGoogleAccount: true,
+        isDemo: false,
+        lastLoginAt: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      };
+      setUsers((prev) => [ownerUser!, ...prev]);
+    } else {
+      ownerUser = {
+        ...ownerUser,
+        ownerUid: targetUid,
+        lastLoginAt: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      };
+      setUsers((prev) => prev.map((u) => (u.id === ownerUser!.id ? ownerUser! : u)));
+    }
+
+    setCurrentUserId(ownerUser.id);
+    setCurrentUser(ownerUser);
+    _setCurrentRole('owner');
+    setActiveGmailAccount(cleanEmail);
+
+    localStorage.setItem('lh_user_id', ownerUser.id);
+    localStorage.setItem('lh_active_gmail', cleanEmail);
+    localStorage.setItem('lh_role', 'owner');
+    localStorage.setItem('lh_auth_mode', 'commercial');
+
+    const log: AuditLog = {
+      id: `log-${Date.now()}`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      actorName: ownerUser.name,
+      actorRole: 'owner',
+      action: 'LOGIN_OWNER_UID',
+      details: `Login sukses Owner UID: ${targetUid} (${cleanEmail}) - Outlet: ${matchedOwner.outletName}`,
+      branchId: currentBranchId,
+    };
+    setAuditLogs((prev) => [log, ...prev]);
+
+    return {
+      success: true,
+      message: `Selamat datang kembali, ${matchedOwner.name}! Anda berhasil masuk ke ${matchedOwner.outletName} (UID: ${targetUid}).`,
+      user: ownerUser,
+    };
+  };
+
+  const registerNewOwner = (params: {
+    email: string;
+    name: string;
+    outletName: string;
+    phone?: string;
+    pin: string;
+  }): { success: boolean; message: string; user: User } => {
+    const cleanEmail = params.email.trim().toLowerCase();
+    const cleanPin = params.pin.trim() || '8888';
+    const cleanName = params.name.trim();
+    const cleanOutletName = params.outletName.trim() || `${cleanName}'s Laundry`;
+    const cleanPhone = params.phone?.trim() || '0812-8899-7701';
+
+    const registry = getOwnersRegistry();
+    const existing = registry.find((o) => o.email.toLowerCase() === cleanEmail);
+    if (existing) {
+      return {
+        success: false,
+        message: `Email ${cleanEmail} sudah terdaftar dengan UID ${existing.ownerUid}! Silakan masuk dengan PIN Anda di tab Masuk.`,
+        user: currentUser,
+      };
+    }
+
+    // Generate unique Owner UID (e.g. OWN-8492-1205)
+    const newUid = `OWN-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    const newProfile: OwnerProfile = {
+      ownerUid: newUid,
+      email: cleanEmail,
+      name: cleanName,
+      phone: cleanPhone,
+      outletName: cleanOutletName,
+      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanName)}&background=0284c7&color=fff`,
+      pin: cleanPin,
+      createdAt: new Date().toISOString(),
+      lastLoginAt: new Date().toISOString(),
+    };
+
+    const newRegistry = [...registry, newProfile];
+    localStorage.setItem('lh_owners_registry', JSON.stringify(newRegistry));
+
+    const newOwnerUser: User = {
+      id: `usr-owner-${Date.now()}`,
+      ownerUid: newUid,
+      name: cleanName,
+      role: 'owner',
+      allowedRoles: ['owner', 'kasir', 'produksi', 'kurir', 'agen'],
+      email: cleanEmail,
+      phone: cleanPhone,
+      avatar: newProfile.avatar,
+      branchId: currentBranchId,
+      commissionRateKg: 0,
+      commissionRateItem: 0,
+      totalCommissionEarned: 0,
+      pin: cleanPin,
+      outletName: cleanOutletName,
+      isGmailLinked: true,
+      isPersonalGoogleAccount: true,
+      isDemo: false,
+      lastLoginAt: new Date().toISOString().replace('T', ' ').substring(0, 19),
+    };
+
+    // Keep active users restricted to this owner and isolated from other owners
+    setUsers([newOwnerUser]);
+    setCurrentUserId(newOwnerUser.id);
+    setCurrentUser(newOwnerUser);
+    _setCurrentRole('owner');
+    setActiveGmailAccount(cleanEmail);
+    setActiveOwnerUid(newUid);
+
+    localStorage.setItem('lh_active_owner_uid', newUid);
+    localStorage.setItem('lh_user_id', newOwnerUser.id);
+    localStorage.setItem('lh_active_gmail', cleanEmail);
+    localStorage.setItem('lh_role', 'owner');
+    localStorage.setItem('lh_auth_mode', 'commercial');
+
+    const log: AuditLog = {
+      id: `log-${Date.now()}`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      actorName: cleanName,
+      actorRole: 'owner',
+      action: 'REGISTER_OWNER_UID',
+      details: `Pendaftaran Owner Baru: ${cleanName} (${cleanEmail}) - Terbit UID: ${newUid} - Outlet: ${cleanOutletName}`,
+      branchId: currentBranchId,
+    };
+    setAuditLogs((prev) => [log, ...prev]);
+
+    return {
+      success: true,
+      message: `Selamat, ${cleanName}! Outlet ${cleanOutletName} berhasil dibuat dengan Owner UID: ${newUid}. Data Anda terisolasi secara aman.`,
+      user: newOwnerUser,
+    };
+  };
+
+  const logoutOwner = () => {
+    setActiveGmailAccount(null);
+    localStorage.removeItem('lh_active_gmail');
+    localStorage.removeItem('lh_user_id');
+    _setCurrentRole('pelanggan');
+    localStorage.setItem('lh_role', 'pelanggan');
+    setIsGoogleAuthModalOpen(true);
+  };
+
   const loginWithPersonalGoogle = (account: {
     email: string;
     name?: string;
@@ -1561,11 +1871,45 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     role?: Role;
     branchName?: string;
     phone?: string;
+    pin?: string;
+    outletName?: string;
   }): { success: boolean; user: User; message: string } => {
     const cleanEmail = account.email.trim().toLowerCase();
     const targetRole = account.role || 'owner';
     const targetName = account.name?.trim() || cleanEmail.split('@')[0];
     const targetAvatar = account.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(targetName)}&background=0284c7&color=fff`;
+    const cleanPin = account.pin?.trim() || '8888';
+    const cleanOutlet = account.outletName?.trim() || `${targetName}'s Laundry`;
+
+    // Ensure Owner is tracked in registry with their unique ownerUid
+    const registry = getOwnersRegistry();
+    let assignedOwnerUid = activeOwnerUid;
+    const existingInReg = registry.find((o) => o.email.toLowerCase() === cleanEmail);
+
+    if (existingInReg) {
+      assignedOwnerUid = existingInReg.ownerUid;
+      if (account.pin && existingInReg.pin !== account.pin.trim()) {
+        return {
+          success: false,
+          user: currentUser,
+          message: 'PIN Keamanan salah! Akses ditolak demi melindungi data outlet pemilik.',
+        };
+      }
+    } else if (targetRole === 'owner') {
+      assignedOwnerUid = `OWN-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}`;
+      const newRegProfile: OwnerProfile = {
+        ownerUid: assignedOwnerUid,
+        email: cleanEmail,
+        name: targetName,
+        phone: account.phone || '0812-8899-7701',
+        outletName: cleanOutlet,
+        avatar: targetAvatar,
+        pin: cleanPin,
+        createdAt: new Date().toISOString(),
+        lastLoginAt: new Date().toISOString(),
+      };
+      localStorage.setItem('lh_owners_registry', JSON.stringify([...registry, newRegProfile]));
+    }
 
     const existingIdx = users.findIndex((u) => u.email.toLowerCase() === cleanEmail);
     let targetUser: User;
@@ -1573,10 +1917,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (existingIdx >= 0) {
       targetUser = {
         ...users[existingIdx],
+        ownerUid: assignedOwnerUid,
         name: targetName,
         avatar: targetAvatar,
         role: targetRole,
         allowedRoles: targetRole === 'owner' ? ['owner', 'kasir', 'produksi', 'kurir', 'agen'] : (users[existingIdx].allowedRoles || [targetRole]),
+        pin: cleanPin,
+        outletName: cleanOutlet,
         isGmailLinked: true,
         isPersonalGoogleAccount: true,
         isDemo: false,
@@ -1586,6 +1933,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } else {
       targetUser = {
         id: `usr-personal-${Date.now()}`,
+        ownerUid: assignedOwnerUid,
         name: targetName,
         role: targetRole,
         allowedRoles: targetRole === 'owner' ? ['owner', 'kasir', 'produksi', 'kurir', 'agen'] : [targetRole],
@@ -1596,6 +1944,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         commissionRateKg: 0,
         commissionRateItem: 0,
         totalCommissionEarned: 0,
+        pin: cleanPin,
+        outletName: cleanOutlet,
         isGmailLinked: true,
         isPersonalGoogleAccount: true,
         isDemo: false,
@@ -1604,11 +1954,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setUsers((prev) => [targetUser, ...prev]);
     }
 
+    setActiveOwnerUid(assignedOwnerUid);
     setCurrentUserId(targetUser.id);
     setCurrentUser(targetUser);
     _setCurrentRole(targetRole);
     setActiveGmailAccount(cleanEmail);
 
+    localStorage.setItem('lh_active_owner_uid', assignedOwnerUid);
     localStorage.setItem('lh_user_id', targetUser.id);
     localStorage.setItem('lh_active_gmail', cleanEmail);
     localStorage.setItem('lh_role', targetRole);
@@ -1620,7 +1972,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       actorName: targetUser.name,
       actorRole: targetRole,
       action: 'LOGIN_PERSONAL_GOOGLE',
-      details: `Login Akun Google Pribadi (${cleanEmail}) sebagai ${targetRole.toUpperCase()} (Mode Riil Aktif)`,
+      details: `Login Akun Google Pribadi (${cleanEmail}) sebagai ${targetRole.toUpperCase()} (UID: ${assignedOwnerUid})`,
       branchId: currentBranchId,
     };
     setAuditLogs((prev) => [log, ...prev]);
@@ -1628,7 +1980,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const notif: NotificationItem = {
       id: `notif-${Date.now()}`,
       title: '👑 Akun Google Pribadi Terhubung',
-      message: `Selamat datang, ${targetUser.name}! Anda kini mengelola outlet sebagai ${targetRole.toUpperCase()} dalam Mode Riil.`,
+      message: `Selamat datang, ${targetUser.name}! UID Toko Anda adalah ${assignedOwnerUid}.`,
       timestamp: 'Baru saja',
       type: 'order',
       read: false,
@@ -1638,7 +1990,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return {
       success: true,
       user: targetUser,
-      message: `Berhasil masuk dengan akun Google pribadi (${cleanEmail}) sebagai ${targetRole.toUpperCase()}!`,
+      message: `Berhasil masuk dengan akun Google pribadi (${cleanEmail}) sebagai ${targetRole.toUpperCase()} (UID: ${assignedOwnerUid})!`,
     };
   };
 
@@ -1757,6 +2109,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const newWorker: User = {
       ...workerData,
       id: `usr-${Date.now()}`,
+      ownerUid: activeOwnerUid,
+      outletName: currentOwnerProfile?.outletName || 'LaundryHub Express',
       email: cleanEmail,
       allowedRoles: assignedAllowed,
       totalCommissionEarned: 0,
@@ -2576,6 +2930,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         activeGmailAccount,
         isGoogleAuthModalOpen,
         setIsGoogleAuthModalOpen,
+        activeOwnerUid,
+        currentOwnerProfile,
+        loginOwnerWithGoogleAndPin,
+        registerNewOwner,
+        logoutOwner,
         loginWithGmail,
         loginWithPersonalGoogle,
         deleteDemoAccounts,
