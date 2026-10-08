@@ -25,6 +25,7 @@ import { AiGarmentScannerModal } from './components/AiGarmentScannerModal';
 import { PromoGamificationModal } from './components/PromoGamificationModal';
 import { WhatsAppBotModal } from './components/WhatsAppBotModal';
 import { SalarySlipModal } from './components/SalarySlipModal';
+import { GoogleAuthModal } from './components/GoogleAuthModal';
 
 const MainLayout: React.FC = () => {
   const {
@@ -35,6 +36,8 @@ const MainLayout: React.FC = () => {
     tutorialStep,
     isDemoTutorialModalOpen,
     setIsDemoTutorialModalOpen,
+    isGoogleAuthModalOpen,
+    setIsGoogleAuthModalOpen,
     activeGmailAccount,
     orders,
     trackingModalOrder,
@@ -76,10 +79,10 @@ const MainLayout: React.FC = () => {
 
   const [isLandingModalOpen, setIsLandingModalOpen] = useState(false);
   const [isIntroOpen, setIsIntroOpen] = useState(() => {
-    if (typeof window !== 'undefined' && window.location.search.includes('nointro')) {
-      return false;
+    if (typeof window !== 'undefined' && window.location.search.includes('intro')) {
+      return true;
     }
-    return localStorage.getItem('lh_intro_seen') !== 'true';
+    return false;
   });
 
   // Global listener to re-open intro anytime
@@ -100,14 +103,8 @@ const MainLayout: React.FC = () => {
     }
   }, [orders]);
 
-  // Auto-prompt Demo Tutorial on initial visit if guest
-  useEffect(() => {
-    const tutorialSeen = localStorage.getItem('lh_demo_tutorial_seen');
-    if (!tutorialSeen && !activeGmailAccount) {
-      setIsDemoTutorialModalOpen(true);
-      localStorage.setItem('lh_demo_tutorial_seen', 'true');
-    }
-  }, [activeGmailAccount, setIsDemoTutorialModalOpen]);
+  // Note: Demo tutorial auto-popup disabled to allow direct real production usage.
+  // Users can access tutorial on-demand via the Panduan button.
 
   // Synchronize step-by-step interactive tutorial with tabs and roles
   useEffect(() => {
@@ -308,6 +305,12 @@ const MainLayout: React.FC = () => {
 
       {/* Landing Page Showcase Modal */}
       <LandingPageModal isOpen={isLandingModalOpen} onClose={() => setIsLandingModalOpen(false)} />
+
+      {/* Official Google OAuth & Personal Account Modal */}
+      <GoogleAuthModal
+        isOpen={isGoogleAuthModalOpen}
+        onClose={() => setIsGoogleAuthModalOpen(false)}
+      />
 
       {/* Interactive Introduction / Onboarding Modal */}
       <IntroductionModal isOpen={isIntroOpen} onClose={() => setIsIntroOpen(false)} />

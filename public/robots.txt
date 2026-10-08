@@ -1,0 +1,33 @@
+# robots.txt for LaundryHub (Official Production)
+# Allows search engines (Googlebot, Bingbot) and Google AdSense crawlers
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /*?token=*
+
+# Google Search Crawler
+User-agent: Googlebot
+Allow: /
+Allow: /?tab=*
+Allow: /?nota=*
+
+# Google Image Crawler
+User-agent: Googlebot-Image
+Allow: /
+Allow: /*.png$
+Allow: /*.jpg$
+Allow: /*.jpeg$
+Allow: /*.svg$
+
+# Google AdSense Crawler
+User-agent: Mediapartners-Google
+Allow: /
+
+# Google AdsBot
+User-agent: AdsBot-Google
+Allow: /
+
+# Sitemap Location
+Sitemap: https://laundryhub-rho.vercel.app/sitemap.xml
+Sitemap: https://laundryhub.app/sitemap.xml

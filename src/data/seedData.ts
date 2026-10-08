@@ -62,6 +62,7 @@ export const INITIAL_USERS: User[] = [
     commissionRateItem: 0,
     totalCommissionEarned: 0,
     isGmailLinked: true,
+    isDemo: true,
   },
   {
     id: 'usr-kasir-kmg',
@@ -76,6 +77,7 @@ export const INITIAL_USERS: User[] = [
     commissionRateItem: 500,
     totalCommissionEarned: 485000,
     isGmailLinked: true,
+    isDemo: true,
   },
   {
     id: 'usr-kasir-btr',
@@ -90,6 +92,7 @@ export const INITIAL_USERS: User[] = [
     commissionRateItem: 500,
     totalCommissionEarned: 390000,
     isGmailLinked: true,
+    isDemo: true,
   },
   {
     id: 'usr-prod-cuci',
@@ -104,6 +107,7 @@ export const INITIAL_USERS: User[] = [
     commissionRateItem: 1000,
     totalCommissionEarned: 890000,
     isGmailLinked: true,
+    isDemo: true,
   },
   {
     id: 'usr-prod-setrika',
@@ -118,6 +122,7 @@ export const INITIAL_USERS: User[] = [
     commissionRateItem: 1200,
     totalCommissionEarned: 1025000,
     isGmailLinked: true,
+    isDemo: true,
   },
   {
     id: 'usr-prod-btr',
@@ -132,6 +137,7 @@ export const INITIAL_USERS: User[] = [
     commissionRateItem: 1100,
     totalCommissionEarned: 760000,
     isGmailLinked: true,
+    isDemo: true,
   },
   {
     id: 'usr-kurir-kmg',
@@ -146,6 +152,7 @@ export const INITIAL_USERS: User[] = [
     commissionRateItem: 2000,
     totalCommissionEarned: 620000,
     isGmailLinked: true,
+    isDemo: true,
   },
   {
     id: 'usr-kurir-btr',
@@ -160,6 +167,7 @@ export const INITIAL_USERS: User[] = [
     commissionRateItem: 2000,
     totalCommissionEarned: 540000,
     isGmailLinked: true,
+    isDemo: true,
   },
   {
     id: 'usr-agent-siti',
@@ -174,6 +182,7 @@ export const INITIAL_USERS: User[] = [
     commissionRateItem: 5000,
     totalCommissionEarned: 3250000,
     isGmailLinked: true,
+    isDemo: true,
   },
 ];
 

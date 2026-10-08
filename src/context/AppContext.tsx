@@ -139,6 +139,17 @@ interface AppContextType {
   isGoogleAuthModalOpen: boolean;
   setIsGoogleAuthModalOpen: (open: boolean) => void;
   loginWithGmail: (email: string, name?: string, avatar?: string) => { success: boolean; user?: User; role?: Role; message: string };
+  loginWithPersonalGoogle: (account: {
+    email: string;
+    name?: string;
+    avatar?: string;
+    role?: Role;
+    branchName?: string;
+    phone?: string;
+  }) => { success: boolean; user: User; message: string };
+  deleteDemoAccounts: () => { success: boolean; removedCount: number; message: string };
+  clearDemoOrders: () => { success: boolean; count: number; message: string };
+  hasDemoAccounts: boolean;
   logoutGmail: () => void;
   addWorker: (workerData: Omit<User, 'id' | 'totalCommissionEarned'>) => User;
   removeWorker: (userId: string) => void;
@@ -303,22 +314,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [branches] = useState<Branch[]>(INITIAL_BRANCHES);
   const [users, setUsers] = useState<User[]>(() => {
+    const demoCleared = localStorage.getItem('lh_demo_accounts_cleared') === 'true';
+    const demoIds = ['usr-owner', 'usr-kasir-kmg', 'usr-kasir-btr', 'usr-prod-cuci', 'usr-prod-setrika', 'usr-prod-btr', 'usr-kurir-kmg', 'usr-kurir-btr', 'usr-agent-siti'];
     const saved = localStorage.getItem('lh_users');
-    if (!saved) return INITIAL_USERS;
+    if (!saved) {
+      return demoCleared ? [] : INITIAL_USERS;
+    }
     try {
       const parsed: User[] = JSON.parse(saved);
-      return parsed.map((u) => {
+      const filtered = demoCleared
+        ? parsed.filter((u) => !u.isDemo && !demoIds.includes(u.id))
+        : parsed;
+
+      return filtered.map((u) => {
+        const isDemo = u.isDemo ?? (demoIds.includes(u.id) && !u.isPersonalGoogleAccount);
         if (!u.allowedRoles || u.allowedRoles.length === 0) {
           const seedMatch = INITIAL_USERS.find((s) => s.id === u.id);
           return {
             ...u,
+            isDemo,
             allowedRoles: seedMatch?.allowedRoles || (u.role === 'owner' ? ['owner', 'kasir', 'produksi', 'kurir', 'agen'] : [u.role]),
           };
         }
-        return u;
+        return { ...u, isDemo };
       });
     } catch (e) {
-      return INITIAL_USERS;
+      return demoCleared ? [] : INITIAL_USERS;
     }
   });
 
@@ -1529,6 +1550,194 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   };
 
+  const hasDemoAccounts = users.some(
+    (u) => u.isDemo || ['usr-owner', 'usr-kasir-kmg', 'usr-kasir-btr', 'usr-prod-cuci', 'usr-prod-setrika', 'usr-prod-btr', 'usr-kurir-kmg', 'usr-kurir-btr', 'usr-agent-siti'].includes(u.id)
+  );
+
+  const loginWithPersonalGoogle = (account: {
+    email: string;
+    name?: string;
+    avatar?: string;
+    role?: Role;
+    branchName?: string;
+    phone?: string;
+  }): { success: boolean; user: User; message: string } => {
+    const cleanEmail = account.email.trim().toLowerCase();
+    const targetRole = account.role || 'owner';
+    const targetName = account.name?.trim() || cleanEmail.split('@')[0];
+    const targetAvatar = account.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(targetName)}&background=0284c7&color=fff`;
+
+    const existingIdx = users.findIndex((u) => u.email.toLowerCase() === cleanEmail);
+    let targetUser: User;
+
+    if (existingIdx >= 0) {
+      targetUser = {
+        ...users[existingIdx],
+        name: targetName,
+        avatar: targetAvatar,
+        role: targetRole,
+        allowedRoles: targetRole === 'owner' ? ['owner', 'kasir', 'produksi', 'kurir', 'agen'] : (users[existingIdx].allowedRoles || [targetRole]),
+        isGmailLinked: true,
+        isPersonalGoogleAccount: true,
+        isDemo: false,
+        lastLoginAt: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      };
+      setUsers((prev) => prev.map((u, i) => (i === existingIdx ? targetUser : u)));
+    } else {
+      targetUser = {
+        id: `usr-personal-${Date.now()}`,
+        name: targetName,
+        role: targetRole,
+        allowedRoles: targetRole === 'owner' ? ['owner', 'kasir', 'produksi', 'kurir', 'agen'] : [targetRole],
+        email: cleanEmail,
+        phone: account.phone || '0812-8899-7701',
+        avatar: targetAvatar,
+        branchId: currentBranchId,
+        commissionRateKg: 0,
+        commissionRateItem: 0,
+        totalCommissionEarned: 0,
+        isGmailLinked: true,
+        isPersonalGoogleAccount: true,
+        isDemo: false,
+        lastLoginAt: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      };
+      setUsers((prev) => [targetUser, ...prev]);
+    }
+
+    setCurrentUserId(targetUser.id);
+    setCurrentUser(targetUser);
+    _setCurrentRole(targetRole);
+    setActiveGmailAccount(cleanEmail);
+
+    localStorage.setItem('lh_user_id', targetUser.id);
+    localStorage.setItem('lh_active_gmail', cleanEmail);
+    localStorage.setItem('lh_role', targetRole);
+    localStorage.setItem('lh_auth_mode', 'commercial');
+
+    const log: AuditLog = {
+      id: `log-${Date.now()}`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      actorName: targetUser.name,
+      actorRole: targetRole,
+      action: 'LOGIN_PERSONAL_GOOGLE',
+      details: `Login Akun Google Pribadi (${cleanEmail}) sebagai ${targetRole.toUpperCase()} (Mode Riil Aktif)`,
+      branchId: currentBranchId,
+    };
+    setAuditLogs((prev) => [log, ...prev]);
+
+    const notif: NotificationItem = {
+      id: `notif-${Date.now()}`,
+      title: '👑 Akun Google Pribadi Terhubung',
+      message: `Selamat datang, ${targetUser.name}! Anda kini mengelola outlet sebagai ${targetRole.toUpperCase()} dalam Mode Riil.`,
+      timestamp: 'Baru saja',
+      type: 'order',
+      read: false,
+    };
+    setNotifications((prev) => [notif, ...prev]);
+
+    return {
+      success: true,
+      user: targetUser,
+      message: `Berhasil masuk dengan akun Google pribadi (${cleanEmail}) sebagai ${targetRole.toUpperCase()}!`,
+    };
+  };
+
+  const deleteDemoAccounts = (): { success: boolean; removedCount: number; message: string } => {
+    const initialCount = users.length;
+    const demoIds = ['usr-owner', 'usr-kasir-kmg', 'usr-kasir-btr', 'usr-prod-cuci', 'usr-prod-setrika', 'usr-prod-btr', 'usr-kurir-kmg', 'usr-kurir-btr', 'usr-agent-siti'];
+
+    let realUsers = users.filter((u) => !u.isDemo && !demoIds.includes(u.id));
+    const removedCount = initialCount - realUsers.length;
+
+    // Ensure at least one owner exists
+    let owner = realUsers.find((u) => u.role === 'owner');
+    if (!owner) {
+      const email = activeGmailAccount || 'owner.utama@gmail.com';
+      const fallbackName = activeGmailAccount ? activeGmailAccount.split('@')[0] : 'Owner Utama Outlet';
+      const realOwner: User = {
+        id: `usr-owner-real-${Date.now()}`,
+        name: currentUser.isPersonalGoogleAccount ? currentUser.name : fallbackName,
+        role: 'owner',
+        allowedRoles: ['owner', 'kasir', 'produksi', 'kurir', 'agen'],
+        email,
+        phone: '0812-8899-7701',
+        avatar: currentUser.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(fallbackName)}&background=0284c7&color=fff`,
+        branchId: currentBranchId,
+        commissionRateKg: 0,
+        commissionRateItem: 0,
+        totalCommissionEarned: 0,
+        isGmailLinked: true,
+        isPersonalGoogleAccount: true,
+        isDemo: false,
+        lastLoginAt: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      };
+      realUsers = [realOwner, ...realUsers];
+      owner = realOwner;
+    }
+
+    setUsers(realUsers);
+    setCurrentUserId(owner.id);
+    setCurrentUser(owner);
+    _setCurrentRole('owner');
+    setActiveGmailAccount(owner.email);
+
+    localStorage.setItem('lh_users', JSON.stringify(realUsers));
+    localStorage.setItem('lh_user_id', owner.id);
+    localStorage.setItem('lh_active_gmail', owner.email);
+    localStorage.setItem('lh_role', 'owner');
+    localStorage.setItem('lh_demo_accounts_cleared', 'true');
+    localStorage.setItem('lh_auth_mode', 'commercial');
+
+    const log: AuditLog = {
+      id: `log-${Date.now()}`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      actorName: owner.name,
+      actorRole: 'owner',
+      action: 'DELETE_DEMO_ACCOUNTS',
+      details: `Menghapus seluruh akun demo (${removedCount} akun). Sistem kini bersih dan sepenuhnya riil.`,
+      branchId: currentBranchId,
+    };
+    setAuditLogs((prev) => [log, ...prev]);
+
+    const notif: NotificationItem = {
+      id: `notif-${Date.now()}`,
+      title: '🗑️ Semua Akun Demo Dihapus',
+      message: `${removedCount} akun dummy telah dibersihkan. Outlet kini 100% menggunakan akun riil.`,
+      timestamp: 'Baru saja',
+      type: 'order',
+      read: false,
+    };
+    setNotifications((prev) => [notif, ...prev]);
+
+    return {
+      success: true,
+      removedCount,
+      message: `Berhasil menghapus ${removedCount} akun demo. Sistem kini bersih dan siap untuk operasional riil.`,
+    };
+  };
+
+  const clearDemoOrders = (): { success: boolean; count: number; message: string } => {
+    const count = orders.length;
+    setOrders([]);
+    localStorage.setItem('lh_orders', JSON.stringify([]));
+
+    const notif: NotificationItem = {
+      id: `notif-${Date.now()}`,
+      title: '🧹 Transaksi Demo Dibersihkan',
+      message: `${count} riwayat transaksi demo telah dibersihkan. Outlet siap menerima order riil pertama!`,
+      timestamp: 'Baru saja',
+      type: 'order',
+      read: false,
+    };
+    setNotifications((prev) => [notif, ...prev]);
+
+    return {
+      success: true,
+      count,
+      message: `${count} transaksi demo dibersihkan.`,
+    };
+  };
+
   const logoutGmail = () => {
     setActiveGmailAccount(null);
     localStorage.removeItem('lh_active_gmail');
@@ -2368,6 +2577,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isGoogleAuthModalOpen,
         setIsGoogleAuthModalOpen,
         loginWithGmail,
+        loginWithPersonalGoogle,
+        deleteDemoAccounts,
+        clearDemoOrders,
+        hasDemoAccounts,
         logoutGmail,
         addWorker,
         removeWorker,

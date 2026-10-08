@@ -49,6 +49,7 @@ import { downloadReceiptPdf } from '../utils/pdfReceipt';
 import { QrisModal } from './QrisModal';
 import { DopamineJackpotModal } from './DopamineJackpotModal';
 import { GeofenceRadarMap } from './GeofenceRadarMap';
+import { GoogleAdBanner } from './GoogleAdBanner';
 import confetti from 'canvas-confetti';
 
 interface OrderStatusModalProps {
@@ -1004,6 +1005,9 @@ export const OrderStatusModal: React.FC<OrderStatusModalProps> = ({
                       </button>
                     </div>
                   )}
+
+                  {/* Google AdSense / Sponsor Recommendation */}
+                  <GoogleAdBanner className="mt-3.5" title="Iklan Sponsor & Perlengkapan Laundry" />
                 </div>
               </div>
             )}

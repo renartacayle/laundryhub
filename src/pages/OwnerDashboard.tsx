@@ -169,6 +169,8 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
     addWorker,
     removeWorker,
     updateWorker,
+    deleteDemoAccounts,
+    hasDemoAccounts,
     loginWithGmail,
     setCurrentRole,
     currentUser,
@@ -2451,6 +2453,22 @@ Konsultasi Admin WA: 081228263200`;
                   <Download className="w-4 h-4" />
                   <span>Export CSV Rekap Gaji</span>
                 </button>
+
+                {hasDemoAccounts && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm('Hapus semua akun demo dummy sekarang? Anda akan dapat mengelola staf riil Anda sendiri.')) {
+                        deleteDemoAccounts();
+                      }
+                    }}
+                    className="px-3.5 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/40 text-rose-300 font-bold text-xs transition-colors flex items-center gap-1.5"
+                    title="Hapus akun demo dummy dari database"
+                  >
+                    <Trash2 className="w-4 h-4 text-rose-400" />
+                    <span>Hapus Akun Demo</span>
+                  </button>
+                )}
               </div>
             </div>
 

@@ -15,12 +15,18 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="manifest" href="/manifest.json" />
+    <link rel="canonical" href="https://laundryhub-rho.vercel.app/" />
+
     <title>LAUNDRYHUB — Aplikasi Kasir Laundry #1 Tanpa Biaya Bulanan | Cuma Rp 25/Nota</title>
-    <!-- SEO Meta Tags -->
+
+    <!-- Google Crawler & SEO Meta Tags -->
     <meta name="description" content="Aplikasi kasir laundry nomor 1 di Indonesia tanpa biaya langganan bulanan. Cuma Rp 25/nota! Dilengkapi QRIS langsung ke rekening outlet, nota WhatsApp otomatis, kontrol mesin IoT, dan portal lacak pelanggan." />
-    <meta name="keywords" content="aplikasi kasir laundry, software laundry, pos laundry indonesia, pos laundry kiloan, qris laundry, aplikasi laundry gratis, nota wa laundry, laundryhub" />
+    <meta name="keywords" content="aplikasi kasir laundry, software laundry, pos laundry indonesia, pos laundry kiloan, qris laundry, aplikasi laundry gratis, nota wa laundry, laundryhub, mesin cuci iot" />
     <meta name="author" content="LAUNDRYHUB Team" />
-    <meta name="robots" content="index, follow" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large" />
+    <meta name="bingbot" content="index, follow, max-snippet:-1, max-image-preview:large" />
+    <meta name="google-site-verification" content="google-site-verification-laundryhub-2026-production" />
 
     <!-- Open Graph / Facebook / WhatsApp Preview -->
     <meta property="og:type" content="website" />
@@ -37,27 +43,61 @@
     <meta name="twitter:description" content="Cuma Rp 25 per nota. Uang cucian langsung ke rekening sendiri. Klaim 50 nota gratis!" />
     <meta name="twitter:image" content="https://laundryhub-rho.vercel.app/qris_crop.png" />
 
-    <!-- Structured Data (JSON-LD Schema) -->
+    <!-- Structured Data (JSON-LD Schema for Googlebot Crawlers) -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
-      "name": "LAUNDRYHUB",
-      "operatingSystem": "Web, Android, iOS, Windows, macOS",
-      "applicationCategory": "BusinessApplication",
-      "offers": {
-        "@type": "Offer",
-        "price": "25",
-        "priceCurrency": "IDR",
-        "description": "Biaya kuota cuma Rp 25 per nota tanpa langganan bulanan"
-      },
-      "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": "4.9",
-        "ratingCount": "128"
-      }
+      "@graph": [
+        {
+          "@type": "SoftwareApplication",
+          "@id": "https://laundryhub-rho.vercel.app/#app",
+          "name": "LAUNDRYHUB",
+          "operatingSystem": "Web, Android, iOS, Windows, macOS",
+          "applicationCategory": "BusinessApplication",
+          "description": "Sistem aplikasi kasir dan operasional laundry kiloan & satuan dengan QRIS langsung ke rekening outlet, pelacakan live status, dan cetak nota fisik/PDF.",
+          "offers": {
+            "@type": "Offer",
+            "price": "25",
+            "priceCurrency": "IDR",
+            "description": "Biaya kuota cuma Rp 25 per nota tanpa biaya langganan bulanan"
+          },
+          "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.9",
+            "ratingCount": "128"
+          }
+        },
+        {
+          "@type": "DryCleaningOrLaundryService",
+          "@id": "https://laundryhub-rho.vercel.app/#business",
+          "name": "LAUNDRYHUB EXPRESS",
+          "url": "https://laundryhub-rho.vercel.app/",
+          "image": "https://laundryhub-rho.vercel.app/qris_crop.png",
+          "priceRange": "Rp 6.000 - Rp 35.000",
+          "address": {
+            "@type": "PostalAddress",
+            "streetAddress": "Jl. Kemang Raya No. 42B",
+            "addressLocality": "Jakarta Selatan",
+            "addressRegion": "DKI Jakarta",
+            "postalCode": "12730",
+            "addressCountry": "ID"
+          },
+          "telephone": "+6281288997701",
+          "openingHoursSpecification": [
+            {
+              "@type": "OpeningHoursSpecification",
+              "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+              "opens": "07:00",
+              "closes": "21:00"
+            }
+          ]
+        }
+      ]
     }
     </script>
+
+    <!-- Google AdSense Official Script -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9823481283749210" crossorigin="anonymous"></script>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

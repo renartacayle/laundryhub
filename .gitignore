@@ -17,3 +17,5 @@ android/local.properties
 android/.gradle
 *.apk
 public/*.apk
+test_downloads/
+test_verification.mjs

@@ -1,10 +1,13 @@
+import { jsPDF } from 'jspdf';
 import QRCode from 'qrcode';
 import { Order, Branch } from '../types';
 import { formatCurrency } from './currency';
 
 /**
- * Generates an official, beautiful PDF Invoice / Receipt for LaundryHub orders.
- * Supports both Official A4 Document format and Thermal Receipt (58mm / 80mm).
+ * Generates and downloads an authentic, official PDF Invoice / Receipt for LaundryHub orders.
+ * Generates an actual .pdf binary file using jsPDF and directly downloads it to the device,
+ * completely avoiding browser popup blockers.
+ * Supports both Official A4 Document format and Thermal Receipt format (58mm / 80mm).
  */
 export async function downloadReceiptPdf(
   order: Order,
@@ -20,7 +23,7 @@ export async function downloadReceiptPdf(
   let qrDataUrl = '';
   try {
     qrDataUrl = await QRCode.toDataURL(trackingUrl, {
-      width: 180,
+      width: 200,
       margin: 1,
       color: {
         dark: '#0f172a',
@@ -53,622 +56,549 @@ export async function downloadReceiptPdf(
 
   const isLunas = order.paymentStatus === 'lunas';
 
-  // Construct printable HTML document with embedded CSS
-  const printHtml = `
-<!DOCTYPE html>
-<html lang="id">
-<head>
-  <meta charset="UTF-8">
-  <title>Nota_${order.invoiceNo}_${order.customerName.replace(/\\s+/g, '_')}</title>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap');
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: #f1f5f9;
-      color: #0f172a;
-      -webkit-font-smoothing: antialiased;
-      padding: 20px;
-    }
-
-    .no-print-toolbar {
-      position: sticky;
-      top: 0;
-      z-index: 1000;
-      background: #0f172a;
-      color: #ffffff;
-      padding: 12px 24px;
-      border-radius: 16px;
-      max-width: 800px;
-      margin: 0 auto 20px auto;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
-      font-family: 'Plus Jakarta Sans', sans-serif;
-    }
-
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 8px 16px;
-      border-radius: 10px;
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-      border: none;
-      transition: all 0.2s;
-    }
-
-    .btn-primary {
-      background: #06b6d4;
-      color: #0f172a;
-    }
-    .btn-primary:hover {
-      background: #22d3ee;
-    }
-
-    .btn-secondary {
-      background: #1e293b;
-      color: #cbd5e1;
-      border: 1px solid #334155;
-    }
-    .btn-secondary:hover {
-      background: #334155;
-      color: #ffffff;
-    }
-
-    /* A4 Document Format */
-    .receipt-container {
-      background: #ffffff;
-      width: 100%;
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 40px;
-      border-radius: 20px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-      position: relative;
-    }
-
-    /* Thermal Formats */
-    body.format-80mm .receipt-container {
-      max-width: 320px;
-      padding: 16px;
-      border-radius: 0;
-      box-shadow: none;
-      font-family: 'JetBrains Mono', monospace;
-    }
-    body.format-58mm .receipt-container {
-      max-width: 240px;
-      padding: 12px;
-      border-radius: 0;
-      box-shadow: none;
-      font-family: 'JetBrains Mono', monospace;
-    }
-
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      border-bottom: 2px solid #e2e8f0;
-      padding-bottom: 20px;
-      margin-bottom: 24px;
-    }
-
-    body.format-80mm .header,
-    body.format-58mm .header {
-      display: block;
-      text-align: center;
-      border-bottom: 1px dashed #94a3b8;
-      padding-bottom: 12px;
-      margin-bottom: 12px;
-    }
-
-    .brand-title {
-      font-size: 24px;
-      font-weight: 800;
-      color: #0284c7;
-      letter-spacing: -0.5px;
-    }
-    .brand-sub {
-      font-size: 13px;
-      font-weight: 700;
-      color: #334155;
-      margin-top: 2px;
-    }
-    .brand-meta {
-      font-size: 11px;
-      color: #64748b;
-      margin-top: 4px;
-      max-width: 380px;
-      line-height: 1.4;
-    }
-
-    .invoice-badge-box {
-      text-align: right;
-    }
-    body.format-80mm .invoice-badge-box,
-    body.format-58mm .invoice-badge-box {
-      text-align: center;
-      margin-top: 10px;
-    }
-
-    .invoice-title {
-      font-size: 18px;
-      font-weight: 800;
-      color: #0f172a;
-    }
-    .invoice-no {
-      font-size: 14px;
-      font-family: 'JetBrains Mono', monospace;
-      font-weight: 700;
-      color: #0284c7;
-      margin-top: 2px;
-    }
-    .status-badge {
-      display: inline-block;
-      margin-top: 6px;
-      padding: 4px 12px;
-      border-radius: 9999px;
-      font-size: 11px;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .status-lunas {
-      background: #dcfce7;
-      color: #15803d;
-      border: 1px solid #86efac;
-    }
-    .status-piutang {
-      background: #fee2e2;
-      color: #b91c1c;
-      border: 1px solid #fca5a5;
-    }
-
-    .grid-info {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 14px;
-      padding: 16px 20px;
-      margin-bottom: 24px;
-      font-size: 12px;
-    }
-    body.format-80mm .grid-info,
-    body.format-58mm .grid-info {
-      display: block;
-      background: transparent;
-      border: none;
-      border-bottom: 1px dashed #94a3b8;
-      border-radius: 0;
-      padding: 8px 0;
-      margin-bottom: 12px;
-      font-size: 10px;
-    }
-
-    .info-row {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 6px;
-    }
-    .info-label {
-      color: #64748b;
-      font-weight: 600;
-    }
-    .info-value {
-      font-weight: 700;
-      color: #0f172a;
-    }
-
-    table.items-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 24px;
-      font-size: 12px;
-    }
-    body.format-80mm table.items-table,
-    body.format-58mm table.items-table {
-      font-size: 10px;
-      margin-bottom: 12px;
-    }
-
-    table.items-table th {
-      background: #f1f5f9;
-      color: #475569;
-      font-weight: 700;
-      text-align: left;
-      padding: 10px 14px;
-      border-bottom: 2px solid #cbd5e1;
-    }
-    table.items-table td {
-      padding: 10px 14px;
-      border-bottom: 1px solid #e2e8f0;
-    }
-    body.format-80mm table.items-table th,
-    body.format-80mm table.items-table td,
-    body.format-58mm table.items-table th,
-    body.format-58mm table.items-table td {
-      padding: 6px 2px;
-      border-bottom: 1px dashed #cbd5e1;
-    }
-
-    .text-right {
-      text-align: right;
-    }
-    .font-mono {
-      font-family: 'JetBrains Mono', monospace;
-    }
-
-    .totals-area {
-      display: flex;
-      justify-content: flex-end;
-      margin-bottom: 24px;
-    }
-    body.format-80mm .totals-area,
-    body.format-58mm .totals-area {
-      display: block;
-      margin-bottom: 16px;
-    }
-
-    .totals-card {
-      width: 320px;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 14px;
-      padding: 16px;
-    }
-    body.format-80mm .totals-card,
-    body.format-58mm .totals-card {
-      width: 100%;
-      background: transparent;
-      border: none;
-      padding: 0;
-    }
-
-    .totals-row {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 6px;
-      font-size: 12px;
-    }
-    .totals-row.grand-total {
-      border-top: 2px solid #0f172a;
-      padding-top: 10px;
-      margin-top: 10px;
-      font-size: 16px;
-      font-weight: 800;
-      color: #0f172a;
-    }
-
-    .qr-and-policy {
-      display: flex;
-      gap: 20px;
-      align-items: center;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 14px;
-      padding: 16px 20px;
-      margin-bottom: 24px;
-    }
-    body.format-80mm .qr-and-policy,
-    body.format-58mm .qr-and-policy {
-      display: block;
-      text-align: center;
-      background: transparent;
-      border: none;
-      border-top: 1px dashed #94a3b8;
-      border-radius: 0;
-      padding: 12px 0;
-      margin-bottom: 12px;
-    }
-
-    .qr-img {
-      width: 90px;
-      height: 90px;
-      border-radius: 8px;
-      border: 1px solid #cbd5e1;
-    }
-
-    .policy-text {
-      font-size: 10px;
-      color: #64748b;
-      line-height: 1.5;
-    }
-
-    .footer-signatures {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 40px;
-      text-align: center;
-      margin-top: 30px;
-      font-size: 12px;
-    }
-    body.format-80mm .footer-signatures,
-    body.format-58mm .footer-signatures {
-      display: none;
-    }
-
-    .sig-line {
-      margin-top: 50px;
-      border-bottom: 1px solid #94a3b8;
-      width: 180px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-
-    /* Print media overrides */
-    @media print {
-      body {
-        background: #ffffff !important;
-        padding: 0 !important;
-      }
-      .no-print-toolbar {
-        display: none !important;
-      }
-      .receipt-container {
-        box-shadow: none !important;
-        border: none !important;
-        padding: 0 !important;
-        max-width: 100% !important;
-      }
-      body.format-80mm .receipt-container {
-        width: 80mm !important;
-      }
-      body.format-58mm .receipt-container {
-        width: 58mm !important;
-      }
-      @page {
-        margin: 10mm;
-        size: auto;
-      }
-    }
-  </style>
-</head>
-<body class="format-${defaultFormat}">
-
-  <!-- Floating Toolbar (Hidden on Print) -->
-  <div class="no-print-toolbar">
-    <div style="display: flex; align-items: center; gap: 8px;">
-      <span style="font-size: 18px;">📄</span>
-      <div>
-        <strong style="font-size: 13px; display: block;">Nota Digital LaundryHub</strong>
-        <span style="font-size: 10px; color: #94a3b8;">${order.invoiceNo} • ${order.customerName}</span>
-      </div>
-    </div>
-
-    <div style="display: flex; align-items: center; gap: 8px;">
-      <!-- Format Toggle -->
-      <button class="btn btn-secondary" onclick="switchFormat('a4')">Format A4</button>
-      <button class="btn btn-secondary" onclick="switchFormat('80mm')">Thermal 80mm</button>
-      <button class="btn btn-secondary" onclick="switchFormat('58mm')">Thermal 58mm</button>
-      
-      <!-- Print/Download PDF Button -->
-      <button class="btn btn-primary" onclick="window.print()">
-        <span>📥 Download / Cetak PDF</span>
-      </button>
-
-      <button class="btn btn-secondary" onclick="window.close()">✖ Tutup</button>
-    </div>
-  </div>
-
-  <!-- Printable Receipt Body -->
-  <div class="receipt-container" id="printable-doc">
-    
-    <!-- Header -->
-    <div class="header">
-      <div>
-        <div class="brand-title">LAUNDRYHUB</div>
-        <div class="brand-sub">${branchName}</div>
-        <div class="brand-meta">
-          ${branchAddress}<br>
-          WhatsApp / Hotline: <strong>${branchPhone}</strong>
-        </div>
-      </div>
-
-      <div class="invoice-badge-box">
-        <div class="invoice-title">NOTA TRANSAKSI</div>
-        <div class="invoice-no">${order.invoiceNo}</div>
-        <div>
-          <span class="status-badge ${isLunas ? 'status-lunas' : 'status-piutang'}">
-            ${isLunas ? '✓ LUNAS' : '⚠️ BELUM LUNAS / PIUTANG'}
-          </span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Metadata Grid -->
-    <div class="grid-info">
-      <div>
-        <div class="info-row">
-          <span class="info-label">Nama Pelanggan:</span>
-          <span class="info-value">${order.customerName}</span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">No. Telepon / WA:</span>
-          <span class="info-value font-mono">${order.customerPhone}</span>
-        </div>
-        ${order.customerAddress ? `
-        <div class="info-row">
-          <span class="info-label">Alamat:</span>
-          <span class="info-value">${order.customerAddress}</span>
-        </div>
-        ` : ''}
-        <div class="info-row">
-          <span class="info-label">Pilihan Parfum:</span>
-          <span class="info-value" style="color: #7c3aed;">🌸 ${order.perfumeName}</span>
-        </div>
-      </div>
-
-      <div>
-        <div class="info-row">
-          <span class="info-label">Tgl. Diterima:</span>
-          <span class="info-value font-mono">${orderDate}</span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">Est. Siap Ambil:</span>
-          <span class="info-value font-mono" style="color: #059669;">${estReadyDate}</span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">Metode Pembayaran:</span>
-          <span class="info-value font-mono" style="text-transform: uppercase;">${order.paymentMethod}</span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">Layanan Pengambilan:</span>
-          <span class="info-value">${order.pickupDeliveryType === 'delivery' ? '🚗 Antar Jemput (Delivery)' : '🏢 Ambil Sendiri di Outlet'}</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Items Table -->
-    <table class="items-table">
-      <thead>
-        <tr>
-          <th>Layanan & Rincian</th>
-          <th class="text-right">Qty</th>
-          <th class="text-right">Tarif</th>
-          <th class="text-right">Subtotal</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${order.items.map(it => `
-          <tr>
-            <td>
-              <strong>${it.serviceName}</strong>
-              <div style="font-size: 10px; color: #64748b;">Kategori: ${it.category === 'kiloan' ? 'Cuci Kiloan' : 'Cuci Satuan'}</div>
-            </td>
-            <td class="text-right font-mono">${it.quantity} ${it.unit}</td>
-            <td class="text-right font-mono">${formatCurrency(it.pricePerUnit, 'IDR')}</td>
-            <td class="text-right font-mono font-bold">${formatCurrency(it.subtotal, 'IDR')}</td>
-          </tr>
-        `).join('')}
-      </tbody>
-    </table>
-
-    <!-- Rincian Pakaian Sortir if available -->
-    ${order.clothesDetails && order.clothesDetails.length > 0 ? `
-      <div style="margin-bottom: 20px; padding: 12px 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 11px;">
-        <strong style="color: #334155; display: block; margin-bottom: 6px;">📋 Rincian Pakaian Tercatat (${order.totalPieces || order.clothesDetails.reduce((a,b) => a + b.quantity, 0)} helai):</strong>
-        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-          ${order.clothesDetails.map(c => `
-            <span style="background: #ffffff; border: 1px solid #cbd5e1; padding: 3px 8px; border-radius: 6px; font-family: monospace;">
-              ${c.name}: <strong>${c.quantity}x</strong>
-            </span>
-          `).join('')}
-        </div>
-      </div>
-    ` : ''}
-
-    <!-- Totals Area -->
-    <div class="totals-area">
-      <div class="totals-card">
-        <div class="totals-row">
-          <span class="info-label">Total Harga Layanan:</span>
-          <span class="font-mono font-bold">${formatCurrency(order.totalPrice, 'IDR')}</span>
-        </div>
-
-        ${order.discount > 0 ? `
-          <div class="totals-row" style="color: #e11d48;">
-            <span class="info-label" style="color: #e11d48;">Diskon / Promo Lucky Reward:</span>
-            <span class="font-mono font-bold">- ${formatCurrency(order.discount, 'IDR')}</span>
-          </div>
-        ` : ''}
-
-        <div class="totals-row grand-total">
-          <span>TOTAL AKHIR:</span>
-          <span class="font-mono" style="color: #0284c7;">${formatCurrency(order.finalPrice, 'IDR')}</span>
-        </div>
-
-        <div class="totals-row" style="margin-top: 8px;">
-          <span class="info-label">Jumlah Dibayar:</span>
-          <span class="font-mono">${formatCurrency(order.paidAmount, 'IDR')}</span>
-        </div>
-        <div class="totals-row">
-          <span class="info-label">Kembalian:</span>
-          <span class="font-mono">${formatCurrency(order.changeAmount, 'IDR')}</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- QR Code Tracking & Ketentuan -->
-    <div class="qr-and-policy">
-      ${qrDataUrl ? `<img src="${qrDataUrl}" alt="QR Tracking" class="qr-img" />` : ''}
-      <div class="policy-text">
-        <strong style="color: #1e293b; display: block; margin-bottom: 2px;">📱 Scan QR Code untuk Cek Progres Cucian & Putar Lucky Spin</strong>
-        Link Pelacakan: <span style="font-family: monospace; color: #0284c7;">${trackingUrl}</span><br>
-        1. Pengambilan cucian wajib menunjukkan nota ini atau bukti WA resmi.<br>
-        2. Komplain maksimal 1x24 jam setelah cucian diambil dengan membawa nota & pakaian utuh.<br>
-        3. Pakaian yang tidak diambil lebih dari 30 hari di luar tanggung jawab outlet.
-      </div>
-    </div>
-
-    <!-- Signatures for A4 -->
-    <div class="footer-signatures">
-      <div>
-        <span>Kasir Bertugas / Outlet</span>
-        <div class="sig-line"></div>
-        <span style="font-weight: 700; color: #334155; margin-top: 4px; display: block;">${branchName}</span>
-      </div>
-      <div>
-        <span>Pelanggan</span>
-        <div class="sig-line"></div>
-        <span style="font-weight: 700; color: #334155; margin-top: 4px; display: block;">${order.customerName}</span>
-      </div>
-    </div>
-
-  </div>
-
-  <script>
-    function switchFormat(fmt) {
-      document.body.className = 'format-' + fmt;
-    }
-
-    // Auto-trigger print dialog smoothly after rendering
-    window.addEventListener('load', function() {
-      setTimeout(function() {
-        window.print();
-      }, 500);
+  if (defaultFormat === '58mm' || defaultFormat === '80mm') {
+    // Generate Thermal Receipt PDF
+    generateThermalPdf({
+      order,
+      branchName,
+      branchAddress,
+      branchPhone,
+      orderDate,
+      estReadyDate,
+      isLunas,
+      qrDataUrl,
+      trackingUrl,
+      paperWidth: defaultFormat === '58mm' ? 58 : 80,
     });
-  </script>
-</body>
-</html>
-  `;
-
-  // Open clean printable document window
-  const printWindow = window.open('', '_blank');
-  if (printWindow) {
-    printWindow.document.open();
-    printWindow.document.write(printHtml);
-    printWindow.document.close();
   } else {
-    // Fallback: If popup blocker blocked window.open, use an iframe or fallback print
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
-    iframe.style.right = '0';
-    iframe.style.bottom = '0';
-    iframe.style.width = '0';
-    iframe.style.height = '0';
-    iframe.style.border = '0';
-    document.body.appendChild(iframe);
+    // Generate Official A4 Document PDF
+    generateA4Pdf({
+      order,
+      branchName,
+      branchAddress,
+      branchPhone,
+      orderDate,
+      estReadyDate,
+      isLunas,
+      qrDataUrl,
+      trackingUrl,
+    });
+  }
+}
 
-    if (iframe.contentWindow) {
-      iframe.contentWindow.document.open();
-      iframe.contentWindow.document.write(printHtml);
-      iframe.contentWindow.document.close();
-      setTimeout(() => {
-        iframe.contentWindow?.focus();
-        iframe.contentWindow?.print();
-        setTimeout(() => document.body.removeChild(iframe), 60000);
-      }, 500);
+interface ReceiptPdfParams {
+  order: Order;
+  branchName: string;
+  branchAddress: string;
+  branchPhone: string;
+  orderDate: string;
+  estReadyDate: string;
+  isLunas: boolean;
+  qrDataUrl: string;
+  trackingUrl: string;
+  paperWidth?: number;
+}
+
+/**
+ * Builds and downloads Official A4 Invoice PDF
+ */
+function generateA4Pdf(params: ReceiptPdfParams) {
+  const {
+    order,
+    branchName,
+    branchAddress,
+    branchPhone,
+    orderDate,
+    estReadyDate,
+    isLunas,
+    qrDataUrl,
+    trackingUrl,
+  } = params;
+
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4',
+  });
+
+  const pageWidth = 210;
+  const margin = 14;
+  const contentWidth = pageWidth - margin * 2; // 182mm
+
+  // 1. Top Decorative Brand Bar
+  doc.setFillColor(15, 23, 42); // slate-900
+  doc.rect(margin, 12, contentWidth, 26, 'F');
+
+  // Accent Line
+  doc.setFillColor(6, 182, 212); // cyan-500
+  doc.rect(margin, 12, 4, 26, 'F');
+
+  // Brand Name
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.text('LAUNDRYHUB', margin + 8, 21);
+
+  doc.setFontSize(8.5);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(148, 163, 184); // slate-400
+  doc.text(`${branchName} • ${branchPhone}`, margin + 8, 27);
+  doc.text(branchAddress.length > 55 ? branchAddress.substring(0, 52) + '...' : branchAddress, margin + 8, 33);
+
+  // Right Side Header: NOTA TRANSAKSI & Invoice No
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.text('NOTA TRANSAKSI', pageWidth - margin - 6, 21, { align: 'right' });
+
+  doc.setTextColor(34, 211, 238); // cyan-400
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.text(order.invoiceNo, pageWidth - margin - 6, 27, { align: 'right' });
+
+  // Status Badge in Header
+  if (isLunas) {
+    doc.setFillColor(22, 101, 52); // emerald-800
+    doc.setTextColor(187, 247, 208); // emerald-200
+    doc.roundedRect(pageWidth - margin - 32, 30, 26, 6, 1.5, 1.5, 'F');
+    doc.setFontSize(7.5);
+    doc.setFont('helvetica', 'bold');
+    doc.text('✓ LUNAS', pageWidth - margin - 19, 34.2, { align: 'center' });
+  } else {
+    doc.setFillColor(153, 27, 27); // red-800
+    doc.setTextColor(254, 202, 202); // red-200
+    doc.roundedRect(pageWidth - margin - 42, 30, 36, 6, 1.5, 1.5, 'F');
+    doc.setFontSize(7.5);
+    doc.setFont('helvetica', 'bold');
+    doc.text('⚠️ BELUM LUNAS', pageWidth - margin - 24, 34.2, { align: 'center' });
+  }
+
+  // 2. Customer & Transaction Details Card
+  let curY = 43;
+  doc.setFillColor(248, 250, 252); // slate-50
+  doc.setDrawColor(226, 232, 240); // slate-200
+  doc.roundedRect(margin, curY, contentWidth, 34, 2, 2, 'FD');
+
+  // Left Column: Customer Details
+  doc.setFontSize(8);
+  doc.setTextColor(100, 116, 139); // slate-500
+  doc.setFont('helvetica', 'bold');
+  doc.text('PELANGGAN:', margin + 6, curY + 6);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9.5);
+  doc.setTextColor(15, 23, 42); // slate-900
+  doc.text(order.customerName, margin + 6, curY + 12);
+
+  doc.setFontSize(8);
+  doc.setTextColor(71, 85, 105);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`No. WA: ${order.customerPhone}`, margin + 6, curY + 17);
+  if (order.customerAddress) {
+    const addr = order.customerAddress.length > 40 ? order.customerAddress.substring(0, 37) + '...' : order.customerAddress;
+    doc.text(`Alamat: ${addr}`, margin + 6, curY + 22);
+  }
+  doc.setTextColor(124, 58, 237); // purple-600
+  doc.text(`Parfum: ${order.perfumeName}`, margin + 6, curY + 28);
+
+  // Right Column: Order Dates & Service Type
+  const rightColX = margin + 95;
+  doc.setFontSize(8);
+  doc.setTextColor(100, 116, 139);
+  doc.setFont('helvetica', 'bold');
+  doc.text('INFORMASI ORDER:', rightColX, curY + 6);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(71, 85, 105);
+  doc.text(`Tgl Masuk: ${orderDate}`, rightColX, curY + 12);
+
+  doc.setTextColor(5, 150, 105); // emerald-600
+  doc.setFont('helvetica', 'bold');
+  doc.text(`Est. Siap: ${estReadyDate}`, rightColX, curY + 17);
+
+  doc.setTextColor(71, 85, 105);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Metode: ${order.paymentMethod.toUpperCase()}`, rightColX, curY + 22);
+  doc.text(`Layanan: ${order.pickupDeliveryType === 'delivery' ? 'Antar Jemput (Delivery)' : 'Ambil di Outlet'}`, rightColX, curY + 28);
+
+  // 3. Items Table Header
+  curY = 82;
+  doc.setFillColor(241, 245, 249); // slate-100
+  doc.setDrawColor(203, 213, 225); // slate-300
+  doc.rect(margin, curY, contentWidth, 8, 'FD');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(51, 65, 85);
+  doc.text('NO', margin + 3, curY + 5.5);
+  doc.text('RINCIAN LAYANAN & ITEM', margin + 14, curY + 5.5);
+  doc.text('QTY / BERAT', margin + 105, curY + 5.5, { align: 'right' });
+  doc.text('TARIF', margin + 142, curY + 5.5, { align: 'right' });
+  doc.text('SUBTOTAL', pageWidth - margin - 4, curY + 5.5, { align: 'right' });
+
+  // Items Table Rows
+  curY += 8;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.5);
+
+  order.items.forEach((item, idx) => {
+    const isAlt = idx % 2 === 1;
+    if (isAlt) {
+      doc.setFillColor(248, 250, 252);
+      doc.rect(margin, curY, contentWidth, 8.5, 'F');
+    }
+    doc.setDrawColor(226, 232, 240);
+    doc.line(margin, curY + 8.5, pageWidth - margin, curY + 8.5);
+
+    doc.setTextColor(100, 116, 139);
+    doc.text(`${idx + 1}`, margin + 3, curY + 5.5);
+
+    doc.setTextColor(15, 23, 42);
+    doc.setFont('helvetica', 'bold');
+    doc.text(item.serviceName, margin + 14, curY + 5.5);
+    doc.setFont('helvetica', 'normal');
+
+    doc.setTextColor(51, 65, 85);
+    doc.text(`${item.quantity} ${item.unit}`, margin + 105, curY + 5.5, { align: 'right' });
+    doc.text(formatCurrency(item.pricePerUnit, 'IDR'), margin + 142, curY + 5.5, { align: 'right' });
+
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text(formatCurrency(item.subtotal, 'IDR'), pageWidth - margin - 4, curY + 5.5, { align: 'right' });
+
+    curY += 8.5;
+  });
+
+  // 4. Clothes Details Box (if available)
+  if (order.clothesDetails && order.clothesDetails.length > 0) {
+    curY += 4;
+    doc.setFillColor(248, 250, 252);
+    doc.setDrawColor(226, 232, 240);
+    const totalHelai = order.totalPieces || order.clothesDetails.reduce((a, b) => a + (b.quantity || 0), 0);
+    doc.roundedRect(margin, curY, contentWidth, 14, 1.5, 1.5, 'FD');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.setTextColor(71, 85, 105);
+    doc.text(`📋 RINCIAN PAKAIAN TERCATAT (${totalHelai} helai):`, margin + 4, curY + 5);
+
+    const clothesSummary = order.clothesDetails
+      .map((c) => `${c.name} (${c.quantity}x)`)
+      .join(', ');
+    const displayClothes = clothesSummary.length > 95 ? clothesSummary.substring(0, 92) + '...' : clothesSummary;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(100, 116, 139);
+    doc.text(displayClothes, margin + 4, curY + 10);
+
+    curY += 15;
+  } else {
+    curY += 4;
+  }
+
+  // 5. Totals Breakdown Card
+  const totalBoxWidth = 84;
+  const totalBoxX = pageWidth - margin - totalBoxWidth;
+  const totalBoxHeight = order.discount > 0 ? 38 : 32;
+
+  doc.setFillColor(248, 250, 252);
+  doc.setDrawColor(203, 213, 225);
+  doc.roundedRect(totalBoxX, curY, totalBoxWidth, totalBoxHeight, 2, 2, 'FD');
+
+  let rowY = curY + 6;
+  doc.setFontSize(8);
+  doc.setTextColor(100, 116, 139);
+  doc.text('Total Tagihan Layanan:', totalBoxX + 4, rowY);
+  doc.setTextColor(15, 23, 42);
+  doc.setFont('helvetica', 'bold');
+  doc.text(formatCurrency(order.totalPrice, 'IDR'), totalBoxX + totalBoxWidth - 4, rowY, { align: 'right' });
+
+  if (order.discount > 0) {
+    rowY += 5.5;
+    doc.setTextColor(225, 29, 72); // rose-600
+    doc.setFont('helvetica', 'normal');
+    doc.text('Diskon / Reward Spin:', totalBoxX + 4, rowY);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`- ${formatCurrency(order.discount, 'IDR')}`, totalBoxX + totalBoxWidth - 4, rowY, { align: 'right' });
+  }
+
+  rowY += 6.5;
+  doc.setDrawColor(15, 23, 42);
+  doc.line(totalBoxX + 4, rowY - 1, totalBoxX + totalBoxWidth - 4, rowY - 1);
+
+  doc.setFontSize(9.5);
+  doc.setTextColor(15, 23, 42);
+  doc.setFont('helvetica', 'bold');
+  doc.text('TOTAL AKHIR:', totalBoxX + 4, rowY + 3);
+  doc.setTextColor(2, 132, 199); // sky-600
+  doc.text(formatCurrency(order.finalPrice, 'IDR'), totalBoxX + totalBoxWidth - 4, rowY + 3, { align: 'right' });
+
+  rowY += 7.5;
+  doc.setFontSize(7.5);
+  doc.setTextColor(100, 116, 139);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Jumlah Dibayar:', totalBoxX + 4, rowY);
+  doc.setTextColor(15, 23, 42);
+  doc.setFont('helvetica', 'bold');
+  doc.text(formatCurrency(order.paidAmount, 'IDR'), totalBoxX + totalBoxWidth - 4, rowY, { align: 'right' });
+
+  rowY += 4.5;
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100, 116, 139);
+  doc.text('Kembalian:', totalBoxX + 4, rowY);
+  doc.setTextColor(15, 23, 42);
+  doc.setFont('helvetica', 'bold');
+  doc.text(formatCurrency(order.changeAmount, 'IDR'), totalBoxX + totalBoxWidth - 4, rowY, { align: 'right' });
+
+  // 6. QR Code Tracking & Instructions (Left side)
+  const qrBoxWidth = contentWidth - totalBoxWidth - 6;
+  doc.setFillColor(248, 250, 252);
+  doc.setDrawColor(226, 232, 240);
+  doc.roundedRect(margin, curY, qrBoxWidth, totalBoxHeight, 2, 2, 'FD');
+
+  if (qrDataUrl) {
+    try {
+      doc.addImage(qrDataUrl, 'PNG', margin + 4, curY + 3.5, 25, 25);
+    } catch (e) {
+      console.error('Error adding QR to A4 PDF', e);
     }
   }
+
+  const qrTextX = margin + 33;
+  doc.setFontSize(7.5);
+  doc.setTextColor(15, 23, 42);
+  doc.setFont('helvetica', 'bold');
+  doc.text('📱 LACAK LIVE & LUCKY SPIN', qrTextX, curY + 7);
+
+  doc.setFontSize(6.8);
+  doc.setTextColor(71, 85, 105);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Scan QR ini lewat kamera HP untuk cek', qrTextX, curY + 12);
+  doc.text('progres cuci & putar roda hadiah diskon.', qrTextX, curY + 16);
+
+  doc.setTextColor(2, 132, 199);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`Link: ${trackingUrl.substring(0, 32)}...`, qrTextX, curY + 22);
+
+  // 7. Policy / Ketentuan Layanan
+  curY += totalBoxHeight + 6;
+  doc.setFillColor(241, 245, 249);
+  doc.roundedRect(margin, curY, contentWidth, 18, 1.5, 1.5, 'F');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7);
+  doc.setTextColor(51, 65, 85);
+  doc.text('KETENTUAN PENGAMBILAN & GARANSI OUTLET:', margin + 4, curY + 4.5);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(6.5);
+  doc.setTextColor(100, 116, 139);
+  doc.text('1. Pengambilan cucian wajib membawa nota resmi ini atau memperlihatkan riwayat nota di WhatsApp.', margin + 4, curY + 8.5);
+  doc.text('2. Komplain atas kerusakan atau ketidaksesuaian pakaian maksimal 1x24 jam sejak cucian diambil disertai nota.', margin + 4, curY + 12);
+  doc.text('3. Pakaian yang tidak diambil dalam waktu lebih dari 30 hari di luar tanggung jawab pihak laundry.', margin + 4, curY + 15.5);
+
+  // 8. Signatures
+  curY += 24;
+  const sigColWidth = contentWidth / 2;
+
+  // Kasir Signature Box
+  doc.setFontSize(7.5);
+  doc.setTextColor(71, 85, 105);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Petugas Kasir Bertugas,', margin + sigColWidth / 2, curY, { align: 'center' });
+  doc.line(margin + 20, curY + 16, margin + sigColWidth - 20, curY + 16);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(15, 23, 42);
+  doc.text(branchName, margin + sigColWidth / 2, curY + 20, { align: 'center' });
+
+  // Customer Signature Box
+  const custSigCenter = margin + sigColWidth + sigColWidth / 2;
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(71, 85, 105);
+  doc.text('Pelanggan Terhormat,', custSigCenter, curY, { align: 'center' });
+  doc.line(custSigCenter - 25, curY + 16, custSigCenter + 25, curY + 16);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(15, 23, 42);
+  doc.text(order.customerName, custSigCenter, curY + 20, { align: 'center' });
+
+  // 9. Document Footer
+  doc.setFontSize(6.5);
+  doc.setTextColor(148, 163, 184);
+  doc.setFont('helvetica', 'normal');
+  doc.text(
+    `LaundryHub POS Cloud System • Dokumen Resmi Digital • Dicetak pada ${new Date().toLocaleString('id-ID')}`,
+    pageWidth / 2,
+    285,
+    { align: 'center' }
+  );
+
+  // Trigger Instant Native Download
+  const fileName = `Nota_${order.invoiceNo}.pdf`;
+  doc.save(fileName);
+}
+
+/**
+ * Builds and downloads Thermal Receipt PDF (58mm / 80mm)
+ */
+function generateThermalPdf(params: ReceiptPdfParams) {
+  const {
+    order,
+    branchName,
+    branchAddress,
+    branchPhone,
+    orderDate,
+    estReadyDate,
+    isLunas,
+    qrDataUrl,
+    paperWidth = 80,
+  } = params;
+
+  // Calculate dynamic page height according to items count to ensure zero truncation
+  const baseHeight = 180;
+  const itemsHeight = order.items.length * 8;
+  const clothesHeight = order.clothesDetails && order.clothesDetails.length > 0 ? 20 : 0;
+  const calculatedHeight = Math.max(190, baseHeight + itemsHeight + clothesHeight);
+
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: [paperWidth, calculatedHeight],
+  });
+
+  const margin = paperWidth === 58 ? 4 : 6;
+  const contentWidth = paperWidth - margin * 2;
+  const centerX = paperWidth / 2;
+
+  let y = 8;
+
+  // Header Title
+  doc.setFont('courier', 'bold');
+  doc.setFontSize(paperWidth === 58 ? 10 : 12);
+  doc.setTextColor(0, 0, 0);
+  doc.text('LAUNDRYHUB', centerX, y, { align: 'center' });
+
+  y += 4.5;
+  doc.setFontSize(paperWidth === 58 ? 7.5 : 8.5);
+  doc.text(branchName, centerX, y, { align: 'center' });
+
+  y += 3.8;
+  doc.setFont('courier', 'normal');
+  doc.setFontSize(paperWidth === 58 ? 6.5 : 7.5);
+  doc.text(branchPhone, centerX, y, { align: 'center' });
+
+  y += 3.5;
+  const shortAddr = branchAddress.length > 36 ? branchAddress.substring(0, 33) + '...' : branchAddress;
+  doc.text(shortAddr, centerX, y, { align: 'center' });
+
+  // Dashed Line
+  y += 3.5;
+  doc.text('-'.repeat(paperWidth === 58 ? 26 : 38), centerX, y, { align: 'center' });
+
+  // Receipt Meta
+  y += 4;
+  doc.setFont('courier', 'bold');
+  doc.setFontSize(paperWidth === 58 ? 8 : 9);
+  doc.text(`NO: ${order.invoiceNo}`, margin, y);
+
+  y += 4;
+  doc.setFont('courier', 'normal');
+  doc.setFontSize(paperWidth === 58 ? 6.5 : 7.5);
+  doc.text(`TGL : ${orderDate}`, margin, y);
+
+  y += 3.5;
+  doc.text(`SIAP: ${estReadyDate}`, margin, y);
+
+  y += 3.5;
+  doc.text(`NAMA: ${order.customerName}`, margin, y);
+
+  y += 3.5;
+  doc.text(`TELP: ${order.customerPhone}`, margin, y);
+
+  y += 3.5;
+  doc.text(`WANGI: ${order.perfumeName}`, margin, y);
+
+  y += 3.5;
+  doc.setFont('courier', 'bold');
+  doc.text(`STATUS: ${isLunas ? '[ LUNAS ]' : '[ BELUM LUNAS ]'}`, margin, y);
+
+  // Dashed Line
+  y += 3.5;
+  doc.setFont('courier', 'normal');
+  doc.text('-'.repeat(paperWidth === 58 ? 26 : 38), centerX, y, { align: 'center' });
+
+  // Table items
+  y += 4;
+  order.items.forEach((item) => {
+    doc.setFont('courier', 'bold');
+    doc.setFontSize(paperWidth === 58 ? 7 : 8);
+    doc.text(item.serviceName, margin, y);
+
+    y += 3.5;
+    doc.setFont('courier', 'normal');
+    const qtyText = `${item.quantity} ${item.unit} x ${formatCurrency(item.pricePerUnit, 'IDR')}`;
+    const subtotalText = formatCurrency(item.subtotal, 'IDR');
+
+    doc.text(qtyText, margin, y);
+    doc.text(subtotalText, paperWidth - margin, y, { align: 'right' });
+    y += 4;
+  });
+
+  // Dashed Line
+  doc.text('-'.repeat(paperWidth === 58 ? 26 : 38), centerX, y, { align: 'center' });
+  y += 4;
+
+  // Totals
+  doc.setFontSize(paperWidth === 58 ? 7 : 8);
+  doc.text('Subtotal:', margin, y);
+  doc.text(formatCurrency(order.totalPrice, 'IDR'), paperWidth - margin, y, { align: 'right' });
+
+  if (order.discount > 0) {
+    y += 3.5;
+    doc.text('Diskon:', margin, y);
+    doc.text(`-${formatCurrency(order.discount, 'IDR')}`, paperWidth - margin, y, { align: 'right' });
+  }
+
+  y += 4.5;
+  doc.setFont('courier', 'bold');
+  doc.setFontSize(paperWidth === 58 ? 8 : 9.5);
+  doc.text('TOTAL:', margin, y);
+  doc.text(formatCurrency(order.finalPrice, 'IDR'), paperWidth - margin, y, { align: 'right' });
+
+  y += 4;
+  doc.setFont('courier', 'normal');
+  doc.setFontSize(paperWidth === 58 ? 7 : 8);
+  doc.text('Bayar:', margin, y);
+  doc.text(formatCurrency(order.paidAmount, 'IDR'), paperWidth - margin, y, { align: 'right' });
+
+  y += 3.5;
+  doc.text('Kembali:', margin, y);
+  doc.text(formatCurrency(order.changeAmount, 'IDR'), paperWidth - margin, y, { align: 'right' });
+
+  // QR Code
+  if (qrDataUrl) {
+    y += 4;
+    try {
+      const qrSize = paperWidth === 58 ? 26 : 32;
+      const qrX = centerX - qrSize / 2;
+      doc.addImage(qrDataUrl, 'PNG', qrX, y, qrSize, qrSize);
+      y += qrSize + 2;
+    } catch (e) {
+      console.error('Error rendering thermal QR', e);
+    }
+  }
+
+  // Footer Note
+  doc.setFont('courier', 'normal');
+  doc.setFontSize(paperWidth === 58 ? 6 : 7);
+  doc.text('Scan QR untuk Status & Lucky Spin', centerX, y, { align: 'center' });
+
+  y += 3.5;
+  doc.text('Komplain max 1x24 jam bawa nota', centerX, y, { align: 'center' });
+
+  y += 3.5;
+  doc.text('Terima Kasih atas Kepercayaan Anda', centerX, y, { align: 'center' });
+
+  // Download PDF
+  const fileName = `Nota_${order.invoiceNo}_thermal_${paperWidth}mm.pdf`;
+  doc.save(fileName);
 }

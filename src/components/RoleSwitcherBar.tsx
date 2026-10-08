@@ -7,9 +7,10 @@ import { AuthGateModal } from './AuthGateModal';
 export const RoleSwitcherBar: React.FC = () => {
   const { currentRole, setCurrentRole, activeGmailAccount, setIsGoogleAuthModalOpen, setIsDemoTutorialModalOpen } = useApp();
 
-  // Mode: Demo (1-click free) vs Commercial (PIN Protected)
+  // Mode: Flexible vs Commercial (PIN Protected) - Defaults to Real Commercial Mode
   const [isCommercialMode, setIsCommercialMode] = useState<boolean>(() => {
-    return localStorage.getItem('lh_auth_mode') === 'commercial';
+    const saved = localStorage.getItem('lh_auth_mode');
+    return saved === null ? true : saved === 'commercial';
   });
 
   const [authModalTargetRole, setAuthModalTargetRole] = useState<Role | null>(null);
@@ -174,20 +175,20 @@ export const RoleSwitcherBar: React.FC = () => {
               onClick={toggleAuthMode}
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold border transition-all ${
                 isCommercialMode
-                  ? 'bg-rose-500/15 border-rose-500/50 text-rose-700 dark:text-rose-300'
-                  : 'bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-300'
+                  ? 'bg-emerald-500/15 border-emerald-500/50 text-emerald-700 dark:text-emerald-300'
+                  : 'bg-cyan-500/15 border-cyan-500/40 text-cyan-700 dark:text-cyan-300'
               }`}
-              title="Klik untuk beralih antara Mode Demo dan Mode Komersial Terkunci PIN"
+              title="Ganti Mode Keamanan Sistem (Mode Riil PIN vs Akses Fleksibel)"
             >
               {isCommercialMode ? (
                 <>
-                  <Lock className="w-3.5 h-3.5 text-rose-500" />
-                  <span>Komersial (PIN)</span>
+                  <Lock className="w-3.5 h-3.5 text-emerald-500" />
+                  <span>Mode Riil (PIN)</span>
                 </>
               ) : (
                 <>
-                  <Unlock className="w-3.5 h-3.5 text-emerald-500" />
-                  <span>Mode Demo</span>
+                  <Unlock className="w-3.5 h-3.5 text-cyan-500" />
+                  <span>Mode Riil (Bebas)</span>
                 </>
               )}
             </button>

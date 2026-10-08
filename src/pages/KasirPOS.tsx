@@ -43,6 +43,7 @@ import { QrisModal } from '../components/QrisModal';
 import { InternationalCardModal } from '../components/InternationalCardModal';
 import { OutletQrisConfigModal } from '../components/OutletQrisConfigModal';
 import { ClothesDetailModal } from '../components/ClothesDetailModal';
+import { GoogleAdBanner } from '../components/GoogleAdBanner';
 import { formatCurrency } from '../utils/currency';
 import { checkGamificationPeriod } from '../utils/gamification';
 import { downloadReceiptPdf } from '../utils/pdfReceipt';
@@ -1244,6 +1245,9 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
           </div>
         </div>
       )}
+
+      {/* Google AdSense / Sponsor Recommendation */}
+      <GoogleAdBanner className="mt-6" title="Sponsor Mitra & Suplai Perlengkapan Kasir" />
 
       {/* MODAL: Tambah Pelanggan Baru */}
       {isAddCustomerOpen && (

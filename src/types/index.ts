@@ -23,6 +23,8 @@ export interface User {
   commissionRateItem: number; // Rp per satuan (e.g. 1000)
   totalCommissionEarned: number;
   isGmailLinked?: boolean;
+  isDemo?: boolean;
+  isPersonalGoogleAccount?: boolean;
   invitedAt?: string;
   lastLoginAt?: string;
 }

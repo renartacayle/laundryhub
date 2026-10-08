@@ -95,9 +95,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
   const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
 
-  // Commercial (PIN Protected) vs Demo Mode
+  // Commercial (PIN Protected) vs Flexible Mode (Defaults to Real Commercial Mode)
   const [isCommercialMode, setIsCommercialMode] = useState<boolean>(() => {
-    return localStorage.getItem('lh_auth_mode') === 'commercial';
+    const saved = localStorage.getItem('lh_auth_mode');
+    return saved === null ? true : saved === 'commercial';
   });
 
   const toggleAuthMode = () => {
@@ -578,6 +579,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
                       </button>
                     );
                   })}
+
+                  <div className="pt-1.5 mt-1 border-t border-slate-200 dark:border-slate-800">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAccountDropdownOpen(false);
+                        setIsGoogleAuthModalOpen(true);
+                      }}
+                      className="w-full p-2 rounded-xl bg-gradient-to-r from-cyan-500/15 to-blue-500/15 hover:from-cyan-500/25 hover:to-blue-500/25 text-cyan-700 dark:text-cyan-300 font-bold text-xs flex items-center justify-center gap-1.5 border border-cyan-500/30 transition-all"
+                    >
+                      <Crown className="w-3.5 h-3.5 text-cyan-500" />
+                      <span>Masuk Akun Google / Hapus Demo</span>
+                    </button>
+                  </div>
                 </div>
               </>
             )}
@@ -680,20 +695,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
               onClick={toggleAuthMode}
               className={`flex-1 flex items-center justify-center gap-1 py-1 px-1.5 rounded-lg text-[10px] font-bold border transition-all ${
                 isCommercialMode
-                  ? 'bg-rose-500/10 border-rose-500/40 text-rose-700 dark:text-rose-300'
-                  : 'bg-emerald-500/10 border-emerald-500/40 text-emerald-700 dark:text-emerald-300'
+                  ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-300'
+                  : 'bg-cyan-500/15 border-cyan-500/40 text-cyan-700 dark:text-cyan-300'
               }`}
-              title="Ganti antara Mode Demo (1-Click) dan Mode Komersial (Terkunci PIN)"
+              title="Ganti Mode Keamanan Sistem (Mode Riil PIN vs Akses Fleksibel)"
             >
               {isCommercialMode ? (
                 <>
-                  <Lock className="w-3 h-3 text-rose-500" />
-                  <span>Komersial (PIN)</span>
+                  <Lock className="w-3 h-3 text-emerald-500" />
+                  <span>Mode Riil (PIN)</span>
                 </>
               ) : (
                 <>
-                  <Unlock className="w-3 h-3 text-emerald-500" />
-                  <span>Mode Demo</span>
+                  <Unlock className="w-3 h-3 text-cyan-500" />
+                  <span>Mode Riil (Bebas)</span>
                 </>
               )}
             </button>
@@ -702,10 +717,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
               type="button"
               onClick={() => setIsDemoTutorialModalOpen(true)}
               className="flex items-center justify-center gap-1 py-1 px-2 rounded-lg text-[10px] font-bold bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-700 dark:text-amber-300 transition-all"
-              title="Panduan Interaktif Tutorial Step-by-Step"
+              title="Panduan Interaktif Pengoperasian Sistem"
             >
               <Sparkles className="w-3 h-3 text-amber-500" />
-              <span>Tutorial</span>
+              <span>Panduan</span>
             </button>
           </div>
         </div>

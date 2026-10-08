@@ -53,9 +53,10 @@ export const MobileSettingsView: React.FC = () => {
   const [isCoinModalOpen, setIsCoinModalOpen] = useState(false);
   const [isBranchModalOpen, setIsBranchModalOpen] = useState(false);
 
-  // Commercial / PIN mode toggle
+  // Commercial / PIN mode toggle (Defaults to Real Commercial Mode)
   const [isCommercialMode, setIsCommercialMode] = useState<boolean>(() => {
-    return localStorage.getItem('lh_auth_mode') === 'commercial';
+    const saved = localStorage.getItem('lh_auth_mode');
+    return saved === null ? true : saved === 'commercial';
   });
 
   const toggleAuthMode = () => {
@@ -211,15 +212,15 @@ export const MobileSettingsView: React.FC = () => {
         {/* Commercial PIN Mode Toggle */}
         <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-800/70 border border-slate-700">
           <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-xl border ${isCommercialMode ? 'bg-rose-500/20 text-rose-300 border-rose-500/30' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'}`}>
-              {isCommercialMode ? <Lock className="w-4 h-4 text-rose-400" /> : <Unlock className="w-4 h-4 text-emerald-400" />}
+            <div className={`p-2 rounded-xl border ${isCommercialMode ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30'}`}>
+              {isCommercialMode ? <Lock className="w-4 h-4 text-emerald-400" /> : <Unlock className="w-4 h-4 text-cyan-400" />}
             </div>
             <div>
               <div className="text-xs font-bold text-white">
-                {isCommercialMode ? 'Mode Komersial (PIN Aktif)' : 'Mode Demo (Bebas Akses)'}
+                {isCommercialMode ? 'Mode Riil (PIN Aktif)' : 'Mode Riil (Akses Bebas)'}
               </div>
               <div className="text-[10px] text-slate-400">
-                {isCommercialMode ? 'PIN diperlukan untuk akses menu' : 'PIN kasir/owner tidak dikunci'}
+                {isCommercialMode ? 'PIN diperlukan untuk otorisasi hak akses peran' : 'Akses fleksibel tanpa verifikasi PIN'}
               </div>
             </div>
           </div>
@@ -227,11 +228,11 @@ export const MobileSettingsView: React.FC = () => {
             onClick={toggleAuthMode}
             className={`px-3 py-1.5 rounded-xl font-bold text-xs border transition-all ${
               isCommercialMode
-                ? 'bg-rose-500/20 border-rose-500/50 text-rose-300'
-                : 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300'
+                ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300'
+                : 'bg-cyan-500/20 border-cyan-500/50 text-cyan-300'
             }`}
           >
-            {isCommercialMode ? 'Kunci ON' : 'Demo ON'}
+            {isCommercialMode ? 'PIN ON' : 'Bebas'}
           </button>
         </div>
       </div>

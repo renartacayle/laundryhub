@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { ReceiptModal } from '../components/ReceiptModal';
 import { WhatsAppSimulatorModal } from '../components/WhatsAppSimulatorModal';
+import { GoogleAdBanner } from '../components/GoogleAdBanner';
 import { formatCurrency } from '../utils/currency';
 import { downloadReceiptPdf } from '../utils/pdfReceipt';
 import confetti from 'canvas-confetti';
@@ -805,6 +806,9 @@ export const PelangganPortal: React.FC<PelangganPortalProps> = ({ currentSubTab 
           </div>
         </div>
       )}
+
+      {/* Google AdSense / Sponsored Partner Banner */}
+      <GoogleAdBanner className="mt-8" title="Rekomendasi Mitra Laundry & Suplai Pakaian" />
 
       {/* Receipt Modal */}
       <ReceiptModal
