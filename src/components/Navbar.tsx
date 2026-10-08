@@ -28,7 +28,6 @@ import { CoinTopupModal } from './CoinTopupModal';
 import { IotMachineControlModal } from './IotMachineControlModal';
 import { LandingPageModal } from './LandingPageModal';
 import { CommandPaletteModal } from './CommandPaletteModal';
-import { GoogleAuthModal } from './GoogleAuthModal';
 import { BranchSwitcherModal } from './BranchSwitcherModal';
 
 export const Navbar: React.FC = () => {
@@ -780,10 +779,6 @@ export const Navbar: React.FC = () => {
         onOpenCoinModal={() => setIsCoinModalOpen(true)}
         onOpenIotModal={() => setIsIotModalOpen(true)}
         onOpenLandingModal={() => setIsLandingOpen(true)}
-      />
-      <GoogleAuthModal
-        isOpen={isGoogleAuthModalOpen}
-        onClose={() => setIsGoogleAuthModalOpen(false)}
       />
       <BranchSwitcherModal
         isOpen={isBranchModalOpen}

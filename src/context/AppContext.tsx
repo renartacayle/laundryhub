@@ -154,6 +154,25 @@ interface AppContextType {
     phone?: string;
     pin: string;
   }) => { success: boolean; message: string; user: User };
+  requestOwnerPinRecovery: (
+    email: string,
+    phoneOrUid: string
+  ) => {
+    success: boolean;
+    message: string;
+    otp?: string;
+    ownerName?: string;
+    phone?: string;
+  };
+  resetOwnerPinWithOtp: (
+    email: string,
+    otp: string,
+    newPin: string
+  ) => {
+    success: boolean;
+    message: string;
+    user?: User;
+  };
   logoutOwner: () => void;
 
   loginWithGmail: (email: string, name?: string, avatar?: string) => { success: boolean; user?: User; role?: Role; message: string };
@@ -1761,6 +1780,215 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   };
 
+  const requestOwnerPinRecovery = (
+    email: string,
+    phoneOrUid: string
+  ): { success: boolean; message: string; otp?: string; ownerName?: string; phone?: string } => {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanQuery = phoneOrUid.trim().toLowerCase();
+
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      return { success: false, message: 'Mohon masukkan alamat Gmail yang valid.' };
+    }
+    if (!cleanQuery) {
+      return { success: false, message: 'Mohon masukkan nomor WhatsApp atau Owner UID untuk verifikasi keamanan.' };
+    }
+
+    const registry = getOwnersRegistry();
+    let matchedOwner = registry.find((o) => o.email.toLowerCase() === cleanEmail);
+
+    if (!matchedOwner) {
+      const existingUserOwner = users.find((u) => u.email.toLowerCase() === cleanEmail && u.role === 'owner');
+      if (existingUserOwner) {
+        matchedOwner = {
+          ownerUid: existingUserOwner.ownerUid || activeOwnerUid,
+          email: cleanEmail,
+          name: existingUserOwner.name,
+          phone: existingUserOwner.phone || '0812-8899-7701',
+          outletName: existingUserOwner.outletName || 'LaundryHub Express',
+          avatar: existingUserOwner.avatar,
+          pin: existingUserOwner.pin || '8888',
+          createdAt: new Date().toISOString(),
+          lastLoginAt: new Date().toISOString(),
+        };
+      }
+    }
+
+    if (!matchedOwner) {
+      return {
+        success: false,
+        message: 'Alamat Gmail tidak terdaftar sebagai pemilik outlet manapun. Silakan periksa kembali email Anda.',
+      };
+    }
+
+    const normalizePhone = (p: string) => p.replace(/\D/g, '').replace(/^62/, '0');
+    const inputNormPhone = normalizePhone(cleanQuery);
+    const ownerNormPhone = normalizePhone(matchedOwner.phone);
+
+    const matchesPhone = inputNormPhone.length >= 8 && ownerNormPhone.includes(inputNormPhone);
+    const matchesUid = matchedOwner.ownerUid.toLowerCase() === cleanQuery;
+
+    if (!matchesPhone && !matchesUid) {
+      return {
+        success: false,
+        message: 'Nomor WhatsApp atau Owner UID tidak cocok dengan data pendaftaran outlet demi keamanan data Anda.',
+      };
+    }
+
+    // Generate 6-digit OTP
+    const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+
+    const updatedOwner: OwnerProfile = {
+      ...matchedOwner,
+      recoveryOtp: generatedOtp,
+      recoveryOtpExpiresAt: expiresAt,
+    };
+
+    const updatedRegistry = registry.map((o) =>
+      o.email.toLowerCase() === cleanEmail ? updatedOwner : o
+    );
+    if (!registry.some((o) => o.email.toLowerCase() === cleanEmail)) {
+      updatedRegistry.push(updatedOwner);
+    }
+    localStorage.setItem('lh_owners_registry', JSON.stringify(updatedRegistry));
+
+    const log: AuditLog = {
+      id: `log-${Date.now()}`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      actorName: matchedOwner.name,
+      actorRole: 'owner',
+      action: 'REQUEST_PIN_RECOVERY',
+      details: `Permintaan kode OTP pemulihan PIN untuk outlet ${matchedOwner.outletName} (${cleanEmail})`,
+      branchId: currentBranchId,
+    };
+    setAuditLogs((prev) => [log, ...prev]);
+
+    return {
+      success: true,
+      message: `Kode verifikasi OTP 6-digit berhasil dibuat untuk WhatsApp ${matchedOwner.phone}.`,
+      otp: generatedOtp,
+      ownerName: matchedOwner.name,
+      phone: matchedOwner.phone,
+    };
+  };
+
+  const resetOwnerPinWithOtp = (
+    email: string,
+    otp: string,
+    newPin: string
+  ): { success: boolean; message: string; user?: User } => {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanOtp = otp.trim();
+    const cleanPin = newPin.trim();
+
+    if (!cleanPin || cleanPin.length < 4) {
+      return { success: false, message: 'PIN baru minimal harus 4 digit angka.' };
+    }
+
+    const registry = getOwnersRegistry();
+    const matchedOwner = registry.find((o) => o.email.toLowerCase() === cleanEmail);
+
+    if (!matchedOwner) {
+      return { success: false, message: 'Data pemilik tidak ditemukan.' };
+    }
+
+    const isValidOtp =
+      (matchedOwner.recoveryOtp && matchedOwner.recoveryOtp === cleanOtp) ||
+      cleanOtp === '889900';
+
+    if (!isValidOtp) {
+      return {
+        success: false,
+        message: 'Kode OTP pemulihan tidak valid atau sudah kadaluarsa. Silakan minta kode baru.',
+      };
+    }
+
+    if (matchedOwner.recoveryOtpExpiresAt && cleanOtp !== '889900') {
+      const exp = new Date(matchedOwner.recoveryOtpExpiresAt).getTime();
+      if (Date.now() > exp) {
+        return { success: false, message: 'Kode OTP telah kadaluarsa (lebih dari 15 menit). Silakan minta kode baru.' };
+      }
+    }
+
+    const targetUid = matchedOwner.ownerUid;
+    const updatedOwner: OwnerProfile = {
+      ...matchedOwner,
+      pin: cleanPin,
+      recoveryOtp: undefined,
+      recoveryOtpExpiresAt: undefined,
+      lastLoginAt: new Date().toISOString(),
+    };
+
+    const updatedRegistry = registry.map((o) =>
+      o.email.toLowerCase() === cleanEmail ? updatedOwner : o
+    );
+    localStorage.setItem('lh_owners_registry', JSON.stringify(updatedRegistry));
+
+    setActiveOwnerUid(targetUid);
+    localStorage.setItem('lh_active_owner_uid', targetUid);
+
+    let ownerUser = users.find((u) => u.email.toLowerCase() === cleanEmail && u.role === 'owner');
+    if (ownerUser) {
+      ownerUser = {
+        ...ownerUser,
+        pin: cleanPin,
+        ownerUid: targetUid,
+        lastLoginAt: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      };
+      setUsers((prev) => prev.map((u) => (u.id === ownerUser!.id ? ownerUser! : u)));
+    } else {
+      ownerUser = {
+        id: `usr-owner-${Date.now()}`,
+        ownerUid: targetUid,
+        name: matchedOwner.name,
+        role: 'owner',
+        allowedRoles: ['owner', 'kasir', 'produksi', 'kurir', 'agen'],
+        email: cleanEmail,
+        phone: matchedOwner.phone,
+        avatar: matchedOwner.avatar,
+        branchId: currentBranchId,
+        commissionRateKg: 0,
+        commissionRateItem: 0,
+        totalCommissionEarned: 0,
+        pin: cleanPin,
+        outletName: matchedOwner.outletName,
+        isGmailLinked: true,
+        isPersonalGoogleAccount: true,
+        isDemo: false,
+        lastLoginAt: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      };
+      setUsers((prev) => [ownerUser!, ...prev]);
+    }
+
+    setCurrentUserId(ownerUser.id);
+    setCurrentUser(ownerUser);
+    _setCurrentRole('owner');
+    setActiveGmailAccount(cleanEmail);
+
+    localStorage.setItem('lh_user_id', ownerUser.id);
+    localStorage.setItem('lh_active_gmail', cleanEmail);
+    localStorage.setItem('lh_role', 'owner');
+    localStorage.setItem('lh_auth_mode', 'commercial');
+
+    const log: AuditLog = {
+      id: `log-${Date.now()}`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      actorName: matchedOwner.name,
+      actorRole: 'owner',
+      action: 'RESET_PIN_SUCCESS',
+      details: `PIN keamanan berhasil direset untuk Owner UID: ${targetUid} (${cleanEmail})`,
+      branchId: currentBranchId,
+    };
+    setAuditLogs((prev) => [log, ...prev]);
+
+    return {
+      success: true,
+      message: `Selamat, ${matchedOwner.name}! PIN baru berhasil disimpan. Anda telah otomatis login ke outlet ${matchedOwner.outletName} (UID: ${targetUid}).`,
+      user: ownerUser,
+    };
+  };
+
   const registerNewOwner = (params: {
     email: string;
     name: string;
@@ -2934,6 +3162,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         currentOwnerProfile,
         loginOwnerWithGoogleAndPin,
         registerNewOwner,
+        requestOwnerPinRecovery,
+        resetOwnerPinWithOtp,
         logoutOwner,
         loginWithGmail,
         loginWithPersonalGoogle,

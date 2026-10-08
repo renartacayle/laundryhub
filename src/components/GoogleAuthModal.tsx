@@ -17,6 +17,11 @@ import {
   Check,
   Lock,
   UserPlus,
+  HelpCircle,
+  RefreshCw,
+  CheckCheck,
+  ArrowLeft,
+  Key,
 } from 'lucide-react';
 import { Role } from '../types';
 
@@ -34,6 +39,8 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({ isOpen, onClos
     currentOwnerProfile,
     loginOwnerWithGoogleAndPin,
     registerNewOwner,
+    requestOwnerPinRecovery,
+    resetOwnerPinWithOtp,
     loginWithPersonalGoogle,
     deleteDemoAccounts,
     clearDemoOrders,
@@ -41,7 +48,7 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({ isOpen, onClos
     logoutOwner,
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
+  const [activeTab, setActiveTab] = useState<'login' | 'register' | 'recovery'>('login');
   
   // Login form state
   const [loginEmail, setLoginEmail] = useState('');
@@ -53,12 +60,30 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({ isOpen, onClos
   const [regOutlet, setRegOutlet] = useState('');
   const [regPhone, setRegPhone] = useState('');
   const [regPin, setRegPin] = useState('');
+
+  // Recovery form state
+  const [recoveryEmail, setRecoveryEmail] = useState('');
+  const [recoveryPhoneOrUid, setRecoveryPhoneOrUid] = useState('');
+  const [recoveryStep, setRecoveryStep] = useState<'request' | 'verify'>('request');
+  const [generatedOtpHint, setGeneratedOtpHint] = useState<string | null>(null);
+  const [recoveryOtpInput, setRecoveryOtpInput] = useState('');
+  const [recoveryNewPin, setRecoveryNewPin] = useState('');
+  const [recoveryConfirmPin, setRecoveryConfirmPin] = useState('');
   
   const [alsoClearOrders, setAlsoClearOrders] = useState(false);
   const [authSuccessMsg, setAuthSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [confirmDeleteDemo, setConfirmDeleteDemo] = useState(false);
   const [copiedUid, setCopiedUid] = useState(false);
+
+  React.useEffect(() => {
+    if (isOpen) {
+      setActiveTab('login');
+      setRecoveryStep('request');
+      setErrorMsg(null);
+      setAuthSuccessMsg(null);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -142,6 +167,69 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({ isOpen, onClos
         setAuthSuccessMsg(null);
         onClose();
       }, 1200);
+    } else {
+      setErrorMsg(res.message);
+    }
+  };
+
+  const handleRequestRecoveryOtp = (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+
+    const email = recoveryEmail.trim().toLowerCase();
+    if (!email || !email.includes('@')) {
+      setErrorMsg('Mohon masukkan alamat Gmail yang valid.');
+      return;
+    }
+
+    const query = recoveryPhoneOrUid.trim();
+    if (!query) {
+      setErrorMsg('Mohon masukkan nomor WhatsApp atau Owner UID terdaftar.');
+      return;
+    }
+
+    const res = requestOwnerPinRecovery(email, query);
+    if (res.success) {
+      setGeneratedOtpHint(res.otp || null);
+      setRecoveryStep('verify');
+      setAuthSuccessMsg(res.message);
+      setTimeout(() => setAuthSuccessMsg(null), 3000);
+    } else {
+      setErrorMsg(res.message);
+    }
+  };
+
+  const handleResetPinSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+
+    const email = recoveryEmail.trim().toLowerCase();
+    const otp = recoveryOtpInput.trim();
+    const newPin = recoveryNewPin.trim();
+    const confirmPin = recoveryConfirmPin.trim();
+
+    if (!otp) {
+      setErrorMsg('Mohon masukkan 6 digit kode OTP verifikasi.');
+      return;
+    }
+
+    if (newPin.length < 4) {
+      setErrorMsg('PIN baru minimal harus 4 digit angka.');
+      return;
+    }
+
+    if (newPin !== confirmPin) {
+      setErrorMsg('Konfirmasi PIN baru tidak sesuai! Silakan periksa kembali.');
+      return;
+    }
+
+    const res = resetOwnerPinWithOtp(email, otp, newPin);
+    if (res.success) {
+      setAuthSuccessMsg(res.message);
+      setTimeout(() => {
+        setAuthSuccessMsg(null);
+        onClose();
+      }, 1500);
     } else {
       setErrorMsg(res.message);
     }
@@ -312,22 +400,22 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({ isOpen, onClos
           </div>
         )}
 
-        {/* Tab Navigation: Secure Login vs Register Outlet */}
-        <div className="flex items-center gap-2 p-1 bg-slate-950/70 border border-slate-800 rounded-2xl">
+        {/* Tab Navigation: Secure Login vs Register Outlet vs Recovery */}
+        <div className="flex items-center gap-1.5 p-1 bg-slate-950/70 border border-slate-800 rounded-2xl">
           <button
             type="button"
             onClick={() => {
               setActiveTab('login');
               setErrorMsg(null);
             }}
-            className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+            className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 ${
               activeTab === 'login'
                 ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-slate-950 shadow-md'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
             <KeyRound className="w-3.5 h-3.5" />
-            <span>Masuk Owner (PIN + UID)</span>
+            <span>Masuk Owner</span>
           </button>
           <button
             type="button"
@@ -335,14 +423,31 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({ isOpen, onClos
               setActiveTab('register');
               setErrorMsg(null);
             }}
-            className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+            className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 ${
               activeTab === 'register'
                 ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 shadow-md'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
             <UserPlus className="w-3.5 h-3.5" />
-            <span>Daftar Owner Baru (Terbit UID)</span>
+            <span>Daftar Baru</span>
+          </button>
+          <button
+            type="button"
+            id="lh-tab-recovery-btn"
+            onClick={() => {
+              setActiveTab('recovery');
+              setRecoveryStep('request');
+              setErrorMsg(null);
+            }}
+            className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 ${
+              activeTab === 'recovery'
+                ? 'bg-gradient-to-r from-rose-500 via-pink-500 to-amber-500 text-white shadow-md'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <HelpCircle className="w-3.5 h-3.5" />
+            <span>Lupa PIN</span>
           </button>
         </div>
 
@@ -389,7 +494,20 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({ isOpen, onClos
                   <Lock className="w-3.5 h-3.5 text-amber-400" />
                   <span>PIN Keamanan Owner (4-6 Digit):</span>
                 </label>
-                <span className="text-[10px] text-slate-400">Default PIN baru: 8888</span>
+                <button
+                  type="button"
+                  id="lh-forgot-pin-btn"
+                  onClick={() => {
+                    setRecoveryEmail(loginEmail);
+                    setActiveTab('recovery');
+                    setRecoveryStep('request');
+                    setErrorMsg(null);
+                  }}
+                  className="text-[11px] text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 transition-colors hover:underline"
+                >
+                  <HelpCircle className="w-3 h-3" />
+                  <span>Lupa PIN?</span>
+                </button>
               </div>
               <input
                 id="lh-google-pin-input"
@@ -520,6 +638,222 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({ isOpen, onClos
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
+        )}
+
+        {/* TAB 3: FORM PEMULIHAN & RESET PIN OWNER */}
+        {activeTab === 'recovery' && (
+          <div className="space-y-3.5 p-4 rounded-2xl bg-slate-950/80 border border-rose-500/30">
+            {/* Header info */}
+            <div className="flex items-start gap-2.5 pb-2 border-b border-slate-800">
+              <div className="w-8 h-8 rounded-xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-300 shrink-0">
+                <Key className="w-4 h-4" />
+              </div>
+              <div className="flex-1">
+                <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                  <span>Pemulihan PIN & Akses Toko</span>
+                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 font-mono">
+                    {recoveryStep === 'request' ? 'Langkah 1/2: Verifikasi' : 'Langkah 2/2: Buat PIN Baru'}
+                  </span>
+                </h4>
+                <p className="text-[10px] text-slate-400 mt-0.5 leading-relaxed">
+                  {recoveryStep === 'request'
+                    ? 'Masukkan Gmail dan No. WhatsApp/Owner UID terdaftar untuk menerima kode OTP darurat.'
+                    : 'Verifikasi kode OTP yang dikirimkan dan tetapkan PIN keamanan baru untuk toko Anda.'}
+                </p>
+              </div>
+            </div>
+
+            {/* STEP 1: MINTA KODE OTP */}
+            {recoveryStep === 'request' ? (
+              <form onSubmit={handleRequestRecoveryOtp} className="space-y-3">
+                <div>
+                  <label className="text-[11px] font-bold text-slate-200 block mb-1">
+                    Alamat Gmail Owner Terdaftar:
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                    <input
+                      id="lh-recovery-email-input"
+                      type="email"
+                      required
+                      placeholder="contoh: hendra.laundry@gmail.com"
+                      value={recoveryEmail}
+                      onChange={(e) => setRecoveryEmail(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-rose-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-slate-200 block mb-1">
+                    No. WhatsApp Terdaftar ATAU Owner UID:
+                  </label>
+                  <div className="relative">
+                    <Smartphone className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                    <input
+                      id="lh-recovery-phone-input"
+                      type="text"
+                      required
+                      placeholder="Contoh: 0812-8899-7701 atau OWN-HNDR-7701"
+                      value={recoveryPhoneOrUid}
+                      onChange={(e) => setRecoveryPhoneOrUid(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-rose-500"
+                    />
+                  </div>
+                  <span className="text-[10px] text-slate-400 block mt-1">
+                    * Digunakan untuk mencocokkan data kepemilikan outlet secara mandiri & aman.
+                  </span>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 text-[10px] text-slate-400 space-y-1">
+                  <div className="font-semibold text-rose-300 flex items-center gap-1">
+                    <Shield className="w-3.5 h-3.5" />
+                    <span>Perlindungan Data Anti-Pembobolan:</span>
+                  </div>
+                  <p>
+                    Kode OTP pemulihan hanya dapat diterbitkan jika Gmail dan No. WhatsApp/UID benar-benar sesuai dengan profil outlet yang terdaftar.
+                  </p>
+                </div>
+
+                <button
+                  id="lh-recovery-send-otp-btn"
+                  type="submit"
+                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-rose-500 via-pink-500 to-amber-500 hover:opacity-95 text-white font-black text-xs shadow-md transition-all flex items-center justify-center gap-1.5 active:scale-98"
+                >
+                  <Smartphone className="w-4 h-4" />
+                  <span>Kirim Kode OTP Pemulihan</span>
+                </button>
+
+                <div className="pt-2 text-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('login');
+                      setErrorMsg(null);
+                    }}
+                    className="text-[11px] text-slate-400 hover:text-white inline-flex items-center gap-1 transition-colors"
+                  >
+                    <ArrowLeft className="w-3 h-3" />
+                    <span>Kembali ke Halaman Masuk</span>
+                  </button>
+                </div>
+              </form>
+            ) : (
+              /* STEP 2: VERIFIKASI OTP & BUAT PIN BARU */
+              <form onSubmit={handleResetPinSubmit} className="space-y-3">
+                {/* OTP Banner simulation */}
+                <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/40 space-y-1.5">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="font-bold text-emerald-300 flex items-center gap-1">
+                      <CheckCheck className="w-3.5 h-3.5 text-emerald-400" />
+                      Kode OTP WhatsApp Terbit:
+                    </span>
+                    <span className="text-[10px] bg-emerald-500/20 text-emerald-200 px-2 py-0.5 rounded font-mono">
+                      Aktif 15 Menit
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between p-2 rounded-lg bg-slate-900 border border-emerald-500/30">
+                    <span className="font-mono text-base font-black tracking-widest text-emerald-300">
+                      {generatedOtpHint || '889900'}
+                    </span>
+                    <button
+                      type="button"
+                      id="lh-use-otp-hint-btn"
+                      onClick={() => setRecoveryOtpInput(generatedOtpHint || '889900')}
+                      className="text-[10px] px-2 py-1 rounded bg-emerald-600/30 text-emerald-200 hover:bg-emerald-600/50 font-semibold"
+                    >
+                      Gunakan Kode Ini
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-slate-400">
+                    * Simulasi pesan WhatsApp resmi dari LaundryHub Security Center ke no. pemilik.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-slate-200 block mb-1">
+                    Masukkan 6-Digit Kode OTP:
+                  </label>
+                  <input
+                    id="lh-recovery-otp-input"
+                    type="text"
+                    required
+                    maxLength={6}
+                    placeholder="Masukkan 6 angka OTP"
+                    value={recoveryOtpInput}
+                    onChange={(e) => setRecoveryOtpInput(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-center text-sm font-mono tracking-widest text-emerald-300 focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-200 block mb-1">
+                      PIN Baru (4-6 Digit):
+                    </label>
+                    <input
+                      id="lh-recovery-newpin-input"
+                      type="password"
+                      required
+                      maxLength={6}
+                      placeholder="Misal: 1234"
+                      value={recoveryNewPin}
+                      onChange={(e) => setRecoveryNewPin(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono tracking-widest text-white focus:outline-none focus:border-rose-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-200 block mb-1">
+                      Ulangi PIN Baru:
+                    </label>
+                    <input
+                      id="lh-recovery-confirmpin-input"
+                      type="password"
+                      required
+                      maxLength={6}
+                      placeholder="Ketik ulang PIN"
+                      value={recoveryConfirmPin}
+                      onChange={(e) => setRecoveryConfirmPin(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono tracking-widest text-white focus:outline-none focus:border-rose-500"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  id="lh-recovery-submit-btn"
+                  type="submit"
+                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:opacity-95 text-slate-950 font-black text-xs shadow-glow-cyan transition-all flex items-center justify-center gap-1.5 active:scale-98"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>Simpan PIN Baru & Masuk ke Outlet</span>
+                </button>
+
+                <div className="flex items-center justify-between pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRecoveryStep('request');
+                      setErrorMsg(null);
+                    }}
+                    className="text-[11px] text-slate-400 hover:text-white inline-flex items-center gap-1 transition-colors"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    <span>Minta Ulang Kode OTP</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('login');
+                      setErrorMsg(null);
+                    }}
+                    className="text-[11px] text-slate-400 hover:text-white inline-flex items-center gap-1 transition-colors"
+                  >
+                    <span>Batal</span>
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
         )}
 
         {/* Clean Demo Accounts Section */}

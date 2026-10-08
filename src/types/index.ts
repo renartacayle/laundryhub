@@ -20,6 +20,8 @@ export interface OwnerProfile {
   pin: string; // Security PIN (default "8888")
   createdAt: string;
   lastLoginAt?: string;
+  recoveryOtp?: string;
+  recoveryOtpExpiresAt?: string;
 }
 
 export interface User {
