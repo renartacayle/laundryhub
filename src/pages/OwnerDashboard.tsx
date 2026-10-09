@@ -87,6 +87,7 @@ import { OutletQrisConfigModal } from '../components/OutletQrisConfigModal';
 import { getOutletQrisConfig, OutletQrisConfig } from '../utils/outletQris';
 import { formatCurrency } from '../utils/currency';
 import { checkGamificationPeriod, formatDateIndo } from '../utils/gamification';
+import { downloadPnlPdf, downloadFinancialStatsPdf, downloadPnlCsv } from '../utils/pdfReports';
 
 interface OwnerDashboardProps {
   currentSubTab?: string;
@@ -1401,14 +1402,22 @@ Konsultasi Admin WA: 081228263200`;
               </div>
 
               <button
+                id="btn-export-stats-pdf"
                 onClick={() => {
-                  alert('Laporan keuangan berhasil diexport ke format CSV / PDF untuk rekap akuntansi.');
+                  downloadFinancialStatsPdf({
+                    year: '2026',
+                    branchName: selectedBranchFilter === 'all' ? 'Semua Cabang (Konsolidasi)' : (branches.find((b) => b.id === selectedBranchFilter)?.name || 'Cabang Utama'),
+                    monthlyData: monthlyStatsData,
+                    totalOmzet: totalOmzet2026,
+                    totalLaba: totalLaba2026,
+                    totalOrders: totalOrders2026,
+                  });
                 }}
-                className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold flex items-center gap-2 transition-colors"
-                title="Download Laporan"
+                className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold flex items-center gap-2 transition-colors active:scale-95 cursor-pointer shadow-md"
+                title="Download PDF Laporan Statistik & Keuangan"
               >
                 <Download className="w-4 h-4 text-cyan-400" />
-                <span className="hidden sm:inline">Export Laporan</span>
+                <span className="hidden sm:inline">Export PDF Laporan</span>
               </button>
             </div>
           </div>
@@ -5987,22 +5996,67 @@ Konsultasi Admin WA: 081228263200`;
             <div className="flex flex-wrap items-center gap-2.5">
               <button
                 type="button"
-                onClick={() => window.print()}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs transition active:scale-95"
+                id="btn-export-pnl-pdf"
+                onClick={() => {
+                  downloadPnlPdf({
+                    period: 'Tahun Berjalan 2026',
+                    branchName: selectedBranchFilter === 'all' ? 'Semua Cabang (Konsolidasi)' : (branches.find((b) => b.id === selectedBranchFilter)?.name || 'Cabang Utama'),
+                    grossRevenue: pnlGrossRevenue,
+                    totalCogs: pnlTotalCogs,
+                    totalUtilities: pnlTotalUtilities,
+                    totalStaffCommissions: pnlTotalPayroll,
+                    totalDropshipCommissions: dropshipAgents.reduce((sum, a) => sum + a.totalEarned, 0),
+                    netIncome: pnlNetProfit,
+                    margin: pnlMarginPercent,
+                    ordersCount: filteredOrders.length,
+                    totalKg: pnlTotalKg,
+                    branchesBreakdown: branchPerformance.map((bp) => ({
+                      name: bp.name,
+                      revenue: bp.revenue,
+                      ordersCount: bp.ordersCount,
+                      totalWeightKg: bp.totalWeightKg,
+                    })),
+                  });
+                }}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-md transition active:scale-95 cursor-pointer"
+                title="Download Dokumen Resmi PDF Laba Rugi A4"
               >
-                <Printer className="w-4 h-4 text-cyan-400" />
-                <span>Cetak Dokumen P&L</span>
+                <Download className="w-4 h-4 text-white" />
+                <span>Download PDF P&L (A4)</span>
               </button>
 
               <button
                 type="button"
+                id="btn-export-pnl-csv"
                 onClick={() => {
-                  alert('Laporan Laba Rugi berhasil diekspor dalam format spreadsheet (.csv)!');
+                  downloadPnlCsv({
+                    period: 'Tahun Berjalan 2026',
+                    branchName: selectedBranchFilter === 'all' ? 'Semua Cabang (Konsolidasi)' : (branches.find((b) => b.id === selectedBranchFilter)?.name || 'Cabang Utama'),
+                    grossRevenue: pnlGrossRevenue,
+                    totalCogs: pnlTotalCogs,
+                    totalUtilities: pnlTotalUtilities,
+                    totalStaffCommissions: pnlTotalPayroll,
+                    totalDropshipCommissions: dropshipAgents.reduce((sum, a) => sum + a.totalEarned, 0),
+                    netIncome: pnlNetProfit,
+                    margin: pnlMarginPercent,
+                    ordersCount: filteredOrders.length,
+                    totalKg: pnlTotalKg,
+                  });
                 }}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow-glow-emerald transition active:scale-95"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow-glow-emerald transition active:scale-95 cursor-pointer"
+                title="Export Spreadsheet CSV"
               >
                 <Download className="w-4 h-4" />
                 <span>Export Laba Rugi (CSV/Excel)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs transition active:scale-95 cursor-pointer"
+              >
+                <Printer className="w-4 h-4 text-cyan-400" />
+                <span>Cetak Dokumen</span>
               </button>
             </div>
           </div>

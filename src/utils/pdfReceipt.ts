@@ -16,73 +16,77 @@ export async function downloadReceiptPdf(
 ): Promise<void> {
   if (!order) return;
 
-  const trackingUrl = typeof window !== 'undefined'
-    ? `${window.location.origin}/?nota=${order.invoiceNo}`
-    : `https://laundryhub.app/?nota=${order.invoiceNo}`;
-
-  let qrDataUrl = '';
   try {
-    qrDataUrl = await QRCode.toDataURL(trackingUrl, {
-      width: 200,
-      margin: 1,
-      color: {
-        dark: '#0f172a',
-        light: '#ffffff',
-      },
+    const trackingUrl = typeof window !== 'undefined'
+      ? `${window.location.origin}/?nota=${order.invoiceNo}`
+      : `https://laundryhub.app/?nota=${order.invoiceNo}`;
+
+    let qrDataUrl = '';
+    try {
+      qrDataUrl = await QRCode.toDataURL(trackingUrl, {
+        width: 200,
+        margin: 1,
+        color: {
+          dark: '#0f172a',
+          light: '#ffffff',
+        },
+      });
+    } catch (err) {
+      console.warn('Error generating QR code for receipt PDF:', err);
+    }
+
+    const branchName = branch?.name || 'LAUNDRYHUB EXPRESS';
+    const branchAddress = branch?.address || 'Jl. Kemang Raya No. 42B, Mampang Prapatan, Jakarta Selatan';
+    const branchPhone = branch?.phone || '0812-8899-7701';
+
+    const orderDate = new Date(order.createdAt).toLocaleString('id-ID', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
     });
-  } catch (err) {
-    console.error('Error generating QR code for receipt PDF:', err);
-  }
 
-  const branchName = branch?.name || 'LAUNDRYHUB EXPRESS';
-  const branchAddress = branch?.address || 'Jl. Kemang Raya No. 42B, Mampang Prapatan, Jakarta Selatan';
-  const branchPhone = branch?.phone || '0812-8899-7701';
-
-  const orderDate = new Date(order.createdAt).toLocaleString('id-ID', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-
-  const estReadyDate = new Date(order.estReadyDate).toLocaleString('id-ID', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-
-  const isLunas = order.paymentStatus === 'lunas';
-
-  if (defaultFormat === '58mm' || defaultFormat === '80mm') {
-    // Generate Thermal Receipt PDF
-    generateThermalPdf({
-      order,
-      branchName,
-      branchAddress,
-      branchPhone,
-      orderDate,
-      estReadyDate,
-      isLunas,
-      qrDataUrl,
-      trackingUrl,
-      paperWidth: defaultFormat === '58mm' ? 58 : 80,
+    const estReadyDate = new Date(order.estReadyDate).toLocaleString('id-ID', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
     });
-  } else {
-    // Generate Official A4 Document PDF
-    generateA4Pdf({
-      order,
-      branchName,
-      branchAddress,
-      branchPhone,
-      orderDate,
-      estReadyDate,
-      isLunas,
-      qrDataUrl,
-      trackingUrl,
-    });
+
+    const isLunas = order.paymentStatus === 'lunas';
+
+    if (defaultFormat === '58mm' || defaultFormat === '80mm') {
+      // Generate Thermal Receipt PDF
+      generateThermalPdf({
+        order,
+        branchName,
+        branchAddress,
+        branchPhone,
+        orderDate,
+        estReadyDate,
+        isLunas,
+        qrDataUrl,
+        trackingUrl,
+        paperWidth: defaultFormat === '58mm' ? 58 : 80,
+      });
+    } else {
+      // Generate Official A4 Document PDF
+      generateA4Pdf({
+        order,
+        branchName,
+        branchAddress,
+        branchPhone,
+        orderDate,
+        estReadyDate,
+        isLunas,
+        qrDataUrl,
+        trackingUrl,
+      });
+    }
+  } catch (error) {
+    console.error('Failed to generate or download receipt PDF:', error);
   }
 }
 
@@ -122,56 +126,68 @@ function generateA4Pdf(params: ReceiptPdfParams) {
   });
 
   const pageWidth = 210;
+  const pageHeight = 297;
   const margin = 14;
   const contentWidth = pageWidth - margin * 2; // 182mm
 
-  // 1. Top Decorative Brand Bar
-  doc.setFillColor(15, 23, 42); // slate-900
-  doc.rect(margin, 12, contentWidth, 26, 'F');
+  const drawHeader = (isFirstPage: boolean) => {
+    // Top Decorative Brand Bar
+    doc.setFillColor(15, 23, 42); // slate-900
+    doc.rect(margin, 12, contentWidth, isFirstPage ? 26 : 14, 'F');
 
-  // Accent Line
-  doc.setFillColor(6, 182, 212); // cyan-500
-  doc.rect(margin, 12, 4, 26, 'F');
+    // Accent Line
+    doc.setFillColor(6, 182, 212); // cyan-500
+    doc.rect(margin, 12, 4, isFirstPage ? 26 : 14, 'F');
 
-  // Brand Name
-  doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(16);
-  doc.text('LAUNDRYHUB', margin + 8, 21);
-
-  doc.setFontSize(8.5);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(148, 163, 184); // slate-400
-  doc.text(`${branchName} • ${branchPhone}`, margin + 8, 27);
-  doc.text(branchAddress.length > 55 ? branchAddress.substring(0, 52) + '...' : branchAddress, margin + 8, 33);
-
-  // Right Side Header: NOTA TRANSAKSI & Invoice No
-  doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(12);
-  doc.text('NOTA TRANSAKSI', pageWidth - margin - 6, 21, { align: 'right' });
-
-  doc.setTextColor(34, 211, 238); // cyan-400
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11);
-  doc.text(order.invoiceNo, pageWidth - margin - 6, 27, { align: 'right' });
-
-  // Status Badge in Header
-  if (isLunas) {
-    doc.setFillColor(22, 101, 52); // emerald-800
-    doc.setTextColor(187, 247, 208); // emerald-200
-    doc.roundedRect(pageWidth - margin - 32, 30, 26, 6, 1.5, 1.5, 'F');
-    doc.setFontSize(7.5);
+    // Brand Name
+    doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
-    doc.text('✓ LUNAS', pageWidth - margin - 19, 34.2, { align: 'center' });
-  } else {
-    doc.setFillColor(153, 27, 27); // red-800
-    doc.setTextColor(254, 202, 202); // red-200
-    doc.roundedRect(pageWidth - margin - 42, 30, 36, 6, 1.5, 1.5, 'F');
-    doc.setFontSize(7.5);
-    doc.setFont('helvetica', 'bold');
-    doc.text('⚠️ BELUM LUNAS', pageWidth - margin - 24, 34.2, { align: 'center' });
-  }
+    doc.setFontSize(isFirstPage ? 16 : 11);
+    doc.text('LAUNDRYHUB', margin + 8, isFirstPage ? 21 : 21);
+
+    if (isFirstPage) {
+      doc.setFontSize(8.5);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(148, 163, 184); // slate-400
+      doc.text(`${branchName} • ${branchPhone}`, margin + 8, 27);
+      doc.text(branchAddress.length > 55 ? branchAddress.substring(0, 52) + '...' : branchAddress, margin + 8, 33);
+
+      // Right Side Header: NOTA TRANSAKSI & Invoice No
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.text('NOTA TRANSAKSI', pageWidth - margin - 6, 21, { align: 'right' });
+
+      doc.setTextColor(34, 211, 238); // cyan-400
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text(order.invoiceNo || 'INV-0000', pageWidth - margin - 6, 27, { align: 'right' });
+
+      // Status Badge in Header
+      if (isLunas) {
+        doc.setFillColor(22, 101, 52); // emerald-800
+        doc.setTextColor(187, 247, 208); // emerald-200
+        doc.roundedRect(pageWidth - margin - 32, 30, 26, 6, 1.5, 1.5, 'F');
+        doc.setFontSize(7.5);
+        doc.setFont('helvetica', 'bold');
+        doc.text('✓ LUNAS', pageWidth - margin - 19, 34.2, { align: 'center' });
+      } else {
+        doc.setFillColor(153, 27, 27); // red-800
+        doc.setTextColor(254, 202, 202); // red-200
+        doc.roundedRect(pageWidth - margin - 42, 30, 36, 6, 1.5, 1.5, 'F');
+        doc.setFontSize(7.5);
+        doc.setFont('helvetica', 'bold');
+        doc.text('⚠️ BELUM LUNAS', pageWidth - margin - 24, 34.2, { align: 'center' });
+      }
+    } else {
+      doc.setTextColor(34, 211, 238);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9.5);
+      doc.text(`Nota: ${order.invoiceNo} (Lanjutan)`, pageWidth - margin - 6, 21, { align: 'right' });
+    }
+  };
+
+  drawHeader(true);
 
   // 2. Customer & Transaction Details Card
   let curY = 43;
@@ -187,18 +203,20 @@ function generateA4Pdf(params: ReceiptPdfParams) {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9.5);
   doc.setTextColor(15, 23, 42); // slate-900
-  doc.text(order.customerName, margin + 6, curY + 12);
+  doc.text(order.customerName || 'Pelanggan Umum', margin + 6, curY + 12);
 
   doc.setFontSize(8);
   doc.setTextColor(71, 85, 105);
   doc.setFont('helvetica', 'normal');
-  doc.text(`No. WA: ${order.customerPhone}`, margin + 6, curY + 17);
+  doc.text(`No. WA: ${order.customerPhone || '-'}`, margin + 6, curY + 17);
   if (order.customerAddress) {
     const addr = order.customerAddress.length > 40 ? order.customerAddress.substring(0, 37) + '...' : order.customerAddress;
     doc.text(`Alamat: ${addr}`, margin + 6, curY + 22);
+  } else {
+    doc.text(`Alamat: Outlet Pickup`, margin + 6, curY + 22);
   }
   doc.setTextColor(124, 58, 237); // purple-600
-  doc.text(`Parfum: ${order.perfumeName}`, margin + 6, curY + 28);
+  doc.text(`Parfum: ${order.perfumeName || 'Aroma Standar'}`, margin + 6, curY + 28);
 
   // Right Column: Order Dates & Service Type
   const rightColX = margin + 95;
@@ -217,23 +235,27 @@ function generateA4Pdf(params: ReceiptPdfParams) {
 
   doc.setTextColor(71, 85, 105);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Metode: ${order.paymentMethod.toUpperCase()}`, rightColX, curY + 22);
+  doc.text(`Metode: ${(order.paymentMethod || 'TUNAI').toUpperCase()}`, rightColX, curY + 22);
   doc.text(`Layanan: ${order.pickupDeliveryType === 'delivery' ? 'Antar Jemput (Delivery)' : 'Ambil di Outlet'}`, rightColX, curY + 28);
 
   // 3. Items Table Header
   curY = 82;
-  doc.setFillColor(241, 245, 249); // slate-100
-  doc.setDrawColor(203, 213, 225); // slate-300
-  doc.rect(margin, curY, contentWidth, 8, 'FD');
+  const drawTableHeader = (y: number) => {
+    doc.setFillColor(241, 245, 249); // slate-100
+    doc.setDrawColor(203, 213, 225); // slate-300
+    doc.rect(margin, y, contentWidth, 8, 'FD');
 
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8);
-  doc.setTextColor(51, 65, 85);
-  doc.text('NO', margin + 3, curY + 5.5);
-  doc.text('RINCIAN LAYANAN & ITEM', margin + 14, curY + 5.5);
-  doc.text('QTY / BERAT', margin + 105, curY + 5.5, { align: 'right' });
-  doc.text('TARIF', margin + 142, curY + 5.5, { align: 'right' });
-  doc.text('SUBTOTAL', pageWidth - margin - 4, curY + 5.5, { align: 'right' });
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(51, 65, 85);
+    doc.text('NO', margin + 3, y + 5.5);
+    doc.text('RINCIAN LAYANAN & ITEM', margin + 14, y + 5.5);
+    doc.text('QTY / BERAT', margin + 105, y + 5.5, { align: 'right' });
+    doc.text('TARIF', margin + 142, y + 5.5, { align: 'right' });
+    doc.text('SUBTOTAL', pageWidth - margin - 4, y + 5.5, { align: 'right' });
+  };
+
+  drawTableHeader(curY);
 
   // Items Table Rows
   curY += 8;
@@ -241,6 +263,17 @@ function generateA4Pdf(params: ReceiptPdfParams) {
   doc.setFontSize(8.5);
 
   order.items.forEach((item, idx) => {
+    // Pagination check: if near bottom of page
+    if (curY > pageHeight - 75) {
+      doc.addPage();
+      drawHeader(false);
+      curY = 32;
+      drawTableHeader(curY);
+      curY += 8;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+    }
+
     const isAlt = idx % 2 === 1;
     if (isAlt) {
       doc.setFillColor(248, 250, 252);
@@ -258,7 +291,7 @@ function generateA4Pdf(params: ReceiptPdfParams) {
     doc.setFont('helvetica', 'normal');
 
     doc.setTextColor(51, 65, 85);
-    doc.text(`${item.quantity} ${item.unit}`, margin + 105, curY + 5.5, { align: 'right' });
+    doc.text(`${item.quantity} ${item.unit || ''}`, margin + 105, curY + 5.5, { align: 'right' });
     doc.text(formatCurrency(item.pricePerUnit, 'IDR'), margin + 142, curY + 5.5, { align: 'right' });
 
     doc.setFont('helvetica', 'bold');
@@ -270,6 +303,12 @@ function generateA4Pdf(params: ReceiptPdfParams) {
 
   // 4. Clothes Details Box (if available)
   if (order.clothesDetails && order.clothesDetails.length > 0) {
+    if (curY > pageHeight - 80) {
+      doc.addPage();
+      drawHeader(false);
+      curY = 32;
+    }
+
     curY += 4;
     doc.setFillColor(248, 250, 252);
     doc.setDrawColor(226, 232, 240);
@@ -296,10 +335,18 @@ function generateA4Pdf(params: ReceiptPdfParams) {
     curY += 4;
   }
 
+  // Check if enough space for Totals + QR + Policy + Signatures
+  const totalBoxHeight = (order.discount && order.discount > 0) ? 38 : 32;
+  const neededBottomHeight = totalBoxHeight + 18 + 26 + 10;
+  if (curY + neededBottomHeight > pageHeight - 15) {
+    doc.addPage();
+    drawHeader(false);
+    curY = 32;
+  }
+
   // 5. Totals Breakdown Card
   const totalBoxWidth = 84;
   const totalBoxX = pageWidth - margin - totalBoxWidth;
-  const totalBoxHeight = order.discount > 0 ? 38 : 32;
 
   doc.setFillColor(248, 250, 252);
   doc.setDrawColor(203, 213, 225);
@@ -311,9 +358,9 @@ function generateA4Pdf(params: ReceiptPdfParams) {
   doc.text('Total Tagihan Layanan:', totalBoxX + 4, rowY);
   doc.setTextColor(15, 23, 42);
   doc.setFont('helvetica', 'bold');
-  doc.text(formatCurrency(order.totalPrice, 'IDR'), totalBoxX + totalBoxWidth - 4, rowY, { align: 'right' });
+  doc.text(formatCurrency(order.totalPrice || order.finalPrice, 'IDR'), totalBoxX + totalBoxWidth - 4, rowY, { align: 'right' });
 
-  if (order.discount > 0) {
+  if (order.discount && order.discount > 0) {
     rowY += 5.5;
     doc.setTextColor(225, 29, 72); // rose-600
     doc.setFont('helvetica', 'normal');
@@ -340,7 +387,7 @@ function generateA4Pdf(params: ReceiptPdfParams) {
   doc.text('Jumlah Dibayar:', totalBoxX + 4, rowY);
   doc.setTextColor(15, 23, 42);
   doc.setFont('helvetica', 'bold');
-  doc.text(formatCurrency(order.paidAmount, 'IDR'), totalBoxX + totalBoxWidth - 4, rowY, { align: 'right' });
+  doc.text(formatCurrency(order.paidAmount ?? order.finalPrice, 'IDR'), totalBoxX + totalBoxWidth - 4, rowY, { align: 'right' });
 
   rowY += 4.5;
   doc.setFont('helvetica', 'normal');
@@ -348,7 +395,7 @@ function generateA4Pdf(params: ReceiptPdfParams) {
   doc.text('Kembalian:', totalBoxX + 4, rowY);
   doc.setTextColor(15, 23, 42);
   doc.setFont('helvetica', 'bold');
-  doc.text(formatCurrency(order.changeAmount, 'IDR'), totalBoxX + totalBoxWidth - 4, rowY, { align: 'right' });
+  doc.text(formatCurrency(order.changeAmount ?? 0, 'IDR'), totalBoxX + totalBoxWidth - 4, rowY, { align: 'right' });
 
   // 6. QR Code Tracking & Instructions (Left side)
   const qrBoxWidth = contentWidth - totalBoxWidth - 6;
@@ -360,7 +407,7 @@ function generateA4Pdf(params: ReceiptPdfParams) {
     try {
       doc.addImage(qrDataUrl, 'PNG', margin + 4, curY + 3.5, 25, 25);
     } catch (e) {
-      console.error('Error adding QR to A4 PDF', e);
+      console.warn('Error adding QR to A4 PDF', e);
     }
   }
 
@@ -419,7 +466,7 @@ function generateA4Pdf(params: ReceiptPdfParams) {
   doc.line(custSigCenter - 25, curY + 16, custSigCenter + 25, curY + 16);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(15, 23, 42);
-  doc.text(order.customerName, custSigCenter, curY + 20, { align: 'center' });
+  doc.text(order.customerName || 'Pelanggan', custSigCenter, curY + 20, { align: 'center' });
 
   // 9. Document Footer
   doc.setFontSize(6.5);
@@ -433,7 +480,7 @@ function generateA4Pdf(params: ReceiptPdfParams) {
   );
 
   // Trigger Instant Native Download
-  const fileName = `Nota_${order.invoiceNo}.pdf`;
+  const fileName = `Nota_${order.invoiceNo || 'Order'}.pdf`;
   doc.save(fileName);
 }
 
@@ -453,11 +500,13 @@ function generateThermalPdf(params: ReceiptPdfParams) {
     paperWidth = 80,
   } = params;
 
-  // Calculate dynamic page height according to items count to ensure zero truncation
-  const baseHeight = 180;
-  const itemsHeight = order.items.length * 8;
-  const clothesHeight = order.clothesDetails && order.clothesDetails.length > 0 ? 20 : 0;
-  const calculatedHeight = Math.max(190, baseHeight + itemsHeight + clothesHeight);
+  // Calculate dynamic page height according to items and clothes count to ensure zero truncation
+  const baseHeight = 175;
+  const itemsHeight = (order.items || []).length * 9;
+  const clothesCount = (order.clothesDetails || []).length;
+  const clothesHeight = clothesCount > 0 ? (12 + clothesCount * 4) : 0;
+  const qrHeight = qrDataUrl ? (paperWidth === 58 ? 32 : 38) : 0;
+  const calculatedHeight = Math.max(190, baseHeight + itemsHeight + clothesHeight + qrHeight);
 
   const doc = new jsPDF({
     orientation: 'portrait',
@@ -466,7 +515,6 @@ function generateThermalPdf(params: ReceiptPdfParams) {
   });
 
   const margin = paperWidth === 58 ? 4 : 6;
-  const contentWidth = paperWidth - margin * 2;
   const centerX = paperWidth / 2;
 
   let y = 8;
@@ -498,7 +546,7 @@ function generateThermalPdf(params: ReceiptPdfParams) {
   y += 4;
   doc.setFont('courier', 'bold');
   doc.setFontSize(paperWidth === 58 ? 8 : 9);
-  doc.text(`NO: ${order.invoiceNo}`, margin, y);
+  doc.text(`NO: ${order.invoiceNo || 'INV-0000'}`, margin, y);
 
   y += 4;
   doc.setFont('courier', 'normal');
@@ -509,13 +557,13 @@ function generateThermalPdf(params: ReceiptPdfParams) {
   doc.text(`SIAP: ${estReadyDate}`, margin, y);
 
   y += 3.5;
-  doc.text(`NAMA: ${order.customerName}`, margin, y);
+  doc.text(`NAMA: ${order.customerName || 'Pelanggan Umum'}`, margin, y);
 
   y += 3.5;
-  doc.text(`TELP: ${order.customerPhone}`, margin, y);
+  doc.text(`TELP: ${order.customerPhone || '-'}`, margin, y);
 
   y += 3.5;
-  doc.text(`WANGI: ${order.perfumeName}`, margin, y);
+  doc.text(`WANGI: ${order.perfumeName || 'Aroma Standar'}`, margin, y);
 
   y += 3.5;
   doc.setFont('courier', 'bold');
@@ -528,20 +576,38 @@ function generateThermalPdf(params: ReceiptPdfParams) {
 
   // Table items
   y += 4;
-  order.items.forEach((item) => {
+  (order.items || []).forEach((item) => {
     doc.setFont('courier', 'bold');
     doc.setFontSize(paperWidth === 58 ? 7 : 8);
     doc.text(item.serviceName, margin, y);
 
     y += 3.5;
     doc.setFont('courier', 'normal');
-    const qtyText = `${item.quantity} ${item.unit} x ${formatCurrency(item.pricePerUnit, 'IDR')}`;
+    const qtyText = `${item.quantity} ${item.unit || ''} x ${formatCurrency(item.pricePerUnit, 'IDR')}`;
     const subtotalText = formatCurrency(item.subtotal, 'IDR');
 
     doc.text(qtyText, margin, y);
     doc.text(subtotalText, paperWidth - margin, y, { align: 'right' });
     y += 4;
   });
+
+  // Clothes Details (if present)
+  if (order.clothesDetails && order.clothesDetails.length > 0) {
+    doc.text('-'.repeat(paperWidth === 58 ? 26 : 38), centerX, y, { align: 'center' });
+    y += 3.5;
+
+    doc.setFont('courier', 'bold');
+    doc.setFontSize(paperWidth === 58 ? 6.5 : 7.5);
+    doc.text(`RINCIAN PAKAIAN (${order.totalPieces || order.clothesDetails.length} helai):`, margin, y);
+    y += 3.5;
+
+    doc.setFont('courier', 'normal');
+    doc.setFontSize(paperWidth === 58 ? 6 : 7);
+    order.clothesDetails.forEach((c) => {
+      doc.text(`• ${c.name} (${c.quantity}x)`, margin + 1.5, y);
+      y += 3.2;
+    });
+  }
 
   // Dashed Line
   doc.text('-'.repeat(paperWidth === 58 ? 26 : 38), centerX, y, { align: 'center' });
@@ -550,9 +616,9 @@ function generateThermalPdf(params: ReceiptPdfParams) {
   // Totals
   doc.setFontSize(paperWidth === 58 ? 7 : 8);
   doc.text('Subtotal:', margin, y);
-  doc.text(formatCurrency(order.totalPrice, 'IDR'), paperWidth - margin, y, { align: 'right' });
+  doc.text(formatCurrency(order.totalPrice || order.finalPrice, 'IDR'), paperWidth - margin, y, { align: 'right' });
 
-  if (order.discount > 0) {
+  if (order.discount && order.discount > 0) {
     y += 3.5;
     doc.text('Diskon:', margin, y);
     doc.text(`-${formatCurrency(order.discount, 'IDR')}`, paperWidth - margin, y, { align: 'right' });
@@ -568,22 +634,22 @@ function generateThermalPdf(params: ReceiptPdfParams) {
   doc.setFont('courier', 'normal');
   doc.setFontSize(paperWidth === 58 ? 7 : 8);
   doc.text('Bayar:', margin, y);
-  doc.text(formatCurrency(order.paidAmount, 'IDR'), paperWidth - margin, y, { align: 'right' });
+  doc.text(formatCurrency(order.paidAmount ?? order.finalPrice, 'IDR'), paperWidth - margin, y, { align: 'right' });
 
   y += 3.5;
   doc.text('Kembali:', margin, y);
-  doc.text(formatCurrency(order.changeAmount, 'IDR'), paperWidth - margin, y, { align: 'right' });
+  doc.text(formatCurrency(order.changeAmount ?? 0, 'IDR'), paperWidth - margin, y, { align: 'right' });
 
   // QR Code
   if (qrDataUrl) {
     y += 4;
     try {
-      const qrSize = paperWidth === 58 ? 26 : 32;
+      const qrSize = paperWidth === 58 ? 24 : 30;
       const qrX = centerX - qrSize / 2;
       doc.addImage(qrDataUrl, 'PNG', qrX, y, qrSize, qrSize);
       y += qrSize + 2;
     } catch (e) {
-      console.error('Error rendering thermal QR', e);
+      console.warn('Error rendering thermal QR', e);
     }
   }
 
@@ -599,6 +665,6 @@ function generateThermalPdf(params: ReceiptPdfParams) {
   doc.text('Terima Kasih atas Kepercayaan Anda', centerX, y, { align: 'center' });
 
   // Download PDF
-  const fileName = `Nota_${order.invoiceNo}_thermal_${paperWidth}mm.pdf`;
+  const fileName = `Nota_${order.invoiceNo || 'Order'}_thermal_${paperWidth}mm.pdf`;
   doc.save(fileName);
 }

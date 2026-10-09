@@ -20,9 +20,11 @@ import {
   QrCode as QrIcon,
   Receipt,
   CheckCircle2,
+  Download,
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { useApp } from '../context/AppContext';
+import { downloadSalarySlipPdf } from '../utils/pdfSalarySlip';
 
 interface SalarySlipModalProps {
   isOpen: boolean;
@@ -708,6 +710,17 @@ Cek keabsahan online: https://laundryhub.app/verify/${slipSerialNo}`;
         {/* Modal Bottom Action Controls (Hidden on Print) */}
         <div className="p-4 bg-neutral-900 border-t border-neutral-800 flex flex-wrap items-center justify-between gap-2 shrink-0 print:hidden">
           <div className="flex items-center gap-2">
+            <button
+              id="btn-download-slip-pdf"
+              type="button"
+              onClick={() => downloadSalarySlipPdf(slip, activeStaff, staffBranch, viewFormat)}
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs transition-all flex items-center gap-1.5 shadow-md shadow-cyan-500/20 active:scale-95 cursor-pointer"
+              title="Download Dokumen Resmi PDF Slip Gaji"
+            >
+              <Download className="w-4 h-4 text-slate-950" />
+              <span>Download PDF Slip</span>
+            </button>
+
             <button
               type="button"
               onClick={handlePrint}
