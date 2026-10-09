@@ -126,6 +126,7 @@ export const AuthGateModal: React.FC<AuthGateModalProps> = ({
             </button>
           ))}
           <button
+            id="lh-auth-gate-auto-pin-btn"
             type="button"
             onClick={() => {
               // Quick fill default PIN

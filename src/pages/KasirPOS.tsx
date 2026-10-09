@@ -36,6 +36,7 @@ import {
   ClipboardCheck,
   Camera,
   Download,
+  Tag,
 } from 'lucide-react';
 import { ReceiptModal } from '../components/ReceiptModal';
 import { WhatsAppSimulatorModal } from '../components/WhatsAppSimulatorModal';
@@ -62,6 +63,7 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
     branches,
     services,
     fragrances,
+    loadStandardServicesPreset,
     createOrder,
     updateOrderStatus,
     addCustomer,
@@ -140,9 +142,40 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
   const [cartSortingNotes, setCartSortingNotes] = useState<string>('');
   const [cartTotalPieces, setCartTotalPieces] = useState<number>(0);
 
-  const selectedCustomer = customers.find((c) => c.id === selectedCustomerId) || customers[0];
+  // Fallback defaults for safety when tenant data is empty
+  const defaultGuestCustomer: Customer = {
+    id: 'cst-guest',
+    name: 'Pelanggan Umum (Guest)',
+    phone: '0812-0000-0000',
+    address: 'Outlet',
+    branchId: 'br-kemang',
+    totalOrdersCount: 0,
+    depositBalance: 0,
+    loyaltyPoints: 0,
+  };
+
+  const defaultGuestPerfume: Fragrance = {
+    id: 'fr-default',
+    name: 'Aroma Standar (Ocean Fresh)',
+    description: 'Wangi segar tahan lama',
+  };
+
+  const selectedCustomer = customers.find((c) => c.id === selectedCustomerId) || customers[0] || defaultGuestCustomer;
   const activeBranch = branches.find((b) => b.id === currentBranchId) || branches[0];
-  const selectedPerfume = fragrances.find((f) => f.id === selectedPerfumeId) || fragrances[0];
+  const selectedPerfume = fragrances.find((f) => f.id === selectedPerfumeId) || fragrances[0] || defaultGuestPerfume;
+
+  // Keep selected ID in sync if customer or fragrance list updates
+  React.useEffect(() => {
+    if (customers.length > 0 && !customers.some((c) => c.id === selectedCustomerId)) {
+      setSelectedCustomerId(customers[0].id);
+    }
+  }, [customers, selectedCustomerId]);
+
+  React.useEffect(() => {
+    if (fragrances.length > 0 && !fragrances.some((f) => f.id === selectedPerfumeId)) {
+      setSelectedPerfumeId(fragrances[0].id);
+    }
+  }, [fragrances, selectedPerfumeId]);
 
   // Services (filtered by active status and category)
   const filteredServices = services
@@ -641,59 +674,82 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
 
             {/* Service Items Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[460px] overflow-y-auto pr-1">
-              {filteredServices.map((service) => {
-                const isKiloan = service.category === 'kiloan';
-                const calculatedPrice = isExpress && isKiloan ? Math.round(service.price * 1.5) : service.price;
-
-                return (
-                  <div
-                    key={service.id}
-                    className="p-3.5 rounded-2xl glass-card border border-slate-700/70 hover:border-cyan-500/50 transition-all flex flex-col justify-between group"
-                  >
-                    <div>
-                      <div className="flex items-start justify-between gap-2">
-                        <span className="font-bold text-xs text-white group-hover:text-cyan-300 transition-colors">
-                          {service.name}
-                        </span>
-                        <span
-                          className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase ${
-                            isKiloan
-                              ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30'
-                              : 'bg-purple-500/10 text-purple-400 border border-purple-500/30'
-                          }`}
-                        >
-                          {service.unit}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-slate-400 mt-1 line-clamp-2">
-                        {service.description}
-                      </p>
-                    </div>
-
-                    <div className="mt-3 pt-2.5 border-t border-slate-800 flex items-center justify-between">
-                      <div>
-                        <div className="text-xs font-black text-cyan-400">
-                          Rp {calculatedPrice.toLocaleString('id-ID')}
-                          <span className="text-[10px] text-slate-400 font-normal"> /{service.unit}</span>
-                        </div>
-                        {isKiloan && (
-                          <div className="text-[10px] text-slate-500 font-mono">
-                            Subtotal @{customWeight}kg: Rp {(customWeight * calculatedPrice).toLocaleString('id-ID')}
-                          </div>
-                        )}
-                      </div>
-
-                      <button
-                        onClick={() => (isKiloan ? handleAddKiloan(service) : handleAddSatuan(service))}
-                        className="px-3 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs flex items-center gap-1 transition-all shadow-glow-cyan"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>{isKiloan ? `+ ${customWeight}kg` : '+ Tambah'}</span>
-                      </button>
-                    </div>
+              {filteredServices.length === 0 ? (
+                <div className="col-span-full p-8 text-center glass-panel rounded-2xl border border-dashed border-slate-700 space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 mx-auto flex items-center justify-center">
+                    <Tag className="w-6 h-6" />
                   </div>
-                );
-              })}
+                  <div>
+                    <p className="text-sm font-bold text-slate-200">Katalog Layanan Masih Kosong</p>
+                    <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+                      Layanan laundry belum diatur untuk outlet ini. Anda dapat memuat paket standar dengan 1 klik atau menambahkan layanan manual di menu Owner.
+                    </p>
+                  </div>
+                  {currentUser.role === 'owner' && (
+                    <button
+                      type="button"
+                      onClick={() => loadStandardServicesPreset()}
+                      className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-400 hover:to-teal-400 text-slate-950 font-bold text-xs transition-all shadow-glow-cyan"
+                    >
+                      ⚡ Muat Paket Standar Laundry (1-Klik)
+                    </button>
+                  )}
+                </div>
+              ) : (
+                filteredServices.map((service) => {
+                  const isKiloan = service.category === 'kiloan';
+                  const calculatedPrice = isExpress && isKiloan ? Math.round(service.price * 1.5) : service.price;
+
+                  return (
+                    <div
+                      key={service.id}
+                      className="p-3.5 rounded-2xl glass-card border border-slate-700/70 hover:border-cyan-500/50 transition-all flex flex-col justify-between group"
+                    >
+                      <div>
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="font-bold text-xs text-white group-hover:text-cyan-300 transition-colors">
+                            {service.name}
+                          </span>
+                          <span
+                            className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                              isKiloan
+                                ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30'
+                                : 'bg-purple-500/10 text-purple-400 border border-purple-500/30'
+                            }`}
+                          >
+                            {service.unit}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 mt-1 line-clamp-2">
+                          {service.description}
+                        </p>
+                      </div>
+
+                      <div className="mt-3 pt-2.5 border-t border-slate-800 flex items-center justify-between">
+                        <div>
+                          <div className="text-xs font-black text-cyan-400">
+                            Rp {calculatedPrice.toLocaleString('id-ID')}
+                            <span className="text-[10px] text-slate-400 font-normal"> /{service.unit}</span>
+                          </div>
+                          {isKiloan && (
+                            <div className="text-[10px] text-slate-500 font-mono">
+                              Subtotal @{customWeight}kg: Rp {(customWeight * calculatedPrice).toLocaleString('id-ID')}
+                            </div>
+                          )}
+                        </div>
+
+                        <button
+                          onClick={() => (isKiloan ? handleAddKiloan(service) : handleAddSatuan(service))}
+                          className="px-3 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs flex items-center gap-1 transition-all shadow-glow-cyan"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>{isKiloan ? `+ ${customWeight}kg` : '+ Tambah'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
 
             {/* Perfume & Notes Selector */}
@@ -708,11 +764,15 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
                   onChange={(e) => setSelectedPerfumeId(e.target.value)}
                   className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
                 >
-                  {fragrances.map((f) => (
-                    <option key={f.id} value={f.id}>
-                      {f.name} — {f.description}
-                    </option>
-                  ))}
+                  {fragrances.length === 0 ? (
+                    <option value="">Aroma Standar (Ocean Fresh)</option>
+                  ) : (
+                    fragrances.map((f) => (
+                      <option key={f.id} value={f.id}>
+                        {f.name} — {f.description}
+                      </option>
+                    ))
+                  )}
                 </select>
               </div>
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { DropshipSupplyItem, Role, StationCommissionRates, GamificationSettings, GamificationPrize, Service, Fragrance } from '../types';
 import {
@@ -202,6 +202,8 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
     fragrances,
     addFragrance,
     deleteFragrance,
+    loadStandardServicesPreset,
+    loadStandardInventoryPreset,
   } = useApp();
 
   // Add Worker Modal State
@@ -574,24 +576,176 @@ Konsultasi Admin WA: 081228263200`;
   const pnlNetProfit = pnlGrossRevenue - pnlTotalCogs - pnlTotalUtilities - pnlTotalPayroll;
   const pnlMarginPercent = pnlGrossRevenue > 0 ? Number(((pnlNetProfit / pnlGrossRevenue) * 100).toFixed(1)) : 0;
 
-  // Chart Data: 7-Days
-  const revenueChartData7Days = [
-    { name: 'Senin', omzet: 1250000, laba: 775000, pesanan: 18 },
-    { name: 'Selasa', omzet: 1420000, laba: 880400, pesanan: 22 },
-    { name: 'Rabu', omzet: 1680000, laba: 1041600, pesanan: 26 },
-    { name: 'Kamis', omzet: 1530000, laba: 948600, pesanan: 23 },
-    { name: 'Jumat', omzet: 2100000, laba: 1302000, pesanan: 32 },
-    { name: 'Sabtu', omzet: 2850000, laba: 1767000, pesanan: 44 },
-    { name: 'Minggu', omzet: 3100000, laba: 1922000, pesanan: 48 },
-  ];
+  // Chart Data: 7-Days Dynamic (Senin s.d. Minggu)
+  const revenueChartData7Days = useMemo(() => {
+    const dayNames = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+    if (filteredOrders.length === 0) {
+      return dayNames.map((d) => ({ name: d, omzet: 0, laba: 0, pesanan: 0 }));
+    }
 
-  // Category Distribution
-  const categoryChartData = [
-    { name: 'Cuci Kiloan', value: 68, color: '#06b6d4' },
-    { name: 'Bed Cover & Selimut', value: 16, color: '#8b5cf6' },
-    { name: 'Jas & Formal Dry Clean', value: 9, color: '#f59e0b' },
-    { name: 'Sepatu & Tas', value: 7, color: '#10b981' },
-  ];
+    const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    const map: Record<string, { omzet: number; laba: number; pesanan: number }> = {};
+    dayNames.forEach((d) => {
+      map[d] = { omzet: 0, laba: 0, pesanan: 0 };
+    });
+
+    filteredOrders.forEach((o) => {
+      const d = new Date(o.createdAt);
+      const dayIdx = isNaN(d.getTime()) ? 1 : d.getDay();
+      const dayName = days[dayIdx];
+      if (map[dayName]) {
+        map[dayName].omzet += o.finalPrice;
+        map[dayName].laba += Math.round(o.finalPrice * 0.62);
+        map[dayName].pesanan += 1;
+      }
+    });
+
+    return dayNames.map((d) => ({
+      name: d,
+      omzet: map[d].omzet,
+      laba: map[d].laba,
+      pesanan: map[d].pesanan,
+    }));
+  }, [filteredOrders]);
+
+  // Category Distribution (Dynamic derived from order items)
+  const categoryChartData = useMemo(() => {
+    if (filteredOrders.length === 0) {
+      return [];
+    }
+
+    const catCounts: Record<string, number> = {
+      'Cuci Kiloan': 0,
+      'Bed Cover & Selimut': 0,
+      'Jas & Formal': 0,
+      'Sepatu & Tas': 0,
+    };
+    let totalItems = 0;
+
+    filteredOrders.forEach((o) => {
+      o.items.forEach((item) => {
+        const nameLower = (item.serviceName || '').toLowerCase();
+        if (nameLower.includes('bed') || nameLower.includes('selimut')) {
+          catCounts['Bed Cover & Selimut'] += item.quantity || 1;
+        } else if (nameLower.includes('jas') || nameLower.includes('formal') || nameLower.includes('blazer')) {
+          catCounts['Jas & Formal'] += item.quantity || 1;
+        } else if (nameLower.includes('sepatu') || nameLower.includes('tas') || nameLower.includes('shoes')) {
+          catCounts['Sepatu & Tas'] += item.quantity || 1;
+        } else {
+          catCounts['Cuci Kiloan'] += item.quantity || 1;
+        }
+        totalItems += item.quantity || 1;
+      });
+    });
+
+    if (totalItems === 0) return [];
+
+    const colors: Record<string, string> = {
+      'Cuci Kiloan': '#06b6d4',
+      'Bed Cover & Selimut': '#8b5cf6',
+      'Jas & Formal': '#f59e0b',
+      'Sepatu & Tas': '#10b981',
+    };
+
+    return Object.entries(catCounts)
+      .filter(([_, count]) => count > 0)
+      .map(([name, count]) => ({
+        name,
+        value: Math.round((count / totalItems) * 100),
+        color: colors[name] || '#06b6d4',
+      }));
+  }, [filteredOrders]);
+
+  // Monthly stats data (Clean slate 0 if new owner / no orders)
+  const monthlyStatsData = useMemo(() => {
+    const isDemo = activeOwnerUid === 'OWN-DEMO-8801';
+    if (isDemo && orders.length > 0) {
+      return MONTHLY_STATS_2026;
+    }
+
+    const months = [
+      { month: 'Januari', code: 'Jan' },
+      { month: 'Februari', code: 'Feb' },
+      { month: 'Maret', code: 'Mar' },
+      { month: 'April', code: 'Apr' },
+      { month: 'Mei', code: 'Mei' },
+      { month: 'Juni', code: 'Jun' },
+      { month: 'Juli', code: 'Jul' },
+      { month: 'Agustus', code: 'Agu' },
+      { month: 'September', code: 'Sep' },
+      { month: 'Oktober (Aktif)', code: 'Okt' },
+      { month: 'November (Est)', code: 'Nov' },
+      { month: 'Desember (Est)', code: 'Des' },
+    ];
+
+    if (filteredOrders.length === 0) {
+      return months.map((m) => ({
+        ...m,
+        omzet: 0,
+        beban: 0,
+        laba: 0,
+        margin: 0,
+        orders: 0,
+        weightKg: 0,
+        growthMoM: 0,
+      }));
+    }
+
+    return months.map((m, idx) => {
+      const matching = filteredOrders.filter((o) => {
+        const d = new Date(o.createdAt);
+        return !isNaN(d.getTime()) && d.getMonth() === idx;
+      });
+      const omzet = matching.reduce((sum, o) => sum + o.finalPrice, 0);
+      const ordersCount = matching.length;
+      const weightKg = Number(matching.reduce((sum, o) => sum + (o.weightKg || 0), 0).toFixed(1));
+      const beban = Math.round(omzet * 0.38);
+      const laba = omzet - beban;
+      const margin = omzet > 0 ? Number(((laba / omzet) * 100).toFixed(1)) : 0;
+      return {
+        ...m,
+        omzet,
+        beban,
+        laba,
+        margin,
+        orders: ordersCount,
+        weightKg,
+        growthMoM: 0,
+      };
+    });
+  }, [activeOwnerUid, filteredOrders, orders.length]);
+
+  // Yearly stats data (Clean slate 0 if new owner / no orders)
+  const yearlyStatsData = useMemo(() => {
+    const isDemo = activeOwnerUid === 'OWN-DEMO-8801';
+    if (isDemo && orders.length > 0) {
+      return YEARLY_STATS;
+    }
+
+    const currentYear = new Date().getFullYear().toString();
+    const omzet = filteredOrders.reduce((sum, o) => sum + o.finalPrice, 0);
+    const beban = Math.round(omzet * 0.38);
+    const laba = omzet - beban;
+    const margin = omzet > 0 ? Number(((laba / omzet) * 100).toFixed(1)) : 0;
+    const ordersCount = filteredOrders.length;
+    const weightKg = Number(filteredOrders.reduce((sum, o) => sum + (o.weightKg || 0), 0).toFixed(1));
+
+    return [
+      {
+        year: currentYear,
+        omzet,
+        beban,
+        laba,
+        margin,
+        orders: ordersCount,
+        weightKg,
+        growthYoY: 0,
+        kemang: omzet,
+        bintaro: 0,
+        tebet: 0,
+      },
+    ];
+  }, [activeOwnerUid, filteredOrders, orders.length]);
 
   // Branch Performance
   const branchPerformance = branches.map((branch) => {
@@ -611,9 +765,9 @@ Konsultasi Admin WA: 081228263200`;
   const lowStockItems = inventory.filter((i) => i.stock <= i.minStockWarning);
 
   // Totals for monthly stats
-  const totalOmzet2026 = MONTHLY_STATS_2026.reduce((acc, m) => acc + m.omzet, 0);
-  const totalLaba2026 = MONTHLY_STATS_2026.reduce((acc, m) => acc + m.laba, 0);
-  const totalOrders2026 = MONTHLY_STATS_2026.reduce((acc, m) => acc + m.orders, 0);
+  const totalOmzet2026 = monthlyStatsData.reduce((acc, m) => acc + m.omzet, 0);
+  const totalLaba2026 = monthlyStatsData.reduce((acc, m) => acc + m.laba, 0);
+  const totalOrders2026 = monthlyStatsData.reduce((acc, m) => acc + m.orders, 0);
   const avgOmzetPerMonth = Math.round(totalOmzet2026 / 12);
 
   return (
@@ -854,9 +1008,15 @@ Konsultasi Admin WA: 081228263200`;
             <div className="p-4 rounded-2xl glass-card border border-amber-500/30 relative overflow-hidden">
               <div className="flex items-center justify-between text-xs text-slate-400">
                 <span>{language === 'en' ? 'Consolidated Revenue' : 'Omzet Konsolidasi'}</span>
-                <span className="flex items-center text-emerald-400 font-bold text-[11px]">
-                  <ArrowUpRight className="w-3.5 h-3.5" /> +18.4%
-                </span>
+                {filteredOrders.length > 0 ? (
+                  <span className="flex items-center text-emerald-400 font-bold text-[11px]">
+                    <ArrowUpRight className="w-3.5 h-3.5" /> +18.4%
+                  </span>
+                ) : (
+                  <span className="text-slate-500 font-medium text-[11px]">
+                    Akun Baru
+                  </span>
+                )}
               </div>
               <div className="text-2xl font-black text-amber-400 font-mono mt-1">
                 {formatCurrency(totalRevenue, currency)}
@@ -873,9 +1033,15 @@ Konsultasi Admin WA: 081228263200`;
             <div className="p-4 rounded-2xl glass-card border border-emerald-500/30 relative overflow-hidden">
               <div className="flex items-center justify-between text-xs text-slate-400">
                 <span>{language === 'en' ? 'Estimated Net Profit' : 'Estimasi Laba Bersih'}</span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300">
-                  Margin ~62%
-                </span>
+                {filteredOrders.length > 0 ? (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300">
+                    Margin ~62%
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-400">
+                    Margin 0%
+                  </span>
+                )}
               </div>
               <div className="text-2xl font-black text-emerald-400 font-mono mt-1">
                 {formatCurrency(estimatedNetProfit, currency)}
@@ -1041,7 +1207,7 @@ Konsultasi Admin WA: 081228263200`;
                       />
                     </AreaChart>
                   ) : overviewPeriod === 'monthly' ? (
-                    <AreaChart data={MONTHLY_STATS_2026} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                    <AreaChart data={monthlyStatsData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                       <defs>
                         <linearGradient id="monthGradient" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.4} />
@@ -1074,7 +1240,7 @@ Konsultasi Admin WA: 081228263200`;
                       />
                     </AreaChart>
                   ) : (
-                    <BarChart data={YEARLY_STATS} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                    <BarChart data={yearlyStatsData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
                       <XAxis dataKey="year" stroke="#64748b" tick={{ fontSize: 11 }} />
                       <YAxis
@@ -1116,47 +1282,61 @@ Konsultasi Admin WA: 081228263200`;
                 <p className="text-xs text-slate-400">Proporsi Kiloan vs Satuan & Dry Clean</p>
               </div>
 
-              <div className="h-44 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={categoryChartData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={45}
-                      outerRadius={70}
-                      paddingAngle={5}
-                      dataKey="value"
-                    >
-                      {categoryChartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: '#0f172a',
-                        borderColor: '#334155',
-                        borderRadius: '12px',
-                        fontSize: '12px',
-                      }}
-                      formatter={(v: any) => [`${v}%`, 'Pangsa']}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-
-              {/* Legend List */}
-              <div className="space-y-1.5 pt-2 border-t border-slate-700 text-xs">
-                {categoryChartData.map((item) => (
-                  <div key={item.name} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                      <span className="text-slate-300 text-[11px]">{item.name}</span>
-                    </div>
-                    <span className="font-bold text-slate-100 font-mono">{item.value}%</span>
+              {categoryChartData.length === 0 ? (
+                <div className="h-56 flex flex-col items-center justify-center text-center p-4 border border-dashed border-slate-700/60 rounded-2xl bg-slate-900/30">
+                  <div className="p-3 bg-slate-800 rounded-full text-slate-500 mb-2">
+                    <BarChart3 className="w-6 h-6" />
                   </div>
-                ))}
-              </div>
+                  <p className="text-xs font-semibold text-slate-300">Belum Ada Transaksi Layanan</p>
+                  <p className="text-[11px] text-slate-500 mt-1 max-w-[200px]">
+                    Grafik porsi kiloan vs satuan akan muncul otomatis setelah ada order masuk.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="h-44 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={categoryChartData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={45}
+                          outerRadius={70}
+                          paddingAngle={5}
+                          dataKey="value"
+                        >
+                          {categoryChartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: '#0f172a',
+                            borderColor: '#334155',
+                            borderRadius: '12px',
+                            fontSize: '12px',
+                          }}
+                          formatter={(v: any) => [`${v}%`, 'Pangsa']}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Legend List */}
+                  <div className="space-y-1.5 pt-2 border-t border-slate-700 text-xs">
+                    {categoryChartData.map((item) => (
+                      <div key={item.name} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                          <span className="text-slate-300 text-[11px]">{item.name}</span>
+                        </div>
+                        <span className="font-bold text-slate-100 font-mono">{item.value}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -1289,7 +1469,7 @@ Konsultasi Admin WA: 081228263200`;
 
                 <div className="h-72 w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={MONTHLY_STATS_2026} margin={{ top: 15, right: 10, left: 10, bottom: 5 }}>
+                    <BarChart data={monthlyStatsData} margin={{ top: 15, right: 10, left: 10, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
                       <XAxis dataKey="code" stroke="#64748b" tick={{ fontSize: 11 }} />
                       <YAxis
@@ -1339,7 +1519,7 @@ Konsultasi Admin WA: 081228263200`;
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800/60 font-mono">
-                      {MONTHLY_STATS_2026.map((m, idx) => (
+                      {monthlyStatsData.map((m, idx) => (
                         <tr key={idx} className="hover:bg-slate-800/40 transition-colors">
                           <td className="p-3.5 font-sans font-bold text-white">{m.month}</td>
                           <td className="p-3.5 font-bold text-amber-300">
@@ -1375,7 +1555,7 @@ Konsultasi Admin WA: 081228263200`;
                         <td className="p-3.5 text-white">62.1%</td>
                         <td className="p-3.5 text-white">{totalOrders2026.toLocaleString()} Nota</td>
                         <td className="p-3.5 text-cyan-400">
-                          {MONTHLY_STATS_2026.reduce((acc, i) => acc + i.weightKg, 0).toLocaleString()} kg
+                          {monthlyStatsData.reduce((acc, i) => acc + i.weightKg, 0).toLocaleString()} kg
                         </td>
                         <td className="p-3.5 text-right text-emerald-400">+31.3% YoY</td>
                       </tr>
@@ -1449,7 +1629,7 @@ Konsultasi Admin WA: 081228263200`;
 
                 <div className="h-72 w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={YEARLY_STATS} margin={{ top: 15, right: 10, left: 10, bottom: 5 }}>
+                    <BarChart data={yearlyStatsData} margin={{ top: 15, right: 10, left: 10, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
                       <XAxis dataKey="year" stroke="#64748b" tick={{ fontSize: 11 }} />
                       <YAxis
@@ -1501,7 +1681,7 @@ Konsultasi Admin WA: 081228263200`;
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800/60 font-mono">
-                      {YEARLY_STATS.map((y, idx) => (
+                      {yearlyStatsData.map((y, idx) => (
                         <tr key={idx} className="hover:bg-slate-800/40 transition-colors">
                           <td className="p-3.5 font-sans font-bold text-white">{y.year}</td>
                           <td className="p-3.5 font-bold text-amber-300">
@@ -1646,73 +1826,97 @@ Konsultasi Admin WA: 081228263200`;
             </button>
           </div>
 
-          <div className="rounded-2xl glass-panel border border-slate-800 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-950/70 text-slate-400 font-bold uppercase tracking-wider text-[10px] border-b border-slate-800">
-                  <tr>
-                    <th className="p-3.5">Nama Barang</th>
-                    <th className="p-3.5">Kategori</th>
-                    <th className="p-3.5">Outlet Cabang</th>
-                    <th className="p-3.5">Sisa Stok</th>
-                    <th className="p-3.5">Batas Minimum</th>
-                    <th className="p-3.5">Status Alert</th>
-                    <th className="p-3.5 text-right">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/60">
-                  {inventory.map((item) => {
-                    const isLow = item.stock <= item.minStockWarning;
-                    const branch = branches.find((b) => b.id === item.branchId);
-                    return (
-                      <tr key={item.id} className="hover:bg-slate-800/40 transition-colors">
-                        <td className="p-3.5 font-bold text-white">{item.name}</td>
-                        <td className="p-3.5 uppercase text-[10px] text-slate-400 font-semibold">
-                          {item.category}
-                        </td>
-                        <td className="p-3.5 text-slate-300">{branch?.name || item.branchId}</td>
-                        <td className="p-3.5 font-mono font-bold text-sm">
-                          <span className={isLow ? 'text-rose-400' : 'text-emerald-400'}>
-                            {item.stock} {item.unit}
-                          </span>
-                        </td>
-                        <td className="p-3.5 text-slate-400 font-mono">
-                          {item.minStockWarning} {item.unit}
-                        </td>
-                        <td className="p-3.5">
-                          {isLow ? (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40 flex items-center gap-1 w-max">
-                              <AlertTriangle className="w-3 h-3" /> Menipis
-                            </span>
-                          ) : (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 w-max">
-                              Aman
-                            </span>
-                          )}
-                        </td>
-                        <td className="p-3.5 text-right">
-                          <button
-                            onClick={() => {
-                              const add = prompt(`Tambah stok untuk ${item.name} (jumlah ${item.unit}):`, '10');
-                              if (add) {
-                                const qty = parseFloat(add);
-                                if (!isNaN(qty)) {
-                                  updateInventoryStock(item.id, item.stock + qty);
-                                }
-                              }
-                            }}
-                            className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition-colors"
-                          >
-                            + Tambah Stok
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+          {inventory.length === 0 ? (
+            <div className="p-10 rounded-2xl glass-panel border border-dashed border-slate-700/70 text-center space-y-4">
+              <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                <Package className="w-7 h-7" />
+              </div>
+              <div className="max-w-md mx-auto">
+                <h4 className="text-sm font-bold text-white">Belum Ada Data Bahan Baku & Perlengkapan</h4>
+                <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                  Stok operasional outlet Anda masih kosong. Muat template bahan baku standar laundry (Deterjen Konsentrat, Parfum Lily, Pelicin Setrika, Plastik Jinjing) dengan 1 klik.
+                </p>
+              </div>
+              <div className="flex items-center justify-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => loadStandardInventoryPreset()}
+                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-lg shadow-amber-500/20 transition-all cursor-pointer"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>⚡ Muat Bahan Baku Standar (1-Klik)</span>
+                </button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="rounded-2xl glass-panel border border-slate-800 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-950/70 text-slate-400 font-bold uppercase tracking-wider text-[10px] border-b border-slate-800">
+                    <tr>
+                      <th className="p-3.5">Nama Barang</th>
+                      <th className="p-3.5">Kategori</th>
+                      <th className="p-3.5">Outlet Cabang</th>
+                      <th className="p-3.5">Sisa Stok</th>
+                      <th className="p-3.5">Batas Minimum</th>
+                      <th className="p-3.5">Status Alert</th>
+                      <th className="p-3.5 text-right">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60">
+                    {inventory.map((item) => {
+                      const isLow = item.stock <= item.minStockWarning;
+                      const branch = branches.find((b) => b.id === item.branchId);
+                      return (
+                        <tr key={item.id} className="hover:bg-slate-800/40 transition-colors">
+                          <td className="p-3.5 font-bold text-white">{item.name}</td>
+                          <td className="p-3.5 uppercase text-[10px] text-slate-400 font-semibold">
+                            {item.category}
+                          </td>
+                          <td className="p-3.5 text-slate-300">{branch?.name || item.branchId}</td>
+                          <td className="p-3.5 font-mono font-bold text-sm">
+                            <span className={isLow ? 'text-rose-400' : 'text-emerald-400'}>
+                              {item.stock} {item.unit}
+                            </span>
+                          </td>
+                          <td className="p-3.5 text-slate-400 font-mono">
+                            {item.minStockWarning} {item.unit}
+                          </td>
+                          <td className="p-3.5">
+                            {isLow ? (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40 flex items-center gap-1 w-max">
+                                <AlertTriangle className="w-3 h-3" /> Menipis
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 w-max">
+                                Aman
+                              </span>
+                            )}
+                          </td>
+                          <td className="p-3.5 text-right">
+                            <button
+                              onClick={() => {
+                                const add = prompt(`Tambah stok untuk ${item.name} (jumlah ${item.unit}):`, '10');
+                                if (add) {
+                                  const qty = parseFloat(add);
+                                  if (!isNaN(qty)) {
+                                    updateInventoryStock(item.id, item.stock + qty);
+                                  }
+                                }
+                              }}
+                              className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition-colors"
+                            >
+                              + Tambah Stok
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -2194,20 +2398,56 @@ Konsultasi Admin WA: 081228263200`;
             </div>
           </div>
 
+          {/* Info Banner when no non-owner staff is registered */}
+          {users.filter((u) => u.role !== 'owner').length === 0 && (
+            <div className="p-4 rounded-2xl glass-card border border-cyan-500/30 bg-cyan-950/20 flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-cyan-500/20 text-cyan-300">
+                  <Users className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-white">Belum Ada Karyawan Tambahan Terdaftar</h4>
+                  <p className="text-[11px] text-slate-400">
+                    Anda saat ini mengoperasikan outlet secara mandiri sebagai Owner. Klik &ldquo;+ Daftarkan Karyawan Baru&rdquo; di atas untuk mendaftarkan staf kasir, tim produksi cuci/setrika, kurir, atau agen.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddWorkerModalOpen(true)}
+                className="px-3 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition-colors shrink-0"
+              >
+                + Tambah Karyawan
+              </button>
+            </div>
+          )}
+
           {/* Employee Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {users
-              .filter((u) => {
-                // Ensure other owner accounts never appear in staff list
-                if (u.role === 'owner' && u.id !== currentUser.id) return false;
-                if (staffRoleFilter !== 'all' && u.role !== staffRoleFilter) return false;
-                if (staffSearchText) {
-                  const q = staffSearchText.toLowerCase();
-                  return u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
-                }
-                return true;
-              })
-              .map((u) => {
+          {(() => {
+            const displayedStaff = users.filter((u) => {
+              // Ensure other owner accounts never appear in staff list
+              if (u.role === 'owner' && u.id !== currentUser.id) return false;
+              if (staffRoleFilter !== 'all' && u.role !== staffRoleFilter) return false;
+              if (staffSearchText) {
+                const q = staffSearchText.toLowerCase();
+                return u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
+              }
+              return true;
+            });
+
+            if (displayedStaff.length === 0) {
+              return (
+                <div className="p-8 rounded-2xl glass-panel border border-dashed border-slate-700/60 text-center space-y-2">
+                  <Users className="w-8 h-8 mx-auto text-slate-500" />
+                  <p className="text-xs font-semibold text-slate-300">Tidak ada karyawan yang sesuai filter ({staffRoleFilter}).</p>
+                  <p className="text-[11px] text-slate-500">Coba ubah filter kategori tugas atau kata kunci pencarian.</p>
+                </div>
+              );
+            }
+
+            return (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {displayedStaff.map((u) => {
                 const branch = branches.find((b) => b.id === u.branchId);
                 const isOwner = u.role === 'owner';
 
@@ -2429,7 +2669,9 @@ Konsultasi Admin WA: 081228263200`;
                   </div>
                 );
               })}
-          </div>
+            </div>
+          );
+        })()}
 
           {/* 3. Matriks Presensi & Rekap Gaji Karyawan (Borongan per Nota & Potongan Alpha) */}
           <div className="p-5 rounded-3xl glass-card border border-emerald-500/30 bg-gradient-to-r from-emerald-950/20 via-slate-900/80 to-slate-900/80 space-y-4">
@@ -3176,7 +3418,30 @@ Konsultasi Admin WA: 081228263200`;
           </div>
 
           {/* Services Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {services.length === 0 ? (
+            <div className="p-10 rounded-3xl glass-panel border border-dashed border-slate-700/70 text-center space-y-4">
+              <div className="w-14 h-14 mx-auto rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
+                <Shirt className="w-7 h-7" />
+              </div>
+              <div className="max-w-md mx-auto">
+                <h4 className="text-sm font-bold text-white">Katalog Layanan & Tarif Jasa Masih Kosong</h4>
+                <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                  Outlet Anda belum memiliki daftar harga. Anda dapat membuat layanan satu per satu dengan tombol &lsquo;+ Buat Layanan Baru&rsquo; di atas atau memuat paket standar laundry dalam 1 klik.
+                </p>
+              </div>
+              <div className="flex items-center justify-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => loadStandardServicesPreset()}
+                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-cyan-500/20 transition-all cursor-pointer"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>⚡ Muat Paket Standar Laundry (1-Klik)</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {services
               .filter((s) => {
                 const matchCategory = serviceCategoryFilter === 'all' || s.category === serviceCategoryFilter;
@@ -3337,7 +3602,8 @@ Konsultasi Admin WA: 081228263200`;
                   </div>
                 );
               })}
-          </div>
+            </div>
+          )}
 
           {/* Fragrances Section (Pewangi Laundry) */}
           <div className="p-5 rounded-3xl glass-card border border-purple-500/30 bg-gradient-to-r from-purple-950/20 via-slate-900/80 to-slate-900/80 space-y-4">
@@ -3373,39 +3639,47 @@ Konsultasi Admin WA: 081228263200`;
               </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {fragrances.map((f) => (
-                <div
-                  key={f.id}
-                  className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3"
-                >
-                  <div className="min-w-0">
-                    <div className="font-bold text-xs text-purple-200 flex items-center gap-1.5">
-                      <span>🌸</span>
-                      <span className="truncate">{f.name}</span>
-                    </div>
-                    <div className="text-[11px] text-slate-400 mt-0.5 line-clamp-1">{f.description}</div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (fragrances.length <= 1) {
-                        alert('Minimal harus ada 1 varian aroma parfum!');
-                        return;
-                      }
-                      if (confirm(`Hapus aroma "${f.name}"?`)) {
-                        deleteFragrance(f.id);
-                      }
-                    }}
-                    className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition-colors shrink-0"
-                    title="Hapus Aroma"
+            {fragrances.length === 0 ? (
+              <div className="p-6 rounded-2xl bg-slate-900/40 border border-dashed border-purple-500/30 text-center space-y-2">
+                <Sparkles className="w-6 h-6 mx-auto text-purple-400" />
+                <p className="text-xs font-semibold text-purple-200">Belum Ada Varian Aroma Parfum</p>
+                <p className="text-[11px] text-slate-400">Klik &ldquo;Tambah Aroma Baru&rdquo; di atas untuk menambahkan aroma parfum laundry Anda.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {fragrances.map((f) => (
+                  <div
+                    key={f.id}
+                    className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              ))}
-            </div>
+                    <div className="min-w-0">
+                      <div className="font-bold text-xs text-purple-200 flex items-center gap-1.5">
+                        <span>🌸</span>
+                        <span className="truncate">{f.name}</span>
+                      </div>
+                      <div className="text-[11px] text-slate-400 mt-0.5 line-clamp-1">{f.description}</div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (fragrances.length <= 1) {
+                          alert('Minimal harus ada 1 varian aroma parfum!');
+                          return;
+                        }
+                        if (confirm(`Hapus aroma "${f.name}"?`)) {
+                          deleteFragrance(f.id);
+                        }
+                      }}
+                      className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition-colors shrink-0"
+                      title="Hapus Aroma"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* MODAL 1: TAMBAH JASA BARU */}
@@ -3947,20 +4221,28 @@ Konsultasi Admin WA: 081228263200`;
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60 font-mono text-[11px]">
-                  {auditLogs.map((log) => (
-                    <tr key={log.id} className="hover:bg-slate-800/40 transition-colors">
-                      <td className="p-3.5 text-slate-400 whitespace-nowrap">{log.timestamp}</td>
-                      <td className="p-3.5 font-bold text-white whitespace-nowrap">{log.actorName}</td>
-                      <td className="p-3.5 uppercase font-bold text-slate-300">{log.actorRole}</td>
-                      <td className="p-3.5">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-cyan-300">
-                          {log.action}
-                        </span>
+                  {auditLogs.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="p-8 text-center text-slate-500 text-xs font-sans">
+                        Belum ada riwayat audit log. Aktivitas operasional, transaksi kasir, dan penyesuaian sistem akan tercatat otomatis di sini.
                       </td>
-                      <td className="p-3.5 font-sans text-slate-300 text-xs">{log.details}</td>
-                      <td className="p-3.5 text-slate-400 uppercase">{log.branchId.replace('br-', '')}</td>
                     </tr>
-                  ))}
+                  ) : (
+                    auditLogs.map((log) => (
+                      <tr key={log.id} className="hover:bg-slate-800/40 transition-colors">
+                        <td className="p-3.5 text-slate-400 whitespace-nowrap">{log.timestamp}</td>
+                        <td className="p-3.5 font-bold text-white whitespace-nowrap">{log.actorName}</td>
+                        <td className="p-3.5 uppercase font-bold text-slate-300">{log.actorRole}</td>
+                        <td className="p-3.5">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-cyan-300">
+                            {log.action}
+                          </span>
+                        </td>
+                        <td className="p-3.5 font-sans text-slate-300 text-xs">{log.details}</td>
+                        <td className="p-3.5 text-slate-400 uppercase">{log.branchId.replace('br-', '')}</td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -4080,104 +4362,126 @@ Konsultasi Admin WA: 081228263200`;
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {dropshipAgents.map((agent) => {
-                const branch = branches.find((b) => b.id === agent.branchId);
-                const isCopied = agentLinkCopied === agent.id;
+            {dropshipAgents.length === 0 ? (
+              <div className="p-8 rounded-2xl glass-panel border border-dashed border-slate-700/70 text-center space-y-3">
+                <div className="w-12 h-12 mx-auto rounded-2xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400">
+                  <Store className="w-6 h-6" />
+                </div>
+                <div className="max-w-md mx-auto">
+                  <h5 className="text-sm font-bold text-white">Belum Ada Mitra Agen Dropship Terdaftar</h5>
+                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                    Outlet Anda belum memiliki agen drop point. Anda dapat bermitra dengan warung, kos, atau minimarket sekitar untuk memperluas jangkauan tanpa membeli mesin tambahan.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsAddAgentOpen(true)}
+                  className="px-4 py-2 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs inline-flex items-center gap-1.5 transition-colors"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  <span>Daftarkan Mitra Pertama</span>
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {dropshipAgents.map((agent) => {
+                  const branch = branches.find((b) => b.id === agent.branchId);
+                  const isCopied = agentLinkCopied === agent.id;
 
-                return (
-                  <div
-                    key={agent.id}
-                    className="p-5 rounded-2xl glass-card border border-slate-700/80 hover:border-teal-500/50 transition-all space-y-4 flex flex-col justify-between"
-                  >
-                    <div>
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h5 className="text-sm font-bold text-white">{agent.name}</h5>
-                            <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-teal-500/20 text-teal-300 border border-teal-500/40 uppercase">
-                              {agent.status}
-                            </span>
+                  return (
+                    <div
+                      key={agent.id}
+                      className="p-5 rounded-2xl glass-card border border-slate-700/80 hover:border-teal-500/50 transition-all space-y-4 flex flex-col justify-between"
+                    >
+                      <div>
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h5 className="text-sm font-bold text-white">{agent.name}</h5>
+                              <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-teal-500/20 text-teal-300 border border-teal-500/40 uppercase">
+                                {agent.status}
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-400 mt-0.5">
+                              PIC: <span className="text-slate-200 font-semibold">{agent.ownerName}</span>
+                            </p>
                           </div>
-                          <p className="text-xs text-slate-400 mt-0.5">
-                            PIC: <span className="text-slate-200 font-semibold">{agent.ownerName}</span>
-                          </p>
-                        </div>
-                        <span className="px-2.5 py-1 rounded-xl text-xs font-black bg-amber-500/10 text-amber-300 border border-amber-500/30">
-                          {agent.commissionPercent}% Komisi
-                        </span>
-                      </div>
-
-                      <div className="mt-3 space-y-1.5 text-xs text-slate-300 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
-                        <div className="flex items-center gap-2 text-slate-400 text-[11px]">
-                          <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                          <span className="truncate">{agent.address}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-800">
-                          <span className="text-slate-400">Workshop Pengampu:</span>
-                          <span className="font-semibold text-cyan-300">{branch?.name || agent.branchId}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-[11px]">
-                          <span className="text-slate-400">Rekening Payout:</span>
-                          <span className="font-mono text-slate-300">
-                            {agent.bankAccount.bank} • {agent.bankAccount.accountNumber} ({agent.bankAccount.accountName})
+                          <span className="px-2.5 py-1 rounded-xl text-xs font-black bg-amber-500/10 text-amber-300 border border-amber-500/30">
+                            {agent.commissionPercent}% Komisi
                           </span>
                         </div>
-                      </div>
 
-                      <div className="grid grid-cols-3 gap-2 mt-3 text-center">
-                        <div className="p-2 rounded-xl bg-slate-900/40 border border-slate-800">
-                          <div className="text-[10px] text-slate-400">Total Order</div>
-                          <div className="text-xs font-bold text-white mt-0.5">{agent.totalOrdersCount}</div>
+                        <div className="mt-3 space-y-1.5 text-xs text-slate-300 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+                          <div className="flex items-center gap-2 text-slate-400 text-[11px]">
+                            <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                            <span className="truncate">{agent.address}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-800">
+                            <span className="text-slate-400">Workshop Pengampu:</span>
+                            <span className="font-semibold text-cyan-300">{branch?.name || agent.branchId}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="text-slate-400">Rekening Payout:</span>
+                            <span className="font-mono text-slate-300">
+                              {agent.bankAccount.bank} • {agent.bankAccount.accountNumber} ({agent.bankAccount.accountName})
+                            </span>
+                          </div>
                         </div>
-                        <div className="p-2 rounded-xl bg-slate-900/40 border border-slate-800">
-                          <div className="text-[10px] text-slate-400">Volume Cucian</div>
-                          <div className="text-xs font-bold text-white mt-0.5">{agent.totalWeightKg} kg</div>
-                        </div>
-                        <div className="p-2 rounded-xl bg-teal-500/10 border border-teal-500/20">
-                          <div className="text-[10px] text-teal-400 font-medium">Saldo Dompet</div>
-                          <div className="text-xs font-black text-teal-300 mt-0.5">
-                            Rp {(agent.walletBalance / 1000).toFixed(0)}k
+
+                        <div className="grid grid-cols-3 gap-2 mt-3 text-center">
+                          <div className="p-2 rounded-xl bg-slate-900/40 border border-slate-800">
+                            <div className="text-[10px] text-slate-400">Total Order</div>
+                            <div className="text-xs font-bold text-white mt-0.5">{agent.totalOrdersCount}</div>
+                          </div>
+                          <div className="p-2 rounded-xl bg-slate-900/40 border border-slate-800">
+                            <div className="text-[10px] text-slate-400">Volume Cucian</div>
+                            <div className="text-xs font-bold text-white mt-0.5">{agent.totalWeightKg} kg</div>
+                          </div>
+                          <div className="p-2 rounded-xl bg-teal-500/10 border border-teal-500/20">
+                            <div className="text-[10px] text-teal-400 font-medium">Saldo Dompet</div>
+                            <div className="text-xs font-black text-teal-300 mt-0.5">
+                              Rp {(agent.walletBalance / 1000).toFixed(0)}k
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="pt-2 border-t border-slate-800 flex items-center gap-2">
-                      <a
-                        href={`https://wa.me/${agent.phone.replace(/[^0-9]/g, '')}?text=Halo%20${encodeURIComponent(
-                          agent.ownerName
-                        )},%20kami%20dari%20Workshop%20Pusat%20LAUNDRYHUB`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex-1 py-1.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center justify-center gap-1.5 border border-slate-700 transition-all"
-                      >
-                        <Phone className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>WhatsApp PIC</span>
-                      </a>
-                      <button
-                        onClick={() => {
-                          navigator.clipboard?.writeText?.(
-                            `https://laundryhub.app/agen-pos?agentId=${agent.id}`
-                          );
-                          setAgentLinkCopied(agent.id);
-                          setTimeout(() => setAgentLinkCopied(null), 2500);
-                        }}
-                        className={`py-1.5 px-3 rounded-xl text-xs font-semibold flex items-center gap-1 border transition-all ${
-                          isCopied
-                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                            : 'bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 border-teal-500/30'
-                        }`}
-                        title="Salin Link Akses Portal POS Agen"
-                      >
-                        {isCopied ? <CheckCircle className="w-3.5 h-3.5" /> : <ExternalLink className="w-3.5 h-3.5" />}
-                        <span>{isCopied ? 'Tersalin!' : 'Link POS'}</span>
-                      </button>
+                      <div className="pt-2 border-t border-slate-800 flex items-center gap-2">
+                        <a
+                          href={`https://wa.me/${agent.phone.replace(/[^0-9]/g, '')}?text=Halo%20${encodeURIComponent(
+                            agent.ownerName
+                          )},%20kami%20dari%20Workshop%20Pusat%20LAUNDRYHUB`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex-1 py-1.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center justify-center gap-1.5 border border-slate-700 transition-all"
+                        >
+                          <Phone className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>WhatsApp PIC</span>
+                        </a>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard?.writeText?.(
+                              `https://laundryhub.app/agen-pos?agentId=${agent.id}`
+                            );
+                            setAgentLinkCopied(agent.id);
+                            setTimeout(() => setAgentLinkCopied(null), 2500);
+                          }}
+                          className={`py-1.5 px-3 rounded-xl text-xs font-semibold flex items-center gap-1 border transition-all ${
+                            isCopied
+                              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                              : 'bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 border-teal-500/30'
+                          }`}
+                          title="Salin Link Akses Portal POS Agen"
+                        >
+                          {isCopied ? <CheckCircle className="w-3.5 h-3.5" /> : <ExternalLink className="w-3.5 h-3.5" />}
+                          <span>{isCopied ? 'Tersalin!' : 'Link POS'}</span>
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Section 2: Antrean Pencairan Komisi Mitra */}
@@ -4208,7 +4512,14 @@ Konsultasi Admin WA: 081228263200`;
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/60 font-mono text-[11px]">
-                    {withdrawalRequests.map((req) => {
+                    {withdrawalRequests.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="p-8 text-center text-slate-500 text-xs font-sans">
+                          Tidak ada antrean pengajuan pencairan komisi mitra saat ini.
+                        </td>
+                      </tr>
+                    ) : (
+                      withdrawalRequests.map((req) => {
                       const isPending = req.status === 'pending';
                       return (
                         <tr key={req.id} className="hover:bg-slate-800/40 transition-colors">
@@ -4256,7 +4567,8 @@ Konsultasi Admin WA: 081228263200`;
                           </td>
                         </tr>
                       );
-                    })}
+                    })
+                  )}
                   </tbody>
                 </table>
               </div>
@@ -4491,52 +4803,60 @@ Konsultasi Admin WA: 081228263200`;
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/60 font-mono text-[11px]">
-                    {dropshipSupplyOrders.map((ord) => (
-                      <tr key={ord.id} className="hover:bg-slate-800/40 transition-colors">
-                        <td className="p-3.5 whitespace-nowrap">
-                          <div className="font-bold text-white">{ord.orderNo}</div>
-                          <div className="text-[10px] text-slate-400 font-sans">{ord.orderDate}</div>
-                        </td>
-                        <td className="p-3.5 font-sans whitespace-nowrap">
-                          <div className="font-bold text-white">{ord.itemName}</div>
-                          <div className="text-[10px] text-slate-400">Est. Tiba: {ord.estimatedArrival}</div>
-                        </td>
-                        <td className="p-3.5 whitespace-nowrap">
-                          <div className="font-bold text-slate-300">{ord.quantity} Unit</div>
-                          <div className="text-cyan-400 font-bold">Rp {ord.totalPrice.toLocaleString('id-ID')}</div>
-                        </td>
-                        <td className="p-3.5 font-sans">
-                          <div className="font-bold text-white">{ord.destinationBranchOrAgent}</div>
-                          <div className="text-[10px] text-slate-400 truncate max-w-xs">{ord.destinationAddress}</div>
-                          <div className="text-[10px] text-slate-400">PIC: {ord.recipientName} ({ord.recipientPhone})</div>
-                        </td>
-                        <td className="p-3.5 font-sans whitespace-nowrap">
-                          <div className="font-bold text-cyan-300 flex items-center gap-1.5">
-                            <Truck className="w-3.5 h-3.5 text-cyan-400" />
-                            {ord.cargoCourier}
-                          </div>
-                          <div className="font-mono text-[10px] text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800 mt-1 inline-block">
-                            {ord.trackingNumber}
-                          </div>
-                        </td>
-                        <td className="p-3.5">
-                          {ord.status === 'sampai' ? (
-                            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                              Sampai di Lokasi
-                            </span>
-                          ) : ord.status === 'dikirim' ? (
-                            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/40 flex items-center gap-1 w-max">
-                              <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping" />
-                              Sedang Dikirim Kargo
-                            </span>
-                          ) : (
-                            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                              Diproses Pabrik
-                            </span>
-                          )}
+                    {dropshipSupplyOrders.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="p-8 text-center text-slate-500 text-xs font-sans">
+                          Belum ada riwayat pesanan kargo pasokan pabrik. Klik tombol &ldquo;+ Pesan Kargo Pasokan Baru&rdquo; di atas untuk memesan bahan baku ke supplier.
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      dropshipSupplyOrders.map((ord) => (
+                        <tr key={ord.id} className="hover:bg-slate-800/40 transition-colors">
+                          <td className="p-3.5 whitespace-nowrap">
+                            <div className="font-bold text-white">{ord.orderNo}</div>
+                            <div className="text-[10px] text-slate-400 font-sans">{ord.orderDate}</div>
+                          </td>
+                          <td className="p-3.5 font-sans whitespace-nowrap">
+                            <div className="font-bold text-white">{ord.itemName}</div>
+                            <div className="text-[10px] text-slate-400">Est. Tiba: {ord.estimatedArrival}</div>
+                          </td>
+                          <td className="p-3.5 whitespace-nowrap">
+                            <div className="font-bold text-slate-300">{ord.quantity} Unit</div>
+                            <div className="text-cyan-400 font-bold">Rp {ord.totalPrice.toLocaleString('id-ID')}</div>
+                          </td>
+                          <td className="p-3.5 font-sans">
+                            <div className="font-bold text-white">{ord.destinationBranchOrAgent}</div>
+                            <div className="text-[10px] text-slate-400 truncate max-w-xs">{ord.destinationAddress}</div>
+                            <div className="text-[10px] text-slate-400">PIC: {ord.recipientName} ({ord.recipientPhone})</div>
+                          </td>
+                          <td className="p-3.5 font-sans whitespace-nowrap">
+                            <div className="font-bold text-cyan-300 flex items-center gap-1.5">
+                              <Truck className="w-3.5 h-3.5 text-cyan-400" />
+                              {ord.cargoCourier}
+                            </div>
+                            <div className="font-mono text-[10px] text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800 mt-1 inline-block">
+                              {ord.trackingNumber}
+                            </div>
+                          </td>
+                          <td className="p-3.5">
+                            {ord.status === 'sampai' ? (
+                              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                                Sampai di Lokasi
+                              </span>
+                            ) : ord.status === 'dikirim' ? (
+                              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/40 flex items-center gap-1 w-max">
+                                <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping" />
+                                Sedang Dikirim Kargo
+                              </span>
+                            ) : (
+                              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                                Diproses Pabrik
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>

@@ -419,6 +419,7 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({ isOpen, onClos
           </button>
           <button
             type="button"
+            id="lh-tab-register-btn"
             onClick={() => {
               setActiveTab('register');
               setErrorMsg(null);

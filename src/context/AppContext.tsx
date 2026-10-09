@@ -98,6 +98,8 @@ interface AppContextType {
   toggleServiceActive: (id: string) => void;
   addFragrance: (fragranceData: Omit<Fragrance, 'id'>) => Fragrance;
   deleteFragrance: (id: string) => void;
+  loadStandardServicesPreset: () => void;
+  loadStandardInventoryPreset: () => void;
 
   // Dropship Ecosystem State
   dropshipAgents: DropshipAgent[];
@@ -390,6 +392,43 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [branches] = useState<Branch[]>(INITIAL_BRANCHES);
   const [users, setUsers] = useState<User[]>(() => {
+    const activeUid = localStorage.getItem('lh_active_owner_uid') || 'OWN-DEMO-8801';
+    const isDemo = activeUid === 'OWN-DEMO-8801';
+
+    if (!isDemo) {
+      const savedTenant = localStorage.getItem(`lh_users_${activeUid}`);
+      if (savedTenant !== null) {
+        try {
+          const parsed: User[] = JSON.parse(savedTenant);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        } catch (e) {}
+      }
+      const reg = getOwnersRegistry();
+      const ownerProf = reg.find((o) => o.ownerUid === activeUid);
+      if (ownerProf) {
+        const ownerUser: User = {
+          id: `usr-owner-${activeUid}`,
+          ownerUid: activeUid,
+          name: ownerProf.name,
+          role: 'owner',
+          allowedRoles: ['owner', 'kasir', 'produksi', 'kurir', 'agen'],
+          email: ownerProf.email,
+          phone: ownerProf.phone,
+          avatar: ownerProf.avatar,
+          branchId: 'br-kmg',
+          commissionRateKg: 0,
+          commissionRateItem: 0,
+          totalCommissionEarned: 0,
+          pin: ownerProf.pin,
+          outletName: ownerProf.outletName,
+          isGmailLinked: true,
+          isPersonalGoogleAccount: true,
+          isDemo: false,
+        };
+        return [ownerUser];
+      }
+    }
+
     const demoCleared = localStorage.getItem('lh_demo_accounts_cleared') === 'true';
     const demoIds = ['usr-owner', 'usr-kasir-kmg', 'usr-kasir-btr', 'usr-prod-cuci', 'usr-prod-setrika', 'usr-prod-btr', 'usr-kurir-kmg', 'usr-kurir-btr', 'usr-agent-siti'];
     const saved = localStorage.getItem('lh_users');
@@ -407,33 +446,56 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     }
 
-    const activeUid = localStorage.getItem('lh_active_owner_uid') || 'OWN-DEMO-8801';
     return loadedUsers.map((u) => {
-      const isDemo = u.isDemo ?? (demoIds.includes(u.id) && !u.isPersonalGoogleAccount);
-      const ownerUid = u.ownerUid || (u.role === 'owner' ? activeUid : activeUid);
+      const isDemoUser = u.isDemo ?? (demoIds.includes(u.id) && !u.isPersonalGoogleAccount);
+      const ownerUid = u.ownerUid || activeUid;
       const allowedRoles: Role[] = u.allowedRoles && u.allowedRoles.length > 0
         ? (u.allowedRoles as Role[])
         : (u.role === 'owner' ? (['owner', 'kasir', 'produksi', 'kurir', 'agen'] as Role[]) : [u.role]);
       return {
         ...u,
         ownerUid,
-        isDemo,
+        isDemo: isDemoUser,
         allowedRoles,
       };
     });
   });
 
   const [customers, setCustomers] = useState<Customer[]>(() => {
+    const activeUid = localStorage.getItem('lh_active_owner_uid') || 'OWN-DEMO-8801';
+    if (activeUid !== 'OWN-DEMO-8801') {
+      const savedTenant = localStorage.getItem(`lh_customers_${activeUid}`);
+      if (savedTenant !== null) {
+        try { return JSON.parse(savedTenant); } catch (e) {}
+      }
+      return [];
+    }
     const saved = localStorage.getItem('lh_customers');
     return saved ? JSON.parse(saved) : INITIAL_CUSTOMERS;
   });
 
   const [orders, setOrders] = useState<Order[]>(() => {
+    const activeUid = localStorage.getItem('lh_active_owner_uid') || 'OWN-DEMO-8801';
+    if (activeUid !== 'OWN-DEMO-8801') {
+      const savedTenant = localStorage.getItem(`lh_orders_${activeUid}`);
+      if (savedTenant !== null) {
+        try { return JSON.parse(savedTenant); } catch (e) {}
+      }
+      return [];
+    }
     const saved = localStorage.getItem('lh_orders');
     return saved ? JSON.parse(saved) : ALL_ORDERS;
   });
 
   const [inventory, setInventory] = useState<InventoryItem[]>(() => {
+    const activeUid = localStorage.getItem('lh_active_owner_uid') || 'OWN-DEMO-8801';
+    if (activeUid !== 'OWN-DEMO-8801') {
+      const savedTenant = localStorage.getItem(`lh_inventory_${activeUid}`);
+      if (savedTenant !== null) {
+        try { return JSON.parse(savedTenant); } catch (e) {}
+      }
+      return [];
+    }
     const saved = localStorage.getItem('lh_inventory');
     return saved ? JSON.parse(saved) : INITIAL_INVENTORY;
   });
@@ -444,17 +506,41 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
 
   const [courierTasks, setCourierTasks] = useState<CourierTask[]>(() => {
+    const activeUid = localStorage.getItem('lh_active_owner_uid') || 'OWN-DEMO-8801';
+    if (activeUid !== 'OWN-DEMO-8801') {
+      const savedTenant = localStorage.getItem(`lh_courier_tasks_${activeUid}`);
+      if (savedTenant !== null) {
+        try { return JSON.parse(savedTenant); } catch (e) {}
+      }
+      return [];
+    }
     const saved = localStorage.getItem('lh_courier_tasks');
     return saved ? JSON.parse(saved) : INITIAL_COURIER_TASKS;
   });
 
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>(() => {
+    const activeUid = localStorage.getItem('lh_active_owner_uid') || 'OWN-DEMO-8801';
+    if (activeUid !== 'OWN-DEMO-8801') {
+      const savedTenant = localStorage.getItem(`lh_audit_logs_${activeUid}`);
+      if (savedTenant !== null) {
+        try { return JSON.parse(savedTenant); } catch (e) {}
+      }
+      return [];
+    }
     const saved = localStorage.getItem('lh_audit_logs');
     return saved ? JSON.parse(saved) : INITIAL_AUDIT_LOGS;
   });
 
   // Laundry Services & Fragrances state
   const [services, setServices] = useState<Service[]>(() => {
+    const activeUid = localStorage.getItem('lh_active_owner_uid') || 'OWN-DEMO-8801';
+    if (activeUid !== 'OWN-DEMO-8801') {
+      const savedTenant = localStorage.getItem(`lh_services_${activeUid}`);
+      if (savedTenant !== null) {
+        try { return JSON.parse(savedTenant); } catch (e) {}
+      }
+      return [];
+    }
     const saved = localStorage.getItem('lh_services');
     if (saved) {
       try {
@@ -467,11 +553,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return INITIAL_SERVICES;
   });
 
-  useEffect(() => {
-    localStorage.setItem('lh_services', JSON.stringify(services));
-  }, [services]);
-
   const [fragrances, setFragrances] = useState<Fragrance[]>(() => {
+    const activeUid = localStorage.getItem('lh_active_owner_uid') || 'OWN-DEMO-8801';
+    if (activeUid !== 'OWN-DEMO-8801') {
+      const savedTenant = localStorage.getItem(`lh_fragrances_${activeUid}`);
+      if (savedTenant !== null) {
+        try { return JSON.parse(savedTenant); } catch (e) {}
+      }
+      return [];
+    }
     const saved = localStorage.getItem('lh_fragrances');
     if (saved) {
       try {
@@ -484,12 +574,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return INITIAL_FRAGRANCES;
   });
 
-  useEffect(() => {
-    localStorage.setItem('lh_fragrances', JSON.stringify(fragrances));
-  }, [fragrances]);
-
   // Dropship states
   const [dropshipAgents, setDropshipAgents] = useState<DropshipAgent[]>(() => {
+    const activeUid = localStorage.getItem('lh_active_owner_uid') || 'OWN-DEMO-8801';
+    if (activeUid !== 'OWN-DEMO-8801') {
+      const savedTenant = localStorage.getItem(`lh_dropship_agents_${activeUid}`);
+      if (savedTenant !== null) {
+        try { return JSON.parse(savedTenant); } catch (e) {}
+      }
+      return [];
+    }
     const saved = localStorage.getItem('lh_dropship_agents');
     return saved ? JSON.parse(saved) : INITIAL_DROPSHIP_AGENTS;
   });
@@ -497,11 +591,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [dropshipSupplies] = useState<DropshipSupplyItem[]>(INITIAL_DROPSHIP_SUPPLIES);
 
   const [dropshipSupplyOrders, setDropshipSupplyOrders] = useState<DropshipSupplyOrder[]>(() => {
+    const activeUid = localStorage.getItem('lh_active_owner_uid') || 'OWN-DEMO-8801';
+    if (activeUid !== 'OWN-DEMO-8801') {
+      const savedTenant = localStorage.getItem(`lh_dropship_orders_${activeUid}`);
+      if (savedTenant !== null) {
+        try { return JSON.parse(savedTenant); } catch (e) {}
+      }
+      return [];
+    }
     const saved = localStorage.getItem('lh_dropship_orders');
     return saved ? JSON.parse(saved) : INITIAL_DROPSHIP_SUPPLY_ORDERS;
   });
 
   const [withdrawalRequests, setWithdrawalRequests] = useState<WithdrawalRequest[]>(() => {
+    const activeUid = localStorage.getItem('lh_active_owner_uid') || 'OWN-DEMO-8801';
+    if (activeUid !== 'OWN-DEMO-8801') {
+      const savedTenant = localStorage.getItem(`lh_withdrawals_${activeUid}`);
+      if (savedTenant !== null) {
+        try { return JSON.parse(savedTenant); } catch (e) {}
+      }
+      return [];
+    }
     const saved = localStorage.getItem('lh_withdrawals');
     return saved ? JSON.parse(saved) : INITIAL_WITHDRAWAL_REQUESTS;
   });
@@ -525,13 +635,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Online Staff Attendance & Payroll States
   const [attendances, setAttendances] = useState<StaffAttendance[]>(() => {
+    const activeUid = localStorage.getItem('lh_active_owner_uid') || 'OWN-DEMO-8801';
+    if (activeUid !== 'OWN-DEMO-8801') {
+      const savedTenant = localStorage.getItem(`lh_attendances_${activeUid}`);
+      if (savedTenant !== null) {
+        try { return JSON.parse(savedTenant); } catch (e) {}
+      }
+      return [];
+    }
     const saved = localStorage.getItem('lh_attendances');
     return saved ? JSON.parse(saved) : INITIAL_ATTENDANCE;
   });
-
-  useEffect(() => {
-    localStorage.setItem('lh_attendances', JSON.stringify(attendances));
-  }, [attendances]);
 
   const [payrollSettings, setPayrollSettings] = useState<PayrollSettings>(() => {
     const saved = localStorage.getItem('lh_payroll_settings');
@@ -593,10 +707,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return found || users.find((u) => u.role === 'owner') || users[0];
   });
 
+  const defaultGuestCustomer: Customer = {
+    id: 'cst-guest',
+    name: 'Pelanggan Umum (Guest)',
+    phone: '0812-0000-0000',
+    address: 'Outlet',
+    branchId: 'br-kemang',
+    totalOrdersCount: 0,
+    depositBalance: 0,
+    loyaltyPoints: 0,
+  };
+
   // Active customer selection for Member portal
   const [currentCustomer, setCurrentCustomer] = useState<Customer>(() => {
-    return customers[0];
+    return customers[0] || defaultGuestCustomer;
   });
+
+  useEffect(() => {
+    if (!currentCustomer || !customers.some((c) => c.id === currentCustomer.id)) {
+      if (customers.length > 0) {
+        setCurrentCustomer(customers[0]);
+      } else {
+        setCurrentCustomer(defaultGuestCustomer);
+      }
+    }
+  }, [customers]);
 
   // Synchronize currentUser whenever users or currentUserId changes
   useEffect(() => {
@@ -724,50 +859,76 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   }, []);
 
-  // Save changes to localStorage
+  // Save changes to localStorage (both global fallback and tenant-isolated)
   useEffect(() => {
     localStorage.setItem('lh_coins', String(tokenCoins));
-  }, [tokenCoins]);
+    if (activeOwnerUid) localStorage.setItem(`lh_coins_${activeOwnerUid}`, String(tokenCoins));
+  }, [tokenCoins, activeOwnerUid]);
 
   useEffect(() => {
     localStorage.setItem('lh_orders', JSON.stringify(orders));
-  }, [orders]);
+    if (activeOwnerUid) localStorage.setItem(`lh_orders_${activeOwnerUid}`, JSON.stringify(orders));
+  }, [orders, activeOwnerUid]);
 
   useEffect(() => {
     localStorage.setItem('lh_inventory', JSON.stringify(inventory));
-  }, [inventory]);
+    if (activeOwnerUid) localStorage.setItem(`lh_inventory_${activeOwnerUid}`, JSON.stringify(inventory));
+  }, [inventory, activeOwnerUid]);
 
   useEffect(() => {
     localStorage.setItem('lh_machines', JSON.stringify(machines));
-  }, [machines]);
+    if (activeOwnerUid) localStorage.setItem(`lh_machines_${activeOwnerUid}`, JSON.stringify(machines));
+  }, [machines, activeOwnerUid]);
 
   useEffect(() => {
     localStorage.setItem('lh_customers', JSON.stringify(customers));
-  }, [customers]);
+    if (activeOwnerUid) localStorage.setItem(`lh_customers_${activeOwnerUid}`, JSON.stringify(customers));
+  }, [customers, activeOwnerUid]);
 
   useEffect(() => {
     localStorage.setItem('lh_users', JSON.stringify(users));
-  }, [users]);
+    if (activeOwnerUid) localStorage.setItem(`lh_users_${activeOwnerUid}`, JSON.stringify(users));
+  }, [users, activeOwnerUid]);
 
   useEffect(() => {
     localStorage.setItem('lh_courier_tasks', JSON.stringify(courierTasks));
-  }, [courierTasks]);
+    if (activeOwnerUid) localStorage.setItem(`lh_courier_tasks_${activeOwnerUid}`, JSON.stringify(courierTasks));
+  }, [courierTasks, activeOwnerUid]);
 
   useEffect(() => {
     localStorage.setItem('lh_audit_logs', JSON.stringify(auditLogs));
-  }, [auditLogs]);
+    if (activeOwnerUid) localStorage.setItem(`lh_audit_logs_${activeOwnerUid}`, JSON.stringify(auditLogs));
+  }, [auditLogs, activeOwnerUid]);
 
   useEffect(() => {
     localStorage.setItem('lh_dropship_agents', JSON.stringify(dropshipAgents));
-  }, [dropshipAgents]);
+    if (activeOwnerUid) localStorage.setItem(`lh_dropship_agents_${activeOwnerUid}`, JSON.stringify(dropshipAgents));
+  }, [dropshipAgents, activeOwnerUid]);
 
   useEffect(() => {
     localStorage.setItem('lh_dropship_orders', JSON.stringify(dropshipSupplyOrders));
-  }, [dropshipSupplyOrders]);
+    if (activeOwnerUid) localStorage.setItem(`lh_dropship_orders_${activeOwnerUid}`, JSON.stringify(dropshipSupplyOrders));
+  }, [dropshipSupplyOrders, activeOwnerUid]);
 
   useEffect(() => {
     localStorage.setItem('lh_withdrawals', JSON.stringify(withdrawalRequests));
-  }, [withdrawalRequests]);
+    if (activeOwnerUid) localStorage.setItem(`lh_withdrawals_${activeOwnerUid}`, JSON.stringify(withdrawalRequests));
+  }, [withdrawalRequests, activeOwnerUid]);
+
+  useEffect(() => {
+    localStorage.setItem('lh_services', JSON.stringify(services));
+    if (activeOwnerUid) localStorage.setItem(`lh_services_${activeOwnerUid}`, JSON.stringify(services));
+  }, [services, activeOwnerUid]);
+
+  useEffect(() => {
+    localStorage.setItem('lh_fragrances', JSON.stringify(fragrances));
+    if (activeOwnerUid) localStorage.setItem(`lh_fragrances_${activeOwnerUid}`, JSON.stringify(fragrances));
+  }, [fragrances, activeOwnerUid]);
+
+  useEffect(() => {
+    localStorage.setItem('lh_attendances', JSON.stringify(attendances));
+    if (activeOwnerUid) localStorage.setItem(`lh_attendances_${activeOwnerUid}`, JSON.stringify(attendances));
+  }, [attendances, activeOwnerUid]);
 
   useEffect(() => {
     localStorage.setItem('lh_station_rates', JSON.stringify(stationRates));
@@ -1668,6 +1829,292 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     (u) => u.isDemo || ['usr-owner', 'usr-kasir-kmg', 'usr-kasir-btr', 'usr-prod-cuci', 'usr-prod-setrika', 'usr-prod-btr', 'usr-kurir-kmg', 'usr-kurir-btr', 'usr-agent-siti'].includes(u.id)
   );
 
+  // Helper to load tenant-specific data when an owner logs in or switches
+  const loadTenantData = (targetUid: string, ownerUser?: User) => {
+    const isDemo = targetUid === 'OWN-DEMO-8801';
+
+    // Orders
+    const savedOrders = localStorage.getItem(`lh_orders_${targetUid}`);
+    if (savedOrders !== null) {
+      try { setOrders(JSON.parse(savedOrders)); } catch (e) { setOrders([]); }
+    } else {
+      setOrders(isDemo ? ALL_ORDERS : []);
+    }
+
+    // Inventory
+    const savedInv = localStorage.getItem(`lh_inventory_${targetUid}`);
+    if (savedInv !== null) {
+      try { setInventory(JSON.parse(savedInv)); } catch (e) { setInventory([]); }
+    } else {
+      setInventory(isDemo ? INITIAL_INVENTORY : []);
+    }
+
+    // Services
+    const savedServ = localStorage.getItem(`lh_services_${targetUid}`);
+    if (savedServ !== null) {
+      try { setServices(JSON.parse(savedServ)); } catch (e) { setServices([]); }
+    } else {
+      setServices(isDemo ? INITIAL_SERVICES : []);
+    }
+
+    // Fragrances
+    const savedFrag = localStorage.getItem(`lh_fragrances_${targetUid}`);
+    if (savedFrag !== null) {
+      try { setFragrances(JSON.parse(savedFrag)); } catch (e) { setFragrances([]); }
+    } else {
+      setFragrances(isDemo ? INITIAL_FRAGRANCES : []);
+    }
+
+    // Dropship Agents
+    const savedAgents = localStorage.getItem(`lh_dropship_agents_${targetUid}`);
+    if (savedAgents !== null) {
+      try { setDropshipAgents(JSON.parse(savedAgents)); } catch (e) { setDropshipAgents([]); }
+    } else {
+      setDropshipAgents(isDemo ? INITIAL_DROPSHIP_AGENTS : []);
+    }
+
+    // Dropship Supply Orders
+    const savedSupply = localStorage.getItem(`lh_dropship_orders_${targetUid}`);
+    if (savedSupply !== null) {
+      try { setDropshipSupplyOrders(JSON.parse(savedSupply)); } catch (e) { setDropshipSupplyOrders([]); }
+    } else {
+      setDropshipSupplyOrders(isDemo ? INITIAL_DROPSHIP_SUPPLY_ORDERS : []);
+    }
+
+    // Withdrawal Requests
+    const savedWd = localStorage.getItem(`lh_withdrawals_${targetUid}`);
+    if (savedWd !== null) {
+      try { setWithdrawalRequests(JSON.parse(savedWd)); } catch (e) { setWithdrawalRequests([]); }
+    } else {
+      setWithdrawalRequests(isDemo ? INITIAL_WITHDRAWAL_REQUESTS : []);
+    }
+
+    // Customers
+    const savedCust = localStorage.getItem(`lh_customers_${targetUid}`);
+    if (savedCust !== null) {
+      try { setCustomers(JSON.parse(savedCust)); } catch (e) { setCustomers([]); }
+    } else {
+      setCustomers(isDemo ? INITIAL_CUSTOMERS : []);
+    }
+
+    // Courier Tasks
+    const savedTasks = localStorage.getItem(`lh_courier_tasks_${targetUid}`);
+    if (savedTasks !== null) {
+      try { setCourierTasks(JSON.parse(savedTasks)); } catch (e) { setCourierTasks([]); }
+    } else {
+      setCourierTasks(isDemo ? INITIAL_COURIER_TASKS : []);
+    }
+
+    // Attendances
+    const savedAtt = localStorage.getItem(`lh_attendances_${targetUid}`);
+    if (savedAtt !== null) {
+      try { setAttendances(JSON.parse(savedAtt)); } catch (e) { setAttendances([]); }
+    } else {
+      setAttendances(isDemo ? INITIAL_ATTENDANCE : []);
+    }
+
+    // Token Coins
+    const savedCoins = localStorage.getItem(`lh_coins_${targetUid}`);
+    if (savedCoins !== null) {
+      const val = parseInt(savedCoins, 10);
+      setTokenCoins(isNaN(val) ? 50 : val);
+    } else {
+      setTokenCoins(isDemo ? 100 : 50);
+    }
+
+    // Users
+    const savedUsers = localStorage.getItem(`lh_users_${targetUid}`);
+    if (savedUsers !== null) {
+      try {
+        const parsed = JSON.parse(savedUsers);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setUsers(parsed);
+        } else if (ownerUser) {
+          setUsers([ownerUser]);
+        }
+      } catch (e) {
+        if (ownerUser) setUsers([ownerUser]);
+      }
+    } else {
+      if (isDemo) {
+        setUsers(INITIAL_USERS);
+      } else if (ownerUser) {
+        setUsers([ownerUser]);
+      }
+    }
+
+    // Audit Logs
+    const savedLogs = localStorage.getItem(`lh_audit_logs_${targetUid}`);
+    if (savedLogs !== null) {
+      try { setAuditLogs(JSON.parse(savedLogs)); } catch (e) { setAuditLogs([]); }
+    } else {
+      setAuditLogs(isDemo ? INITIAL_AUDIT_LOGS : []);
+    }
+  };
+
+  const loadStandardServicesPreset = () => {
+    const standardServices: Service[] = [
+      {
+        id: `srv-${Date.now()}-1`,
+        name: 'Cuci Kiloan Reguler (2 Hari)',
+        category: 'kiloan',
+        price: 7000,
+        unit: 'kg',
+        minWeight: 3,
+        estHours: 48,
+        icon: 'Sparkles',
+        description: 'Cuci bersih higienis, pengeringan mesin, disetrika uap rapi & packing plastik wangi.',
+        isActive: true,
+      },
+      {
+        id: `srv-${Date.now()}-2`,
+        name: 'Cuci Kiloan Kilat Express (1 Hari)',
+        category: 'kiloan',
+        price: 12000,
+        unit: 'kg',
+        minWeight: 3,
+        estHours: 24,
+        icon: 'Zap',
+        description: 'Prioritas mesin cepat, siap dalam 24 jam dengan setrika uap presisi.',
+        isActive: true,
+      },
+      {
+        id: `srv-${Date.now()}-3`,
+        name: 'Setrika Saja (Uap Steam)',
+        category: 'kiloan',
+        price: 5000,
+        unit: 'kg',
+        minWeight: 3,
+        estHours: 24,
+        icon: 'Shirt',
+        description: 'Khusus pakaian yang sudah dicuci sendiri, disetrika uap halus dan wangi.',
+        isActive: true,
+      },
+      {
+        id: `srv-${Date.now()}-4`,
+        name: 'Cuci Bed Cover Besar / Selimut',
+        category: 'satuan',
+        price: 25000,
+        unit: 'pcs',
+        estHours: 48,
+        icon: 'Layers',
+        description: 'Cuci deep clean bed cover king/queen size, pengeringan tuntas anti-apek.',
+        isActive: true,
+      },
+      {
+        id: `srv-${Date.now()}-5`,
+        name: 'Cuci Jas / Blazer Formal',
+        category: 'satuan',
+        price: 30000,
+        unit: 'pcs',
+        estHours: 48,
+        icon: 'Award',
+        description: 'Dry clean khusus bahan jas & safari tanpa merusak serat kain.',
+        isActive: true,
+      },
+      {
+        id: `srv-${Date.now()}-6`,
+        name: 'Cuci Sepatu Sneakers / Canvas',
+        category: 'satuan',
+        price: 25000,
+        unit: 'pasang',
+        estHours: 48,
+        icon: 'Sparkles',
+        description: 'Deep clean outsole, midsole, insole, dan sterilisasi anti-bakteri.',
+        isActive: true,
+      },
+    ];
+
+    const standardFragrances: Fragrance[] = [
+      { id: `fr-${Date.now()}-1`, name: 'Ocean Fresh', description: 'Aroma segar laut tahan lama (Favorit)' },
+      { id: `fr-${Date.now()}-2`, name: 'Sakura Blossom', description: 'Wangi floral lembut khas bunga sakura' },
+      { id: `fr-${Date.now()}-3`, name: 'Lavender Calming', description: 'Aroma lavender menenangkan & anti-stres' },
+      { id: `fr-${Date.now()}-4`, name: 'Downy Mystique', description: 'Wangi mewah elegan tahan hingga 14 hari' },
+    ];
+
+    setServices(standardServices);
+    setFragrances(standardFragrances);
+
+    const log: AuditLog = {
+      id: `log-${Date.now()}`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      actorName: currentUser.name,
+      actorRole: 'owner',
+      action: 'LOAD_SERVICES_PRESET',
+      details: 'Memuat 6 paket layanan standar laundry dan 4 pilihan aroma parfum',
+      branchId: currentBranchId,
+    };
+    setAuditLogs((prev) => [log, ...prev]);
+  };
+
+  const loadStandardInventoryPreset = () => {
+    const standardItems: InventoryItem[] = [
+      {
+        id: `inv-${Date.now()}-1`,
+        name: 'Deterjen Liquid Konsentrat',
+        category: 'deterjen',
+        stock: 10,
+        unit: 'jerigen (5L)',
+        minStockWarning: 3,
+        unitCost: 65000,
+        branchId: currentBranchId,
+      },
+      {
+        id: `inv-${Date.now()}-2`,
+        name: 'Softener Pewangi Fabric Care',
+        category: 'deterjen',
+        stock: 8,
+        unit: 'jerigen (5L)',
+        minStockWarning: 2,
+        unitCost: 55000,
+        branchId: currentBranchId,
+      },
+      {
+        id: `inv-${Date.now()}-3`,
+        name: 'Parfum Laundry Ocean Fresh',
+        category: 'parfum',
+        stock: 5,
+        unit: 'jerigen (5L)',
+        minStockWarning: 2,
+        unitCost: 110000,
+        branchId: currentBranchId,
+      },
+      {
+        id: `inv-${Date.now()}-4`,
+        name: 'Plastik Jinjing HD 35x50 cm',
+        category: 'kemasan',
+        stock: 25,
+        unit: 'pack (100 pcs)',
+        minStockWarning: 5,
+        unitCost: 18000,
+        branchId: currentBranchId,
+      },
+      {
+        id: `inv-${Date.now()}-5`,
+        name: 'Plastik Jinjing Bed Cover 60x100 cm',
+        category: 'kemasan',
+        stock: 15,
+        unit: 'pack (50 pcs)',
+        minStockWarning: 3,
+        unitCost: 28000,
+        branchId: currentBranchId,
+      },
+    ];
+
+    setInventory(standardItems);
+
+    const log: AuditLog = {
+      id: `log-${Date.now()}`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      actorName: currentUser.name,
+      actorRole: 'owner',
+      action: 'LOAD_INVENTORY_PRESET',
+      details: 'Memuat 5 bahan baku operasional standar laundry (Deterjen, Softener, Parfum, Plastik)',
+      branchId: currentBranchId,
+    };
+    setAuditLogs((prev) => [log, ...prev]);
+  };
+
   const loginOwnerWithGoogleAndPin = (
     email: string,
     pin: string
@@ -1751,6 +2198,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       };
       setUsers((prev) => prev.map((u) => (u.id === ownerUser!.id ? ownerUser! : u)));
     }
+
+    loadTenantData(targetUid, ownerUser);
 
     setCurrentUserId(ownerUser.id);
     setCurrentUser(ownerUser);
@@ -1961,6 +2410,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setUsers((prev) => [ownerUser!, ...prev]);
     }
 
+    loadTenantData(targetUid, ownerUser);
+
     setCurrentUserId(ownerUser.id);
     setCurrentUser(ownerUser);
     _setCurrentRole('owner');
@@ -2051,8 +2502,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       lastLoginAt: new Date().toISOString().replace('T', ' ').substring(0, 19),
     };
 
-    // Keep active users restricted to this owner and isolated from other owners
+    // Clean slate for new owner: everything starts empty/fresh
+    setOrders([]);
+    setInventory([]);
+    setServices([]);
+    setFragrances([]);
+    setDropshipAgents([]);
+    setDropshipSupplyOrders([]);
+    setWithdrawalRequests([]);
+    setCustomers([]);
+    setCourierTasks([]);
+    setAttendances([]);
+    setTokenCoins(50);
     setUsers([newOwnerUser]);
+
     setCurrentUserId(newOwnerUser.id);
     setCurrentUser(newOwnerUser);
     _setCurrentRole('owner');
@@ -2074,7 +2537,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       details: `Pendaftaran Owner Baru: ${cleanName} (${cleanEmail}) - Terbit UID: ${newUid} - Outlet: ${cleanOutletName}`,
       branchId: currentBranchId,
     };
-    setAuditLogs((prev) => [log, ...prev]);
+    setAuditLogs([log]);
+
+    // Persist immediately to tenant-scoped localStorage
+    localStorage.setItem(`lh_orders_${newUid}`, JSON.stringify([]));
+    localStorage.setItem(`lh_inventory_${newUid}`, JSON.stringify([]));
+    localStorage.setItem(`lh_services_${newUid}`, JSON.stringify([]));
+    localStorage.setItem(`lh_fragrances_${newUid}`, JSON.stringify([]));
+    localStorage.setItem(`lh_dropship_agents_${newUid}`, JSON.stringify([]));
+    localStorage.setItem(`lh_dropship_orders_${newUid}`, JSON.stringify([]));
+    localStorage.setItem(`lh_withdrawals_${newUid}`, JSON.stringify([]));
+    localStorage.setItem(`lh_customers_${newUid}`, JSON.stringify([]));
+    localStorage.setItem(`lh_courier_tasks_${newUid}`, JSON.stringify([]));
+    localStorage.setItem(`lh_attendances_${newUid}`, JSON.stringify([]));
+    localStorage.setItem(`lh_coins_${newUid}`, '50');
+    localStorage.setItem(`lh_users_${newUid}`, JSON.stringify([newOwnerUser]));
+    localStorage.setItem(`lh_audit_logs_${newUid}`, JSON.stringify([log]));
 
     return {
       success: true,
@@ -3132,6 +3610,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         toggleServiceActive,
         addFragrance,
         deleteFragrance,
+        loadStandardServicesPreset,
+        loadStandardInventoryPreset,
         dropshipAgents,
         dropshipSupplies,
         dropshipSupplyOrders,
