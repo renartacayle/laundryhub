@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { DropshipSupplyItem, Role, StationCommissionRates, GamificationSettings, GamificationPrize, Service, Fragrance } from '../types';
+import { DropshipSupplyItem, Role, StationCommissionRates, GamificationSettings, GamificationPrize, Service, Fragrance, Branch } from '../types';
+import { AddEditBranchModal } from '../components/AddEditBranchModal';
 import {
   TrendingUp,
   DollarSign,
@@ -204,7 +205,15 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
     deleteFragrance,
     loadStandardServicesPreset,
     loadStandardInventoryPreset,
+    deleteBranch,
+    switchBranch,
+    currentBranchId,
   } = useApp();
+
+  // Branch Management State
+  const [isAddEditBranchModalOpen, setIsAddEditBranchModalOpen] = useState(false);
+  const [branchToEdit, setBranchToEdit] = useState<Branch | null>(null);
+  const [branchToDelete, setBranchToDelete] = useState<Branch | null>(null);
 
   // Add Worker Modal State
   const [isAddWorkerModalOpen, setIsAddWorkerModalOpen] = useState(false);
@@ -751,14 +760,16 @@ Konsultasi Admin WA: 081228263200`;
   const branchPerformance = branches.map((branch) => {
     const bOrders = orders.filter((o) => o.branchId === branch.id);
     const rev = bOrders.reduce((sum, o) => sum + o.finalPrice, 0);
-    const weight = bOrders.reduce((sum, o) => sum + o.weightKg, 0);
+    const weight = bOrders.reduce((sum, o) => sum + (o.weightKg || 0), 0);
+    const staffCount = users.filter((u) => u.branchId === branch.id && u.role !== 'owner').length;
+    const machinesCount = machines.filter((m) => m.branchId === branch.id).length;
     return {
-      id: branch.id,
-      name: branch.name,
-      code: branch.code,
+      ...branch,
       ordersCount: bOrders.length,
       revenue: rev,
       totalWeightKg: Number(weight.toFixed(1)),
+      staffCount,
+      machinesCount,
     };
   });
 
@@ -807,7 +818,7 @@ Konsultasi Admin WA: 081228263200`;
             }`}
           >
             <Layers className="w-4 h-4" />
-            <span>Multi-Cabang (3 Outlet)</span>
+            <span>Multi-Cabang ({branches.length} Outlet)</span>
           </button>
           <button
             onClick={() => setActiveTab('inventory')}
@@ -1715,49 +1726,238 @@ Konsultasi Admin WA: 081228263200`;
       {/* 3. MULTI-CABANG TAB */}
       {activeTab === 'branches' && (
         <div className="space-y-4">
-          <div className="p-4 rounded-2xl glass-card border border-slate-700/80">
-            <h3 className="text-sm font-bold text-white">Komparasi Performa 3 Cabang Outlet</h3>
-            <p className="text-xs text-slate-400">
-              Bandingkan omzet penjualan, total tonase cucian, dan volume transaksi per cabang
-            </p>
+          {/* Header Banner & Add Branch Button */}
+          <div className="p-5 rounded-3xl glass-card border border-slate-700/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  <Building2 className="w-5 h-5 text-amber-400" />
+                </div>
+                <h3 className="text-base font-extrabold text-white tracking-tight flex items-center gap-2">
+                  <span>Manajemen & Monitoring Multi-Cabang Outlet</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono font-bold border border-amber-500/30">
+                    {branches.length} Cabang
+                  </span>
+                </h3>
+              </div>
+              <p className="text-xs text-slate-400 pl-0 sm:pl-9">
+                Kelola cabang fisik laundry, pantau stasiun kasir aktif, serta bandingkan omzet & produktivitas mesin antar outlet.
+              </p>
+            </div>
+
+            <button
+              id="btn-owner-add-branch"
+              type="button"
+              onClick={() => {
+                setBranchToEdit(null);
+                setIsAddEditBranchModalOpen(true);
+              }}
+              className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-black text-xs shadow-glow-amber transition-all flex items-center gap-2 shrink-0 self-stretch sm:self-auto justify-center active:scale-95"
+            >
+              <Plus className="w-4 h-4 text-slate-950 stroke-[3]" />
+              <span>+ Buka / Tambah Cabang Baru</span>
+            </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {branchPerformance.map((bp) => (
-              <div
-                key={bp.id}
-                className="p-5 rounded-3xl glass-panel border border-slate-700 hover:border-amber-500/50 transition-all space-y-4"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="p-2.5 rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                    <Building2 className="w-5 h-5" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {branchPerformance.map((bp) => {
+              const isCurrent = bp.id === currentBranchId;
+              return (
+                <div
+                  key={bp.id}
+                  className={`p-5 rounded-3xl glass-panel border transition-all space-y-4 relative overflow-hidden flex flex-col justify-between ${
+                    isCurrent
+                      ? 'border-cyan-500/70 shadow-glow-cyan bg-cyan-950/20 ring-1 ring-cyan-500/40'
+                      : 'border-slate-700/80 hover:border-amber-500/50'
+                  }`}
+                >
+                  {/* Top Header Card */}
+                  <div className="space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-2xl overflow-hidden shrink-0 border border-slate-700 bg-slate-800 flex items-center justify-center relative">
+                          <Store className="w-6 h-6 text-cyan-400/50 absolute" />
+                          <img
+                            src={bp.image || 'https://images.unsplash.com/photo-1545173168-9f1947eebb7f?auto=format&fit=crop&w=150&q=80'}
+                            alt={bp.name}
+                            className="w-full h-full object-cover relative z-10"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLElement).style.display = 'none';
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[10px] font-mono font-black px-2 py-0.5 rounded-md bg-slate-800 text-amber-300 border border-slate-700">
+                              {bp.code}
+                            </span>
+                            {bp.isPusat ? (
+                              <span className="text-[9px] px-2 py-0.5 rounded-full font-black bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                                <Crown className="w-2.5 h-2.5" /> PUSAT
+                              </span>
+                            ) : (
+                              <span className="text-[9px] px-2 py-0.5 rounded-full font-bold bg-slate-800 text-slate-300 border border-slate-700">
+                                SATELIT
+                              </span>
+                            )}
+                            {isCurrent && (
+                              <span className="text-[9px] px-2 py-0.5 rounded-full font-extrabold bg-cyan-500 text-slate-950 flex items-center gap-0.5">
+                                <Check className="w-2.5 h-2.5" /> AKTIF
+                              </span>
+                            )}
+                          </div>
+                          <h4 className="font-extrabold text-sm text-white mt-1 leading-snug">{bp.name}</h4>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Alamat & Kontak */}
+                    <div className="space-y-1 text-xs text-slate-400">
+                      <div className="flex items-center gap-1.5 truncate">
+                        <MapPin className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                        <span className="truncate">{bp.address || 'Alamat belum diatur'}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 font-mono text-[11px] text-slate-300">
+                        <Phone className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        <span>{bp.phone || '-'}</span>
+                      </div>
+                    </div>
+
+                    {/* Omzet Transaksi */}
+                    <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800/80">
+                      <span className="text-[10px] text-slate-400 block uppercase font-bold tracking-wider">Total Omzet Cabang</span>
+                      <div className="text-xl font-black text-amber-400 font-mono mt-0.5">
+                        Rp {bp.revenue.toLocaleString('id-ID')}
+                      </div>
+                    </div>
+
+                    {/* 4-col Performance Stats */}
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/60">
+                        <span className="text-[10px] text-slate-400 block">Total Pesanan:</span>
+                        <span className="font-bold text-white font-mono text-sm">{bp.ordersCount} Nota</span>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/60">
+                        <span className="text-[10px] text-slate-400 block">Total Bobot:</span>
+                        <span className="font-bold text-cyan-400 font-mono text-sm">{bp.totalWeightKg} kg</span>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/60">
+                        <span className="text-[10px] text-slate-400 block">Staf Bertugas:</span>
+                        <span className="font-bold text-emerald-400 font-mono text-sm">{bp.staffCount} Staf</span>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/60">
+                        <span className="text-[10px] text-slate-400 block">Mesin IoT:</span>
+                        <span className="font-bold text-purple-400 font-mono text-sm">{bp.machinesCount} Unit</span>
+                      </div>
+                    </div>
                   </div>
-                  <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
-                    {bp.code}
-                  </span>
+
+                  {/* Actions Footer */}
+                  <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between gap-2 mt-2">
+                    {!isCurrent ? (
+                      <button
+                        type="button"
+                        onClick={() => switchBranch(bp.id)}
+                        className="px-3 py-1.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 font-bold text-xs border border-cyan-500/30 transition-all flex items-center gap-1 active:scale-95"
+                        title="Pindah stasiun kasir & operasional ke cabang ini"
+                      >
+                        <Zap className="w-3.5 h-3.5 text-cyan-400" />
+                        <span>Pindah ke Sini</span>
+                      </button>
+                    ) : (
+                      <div className="text-[11px] font-bold text-cyan-400 flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Cabang Aktif</span>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-1.5 ml-auto">
+                      <button
+                        id={`btn-edit-branch-${bp.id}`}
+                        type="button"
+                        onClick={() => {
+                          setBranchToEdit(bp);
+                          setIsAddEditBranchModalOpen(true);
+                        }}
+                        className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all text-xs font-bold flex items-center gap-1"
+                        title="Edit data cabang"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Edit</span>
+                      </button>
+
+                      <button
+                        id={`btn-delete-branch-${bp.id}`}
+                        type="button"
+                        onClick={() => setBranchToDelete(bp)}
+                        className="p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 transition-all text-xs font-bold"
+                        title="Hapus cabang outlet"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Modal Konfirmasi Hapus Cabang */}
+          {branchToDelete && (
+            <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
+              <div className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-3xl p-6 shadow-2xl space-y-4">
+                <div className="w-12 h-12 rounded-2xl bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center mx-auto">
+                  <AlertTriangle className="w-6 h-6" />
+                </div>
+                <div className="text-center space-y-1">
+                  <h3 className="font-extrabold text-base text-white">Hapus Cabang Outlet?</h3>
+                  <p className="text-xs text-slate-300 font-semibold">{branchToDelete.name} ({branchToDelete.code})</p>
+                  {branches.length <= 1 ? (
+                    <p className="text-xs text-rose-400 bg-rose-500/10 p-2.5 rounded-xl border border-rose-500/20 mt-2">
+                      ⚠️ Tidak dapat menghapus cabang satu-satunya! Minimal harus ada 1 cabang outlet yang beroperasi.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-slate-400 mt-2">
+                      Apakah Anda yakin ingin menghapus cabang outlet ini? Riwayat transaksi nota masa lalu akan tetap tersimpan dalam pembukuan konsolidasi.
+                    </p>
+                  )}
                 </div>
 
-                <div>
-                  <h4 className="text-sm font-bold text-white">{bp.name}</h4>
-                  <div className="text-2xl font-black text-amber-400 font-mono mt-1">
-                    Rp {bp.revenue.toLocaleString('id-ID')}
-                  </div>
-                  <span className="text-[11px] text-slate-400">Total Omzet Transaksi</span>
-                </div>
-
-                <div className="pt-3 border-t border-slate-800 grid grid-cols-2 gap-2 text-xs">
-                  <div className="p-2.5 rounded-xl bg-slate-900/60">
-                    <span className="text-[10px] text-slate-400 block">Total Pesanan:</span>
-                    <span className="font-bold text-white font-mono text-sm">{bp.ordersCount} Nota</span>
-                  </div>
-                  <div className="p-2.5 rounded-xl bg-slate-900/60">
-                    <span className="text-[10px] text-slate-400 block">Total Bobot:</span>
-                    <span className="font-bold text-cyan-400 font-mono text-sm">{bp.totalWeightKg} kg</span>
-                  </div>
+                <div className="flex items-center gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setBranchToDelete(null)}
+                    className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all"
+                  >
+                    Batal
+                  </button>
+                  {branches.length > 1 && (
+                    <button
+                      id="btn-confirm-delete-branch"
+                      type="button"
+                      onClick={() => {
+                        deleteBranch(branchToDelete.id);
+                        setBranchToDelete(null);
+                      }}
+                      className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black transition-all shadow-md shadow-rose-900/30"
+                    >
+                      Ya, Hapus Cabang
+                    </button>
+                  )}
                 </div>
               </div>
-            ))}
-          </div>
+            </div>
+          )}
+
+          {/* Add / Edit Branch Modal */}
+          <AddEditBranchModal
+            isOpen={isAddEditBranchModalOpen}
+            onClose={() => {
+              setIsAddEditBranchModalOpen(false);
+              setBranchToEdit(null);
+            }}
+            branchToEdit={branchToEdit}
+          />
 
           {/* Outlet QRIS Configuration Card */}
           <div className="p-5 rounded-3xl glass-panel border border-emerald-500/30 space-y-3 mt-4">

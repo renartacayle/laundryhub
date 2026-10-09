@@ -2,12 +2,14 @@ export type Role = 'owner' | 'kasir' | 'produksi' | 'kurir' | 'pelanggan' | 'age
 
 export interface Branch {
   id: string;
+  ownerUid?: string;
   name: string;
   address: string;
   phone: string;
   code: string;
   isPusat?: boolean;
   image?: string;
+  createdAt?: string;
 }
 
 export interface OwnerProfile {

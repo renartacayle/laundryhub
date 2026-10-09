@@ -80,6 +80,10 @@ interface AppContextType {
   tokenCoins: number;
   topupCoins: (amount: number) => void;
   branches: Branch[];
+  addBranch: (branchData: Omit<Branch, 'id'>) => { success: boolean; message: string; branch: Branch };
+  updateBranch: (branchId: string, updates: Partial<Branch>) => { success: boolean; message: string };
+  deleteBranch: (branchId: string) => { success: boolean; message: string };
+  switchBranch: (branchId: string) => void;
   users: User[];
   customers: Customer[];
   orders: Order[];
@@ -390,7 +394,53 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return defaultUid;
   });
 
-  const [branches] = useState<Branch[]>(INITIAL_BRANCHES);
+  const [branches, setBranches] = useState<Branch[]>(() => {
+    const activeUid = localStorage.getItem('lh_active_owner_uid') || 'OWN-DEMO-8801';
+    const isDemo = activeUid === 'OWN-DEMO-8801';
+
+    if (!isDemo) {
+      const savedTenant = localStorage.getItem(`lh_branches_${activeUid}`);
+      if (savedTenant !== null) {
+        try {
+          const parsed: Branch[] = JSON.parse(savedTenant);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        } catch (e) {}
+      }
+      const reg = getOwnersRegistry();
+      const ownerProf = reg.find((o) => o.ownerUid === activeUid);
+      const outletName = ownerProf?.outletName || 'LaundryHub Outlet';
+      const initialBranch: Branch = {
+        id: `br-${activeUid.toLowerCase().replace(/[^a-z0-9]/g, '-')}-pusat`,
+        ownerUid: activeUid,
+        name: `${outletName} (Pusat)`,
+        address: 'Workshop & Outlet Utama',
+        phone: ownerProf?.phone || '0812-8899-7701',
+        code: (outletName.replace(/[^A-Za-z]/g, '').substring(0, 3).toUpperCase() || 'PST'),
+        isPusat: true,
+        image: 'https://images.unsplash.com/photo-1545173168-9f1947eebb7f?auto=format&fit=crop&w=300&q=80',
+        createdAt: new Date().toISOString(),
+      };
+      localStorage.setItem(`lh_branches_${activeUid}`, JSON.stringify([initialBranch]));
+      return [initialBranch];
+    }
+
+    const saved = localStorage.getItem('lh_branches_OWN-DEMO-8801') || localStorage.getItem('lh_branches');
+    if (saved) {
+      try {
+        const parsed: Branch[] = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+    return INITIAL_BRANCHES;
+  });
+
+  useEffect(() => {
+    if (branches.length > 0 && !branches.some((b) => b.id === currentBranchId)) {
+      const fallbackId = branches[0].id;
+      setCurrentBranchId(fallbackId);
+      localStorage.setItem('lh_branch', fallbackId);
+    }
+  }, [branches, currentBranchId]);
   const [users, setUsers] = useState<User[]>(() => {
     const activeUid = localStorage.getItem('lh_active_owner_uid') || 'OWN-DEMO-8801';
     const isDemo = activeUid === 'OWN-DEMO-8801';
@@ -1950,6 +2000,46 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } else {
       setAuditLogs(isDemo ? INITIAL_AUDIT_LOGS : []);
     }
+
+    // Branches
+    const savedBranches = localStorage.getItem(`lh_branches_${targetUid}`);
+    if (savedBranches !== null) {
+      try {
+        const parsed = JSON.parse(savedBranches);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setBranches(parsed);
+          if (!parsed.some((b: Branch) => b.id === currentBranchId)) {
+            setCurrentBranchId(parsed[0].id);
+            localStorage.setItem('lh_branch', parsed[0].id);
+          }
+        }
+      } catch (e) {
+        setBranches([]);
+      }
+    } else {
+      if (isDemo) {
+        setBranches(INITIAL_BRANCHES);
+      } else {
+        const reg = getOwnersRegistry();
+        const prof = reg.find((o) => o.ownerUid === targetUid);
+        const outletName = prof?.outletName || 'LaundryHub Outlet';
+        const initialBranch: Branch = {
+          id: `br-${targetUid.toLowerCase().replace(/[^a-z0-9]/g, '-')}-pusat`,
+          ownerUid: targetUid,
+          name: `${outletName} (Pusat)`,
+          address: 'Workshop & Outlet Utama',
+          phone: prof?.phone || '0812-8899-7701',
+          code: (outletName.replace(/[^A-Za-z]/g, '').substring(0, 3).toUpperCase() || 'PST'),
+          isPusat: true,
+          image: 'https://images.unsplash.com/photo-1545173168-9f1947eebb7f?auto=format&fit=crop&w=300&q=80',
+          createdAt: new Date().toISOString(),
+        };
+        setBranches([initialBranch]);
+        setCurrentBranchId(initialBranch.id);
+        localStorage.setItem(`lh_branches_${targetUid}`, JSON.stringify([initialBranch]));
+        localStorage.setItem('lh_branch', initialBranch.id);
+      }
+    }
   };
 
   const loadStandardServicesPreset = () => {
@@ -2113,6 +2203,159 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       branchId: currentBranchId,
     };
     setAuditLogs((prev) => [log, ...prev]);
+  };
+
+  const addBranch = (
+    branchData: Omit<Branch, 'id'>
+  ): { success: boolean; message: string; branch: Branch } => {
+    const cleanName = branchData.name.trim();
+    if (!cleanName) {
+      return { success: false, message: 'Nama cabang outlet wajib diisi!', branch: {} as Branch };
+    }
+
+    const code = (branchData.code?.trim() || cleanName.replace(/[^A-Za-z]/g, '').substring(0, 3)).toUpperCase();
+    const cleanAddress = branchData.address?.trim() || 'Alamat outlet belum diatur';
+    const cleanPhone = branchData.phone?.trim() || '0812-8899-7701';
+
+    const newId = `br-${Date.now().toString(36)}-${Math.floor(100 + Math.random() * 900)}`;
+
+    const newBranch: Branch = {
+      id: newId,
+      ownerUid: activeOwnerUid,
+      name: cleanName,
+      code: code || 'CAB',
+      address: cleanAddress,
+      phone: cleanPhone,
+      isPusat: !!branchData.isPusat,
+      image: branchData.image || 'https://images.unsplash.com/photo-1545173168-9f1947eebb7f?auto=format&fit=crop&w=300&q=80',
+      createdAt: new Date().toISOString(),
+    };
+
+    setBranches((prev) => {
+      let updatedList = [...prev];
+      if (newBranch.isPusat) {
+        updatedList = updatedList.map((b) => ({ ...b, isPusat: false }));
+      }
+      const next = [...updatedList, newBranch];
+      const storageKey = activeOwnerUid === 'OWN-DEMO-8801' ? 'lh_branches_OWN-DEMO-8801' : `lh_branches_${activeOwnerUid}`;
+      localStorage.setItem(storageKey, JSON.stringify(next));
+      return next;
+    });
+
+    const log: AuditLog = {
+      id: `log-${Date.now()}`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      actorName: currentUser.name,
+      actorRole: currentUser.role,
+      action: 'ADD_BRANCH',
+      details: `Buka Cabang Baru: ${newBranch.name} (Kode: ${newBranch.code}, Alamat: ${newBranch.address})`,
+      branchId: newBranch.id,
+    };
+    setAuditLogs((prev) => [log, ...prev]);
+
+    return {
+      success: true,
+      message: `Cabang baru "${newBranch.name}" berhasil dibuat dan siap beroperasi!`,
+      branch: newBranch,
+    };
+  };
+
+  const updateBranch = (
+    branchId: string,
+    updates: Partial<Branch>
+  ): { success: boolean; message: string } => {
+    const existing = branches.find((b) => b.id === branchId);
+    if (!existing) {
+      return { success: false, message: 'Cabang outlet tidak ditemukan.' };
+    }
+
+    setBranches((prev) => {
+      const updatedList = prev.map((b) => {
+        if (b.id === branchId) {
+          return {
+            ...b,
+            ...updates,
+            code: updates.code ? updates.code.toUpperCase() : b.code,
+          };
+        }
+        if (updates.isPusat && b.id !== branchId) {
+          return { ...b, isPusat: false };
+        }
+        return b;
+      });
+
+      const storageKey = activeOwnerUid === 'OWN-DEMO-8801' ? 'lh_branches_OWN-DEMO-8801' : `lh_branches_${activeOwnerUid}`;
+      localStorage.setItem(storageKey, JSON.stringify(updatedList));
+      return updatedList;
+    });
+
+    const log: AuditLog = {
+      id: `log-${Date.now()}`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      actorName: currentUser.name,
+      actorRole: currentUser.role,
+      action: 'UPDATE_BRANCH',
+      details: `Pembaruan Informasi Cabang: ${updates.name || existing.name} (Kode: ${updates.code || existing.code})`,
+      branchId,
+    };
+    setAuditLogs((prev) => [log, ...prev]);
+
+    return {
+      success: true,
+      message: `Data cabang "${updates.name || existing.name}" berhasil diperbarui.`,
+    };
+  };
+
+  const deleteBranch = (branchId: string): { success: boolean; message: string } => {
+    if (branches.length <= 1) {
+      return {
+        success: false,
+        message: 'Tidak dapat menghapus cabang satu-satunya! Minimal harus ada 1 cabang outlet yang beroperasi.',
+      };
+    }
+
+    const targetBranch = branches.find((b) => b.id === branchId);
+    if (!targetBranch) {
+      return { success: false, message: 'Cabang tidak ditemukan.' };
+    }
+
+    let nextBranches = branches.filter((b) => b.id !== branchId);
+    if (targetBranch.isPusat && nextBranches.length > 0) {
+      nextBranches[0] = { ...nextBranches[0], isPusat: true };
+    }
+
+    setBranches(nextBranches);
+    const storageKey = activeOwnerUid === 'OWN-DEMO-8801' ? 'lh_branches_OWN-DEMO-8801' : `lh_branches_${activeOwnerUid}`;
+    localStorage.setItem(storageKey, JSON.stringify(nextBranches));
+
+    if (currentBranchId === branchId && nextBranches.length > 0) {
+      setCurrentBranchId(nextBranches[0].id);
+      localStorage.setItem('lh_branch', nextBranches[0].id);
+    }
+
+    const log: AuditLog = {
+      id: `log-${Date.now()}`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      actorName: currentUser.name,
+      actorRole: currentUser.role,
+      action: 'DELETE_BRANCH',
+      details: `Penghapusan Cabang Outlet: ${targetBranch.name} (${targetBranch.code})`,
+      branchId: nextBranches[0]?.id || currentBranchId,
+    };
+    setAuditLogs((prev) => [log, ...prev]);
+
+    return {
+      success: true,
+      message: `Cabang "${targetBranch.name}" berhasil dihapus dari sistem.`,
+    };
+  };
+
+  const switchBranch = (branchId: string) => {
+    const target = branches.find((b) => b.id === branchId);
+    if (target) {
+      setCurrentBranchId(branchId);
+      localStorage.setItem('lh_branch', branchId);
+    }
   };
 
   const loginOwnerWithGoogleAndPin = (
@@ -2481,6 +2724,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const newRegistry = [...registry, newProfile];
     localStorage.setItem('lh_owners_registry', JSON.stringify(newRegistry));
 
+    const initialBranch: Branch = {
+      id: `br-${newUid.toLowerCase().replace(/[^a-z0-9]/g, '-')}-pusat`,
+      ownerUid: newUid,
+      name: `${cleanOutletName} (Pusat)`,
+      address: 'Workshop & Outlet Utama',
+      phone: cleanPhone,
+      code: (cleanOutletName.replace(/[^A-Za-z]/g, '').substring(0, 3).toUpperCase() || 'PST'),
+      isPusat: true,
+      image: 'https://images.unsplash.com/photo-1545173168-9f1947eebb7f?auto=format&fit=crop&w=300&q=80',
+      createdAt: new Date().toISOString(),
+    };
+
     const newOwnerUser: User = {
       id: `usr-owner-${Date.now()}`,
       ownerUid: newUid,
@@ -2490,7 +2745,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       email: cleanEmail,
       phone: cleanPhone,
       avatar: newProfile.avatar,
-      branchId: currentBranchId,
+      branchId: initialBranch.id,
       commissionRateKg: 0,
       commissionRateItem: 0,
       totalCommissionEarned: 0,
@@ -2514,6 +2769,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCourierTasks([]);
     setAttendances([]);
     setTokenCoins(50);
+    setBranches([initialBranch]);
+    setCurrentBranchId(initialBranch.id);
     setUsers([newOwnerUser]);
 
     setCurrentUserId(newOwnerUser.id);
@@ -2523,6 +2780,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setActiveOwnerUid(newUid);
 
     localStorage.setItem('lh_active_owner_uid', newUid);
+    localStorage.setItem('lh_branch', initialBranch.id);
     localStorage.setItem('lh_user_id', newOwnerUser.id);
     localStorage.setItem('lh_active_gmail', cleanEmail);
     localStorage.setItem('lh_role', 'owner');
@@ -2534,8 +2792,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       actorName: cleanName,
       actorRole: 'owner',
       action: 'REGISTER_OWNER_UID',
-      details: `Pendaftaran Owner Baru: ${cleanName} (${cleanEmail}) - Terbit UID: ${newUid} - Outlet: ${cleanOutletName}`,
-      branchId: currentBranchId,
+      details: `Pendaftaran Owner Baru: ${cleanName} (${cleanEmail}) - Terbit UID: ${newUid} - Outlet: ${cleanOutletName} (Cabang Utama: ${initialBranch.name})`,
+      branchId: initialBranch.id,
     };
     setAuditLogs([log]);
 
@@ -2551,6 +2809,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem(`lh_courier_tasks_${newUid}`, JSON.stringify([]));
     localStorage.setItem(`lh_attendances_${newUid}`, JSON.stringify([]));
     localStorage.setItem(`lh_coins_${newUid}`, '50');
+    localStorage.setItem(`lh_branches_${newUid}`, JSON.stringify([initialBranch]));
     localStorage.setItem(`lh_users_${newUid}`, JSON.stringify([newOwnerUser]));
     localStorage.setItem(`lh_audit_logs_${newUid}`, JSON.stringify([log]));
 
@@ -3594,6 +3853,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         tokenCoins,
         topupCoins,
         branches,
+        addBranch,
+        updateBranch,
+        deleteBranch,
+        switchBranch,
         users,
         customers,
         orders,
