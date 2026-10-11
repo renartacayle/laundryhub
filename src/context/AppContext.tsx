@@ -121,6 +121,9 @@ interface AppContextType {
   startIotMachine: (machineId: string, orderId: string, durationMinutes?: number) => { success: boolean; message: string };
   stopIotMachine: (machineId: string) => void;
   updateInventoryStock: (itemId: string, newStock: number) => void;
+  addInventoryItem: (item: Omit<InventoryItem, 'id'>) => InventoryItem;
+  editInventoryItem: (id: string, updates: Partial<InventoryItem>) => void;
+  deleteInventoryItem: (id: string) => void;
   updateCourierTaskStatus: (taskId: string, status: CourierTask['status'], amountCollected?: number) => void;
   topupCustomerDeposit: (customerId: string, amount: number) => void;
   addCustomer: (customerData: Omit<Customer, 'id' | 'totalOrdersCount'>) => Customer;
@@ -594,7 +597,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const demoCleared = localStorage.getItem('lh_demo_accounts_cleared') === 'true';
     if (demoCleared) return [];
     const saved = localStorage.getItem('lh_inventory');
-    return saved ? JSON.parse(saved) : INITIAL_INVENTORY;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [machines, setMachines] = useState<MachineIoT[]>(() => {
@@ -1207,6 +1210,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       branchId: branch.id,
     };
 
+    // Auto deduct inventory supplies linked to services
+    if (orderData.items && orderData.items.length > 0) {
+      setInventory((prevInv) => {
+        let updatedInv = [...prevInv];
+        orderData.items.forEach((item) => {
+          const service = services.find((s) => s.id === item.serviceId);
+          if (service?.requiredSupplies && service.requiredSupplies.length > 0) {
+            service.requiredSupplies.forEach((req) => {
+              const invIndex = updatedInv.findIndex((inv) => inv.id === req.inventoryItemId);
+              if (invIndex !== -1) {
+                const qtyToDeduct = (req.quantity || 0) * (item.quantity || 1);
+                const currentStock = updatedInv[invIndex].stock;
+                const newStock = Math.max(0, Math.round((currentStock - qtyToDeduct) * 1000) / 1000);
+                updatedInv[invIndex] = {
+                  ...updatedInv[invIndex],
+                  stock: newStock,
+                };
+              }
+            });
+          }
+        });
+        return updatedInv;
+      });
+    }
+
     setOrders((prev) => [newOrder, ...prev]);
     setAuditLogs((prev) => [newLog, ...prev]);
 
@@ -1668,6 +1696,59 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   };
 
+  const addInventoryItem = (itemData: Omit<InventoryItem, 'id'>): InventoryItem => {
+    const newItem: InventoryItem = {
+      ...itemData,
+      id: `inv-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    };
+    setInventory((prev) => [newItem, ...prev]);
+
+    const newLog: AuditLog = {
+      id: `log-inv-${Date.now()}`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      actorName: currentUser.name,
+      actorRole: currentUser.role,
+      action: 'TAMBAH_PASOKAN_BAHAN',
+      details: `Owner menambah pasokan baru: "${newItem.name}" (${newItem.stock} ${newItem.unit})`,
+      branchId: newItem.branchId || currentBranchId,
+    };
+    setAuditLogs((prev) => [newLog, ...prev]);
+    soundEngine.playStationDing();
+    return newItem;
+  };
+
+  const editInventoryItem = (id: string, updates: Partial<InventoryItem>) => {
+    setInventory((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, ...updates } : item))
+    );
+    const target = inventory.find((item) => item.id === id);
+    const newLog: AuditLog = {
+      id: `log-inv-${Date.now()}`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      actorName: currentUser.name,
+      actorRole: currentUser.role,
+      action: 'EDIT_PASOKAN_BAHAN',
+      details: `Owner mengedit pasokan: "${target?.name || id}"`,
+      branchId: currentBranchId,
+    };
+    setAuditLogs((prev) => [newLog, ...prev]);
+  };
+
+  const deleteInventoryItem = (id: string) => {
+    const target = inventory.find((item) => item.id === id);
+    setInventory((prev) => prev.filter((item) => item.id !== id));
+    const newLog: AuditLog = {
+      id: `log-inv-${Date.now()}`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      actorName: currentUser.name,
+      actorRole: currentUser.role,
+      action: 'HAPUS_PASOKAN_BAHAN',
+      details: `Owner menghapus pasokan: "${target?.name || id}"`,
+      branchId: currentBranchId,
+    };
+    setAuditLogs((prev) => [newLog, ...prev]);
+  };
+
   const updateCourierTaskStatus = (
     taskId: string,
     status: CourierTask['status'],
@@ -1980,7 +2061,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (savedInv !== null) {
       try { setInventory(JSON.parse(savedInv)); } catch (e) { setInventory([]); }
     } else {
-      setInventory(isDemo ? INITIAL_INVENTORY : []);
+      setInventory(isDemo && localStorage.getItem('lh_demo_accounts_cleared') !== 'true' ? INITIAL_INVENTORY : []);
     }
 
     // Services
@@ -4219,6 +4300,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         startIotMachine,
         stopIotMachine,
         updateInventoryStock,
+        addInventoryItem,
+        editInventoryItem,
+        deleteInventoryItem,
         updateCourierTaskStatus,
         topupCustomerDeposit,
         addCustomer,

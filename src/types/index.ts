@@ -62,6 +62,13 @@ export interface Customer {
 
 export type ServiceCategory = 'kiloan' | 'satuan';
 
+export interface ServiceSupplyRequirement {
+  inventoryItemId: string;
+  inventoryItemName?: string;
+  quantity: number; // Takaran terpakai per 1 unit jasa (misal 0.05 L per kg atau 1 pcs plastik)
+  unit?: string; // Satuan bahan baku (L, pcs, kg, ml, dll.)
+}
+
 export interface Service {
   id: string;
   name: string;
@@ -73,6 +80,7 @@ export interface Service {
   icon: string;
   description?: string;
   isActive?: boolean;
+  requiredSupplies?: ServiceSupplyRequirement[];
 }
 
 export interface Fragrance {
@@ -257,7 +265,7 @@ export interface InventoryItem {
   id: string;
   branchId: string;
   name: string;
-  category: 'deterjen' | 'parfum' | 'kemasan' | 'perlengkapan';
+  category: string; // 'deterjen' | 'parfum' | 'kemasan' | 'perlengkapan' | string
   stock: number;
   unit: string;
   minStockWarning: number;

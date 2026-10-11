@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { DropshipSupplyItem, Role, StationCommissionRates, GamificationSettings, GamificationPrize, Service, Fragrance, Branch } from '../types';
+import { DropshipSupplyItem, Role, StationCommissionRates, GamificationSettings, GamificationPrize, Service, Fragrance, Branch, InventoryItem, ServiceSupplyRequirement } from '../types';
 import { AddEditBranchModal } from '../components/AddEditBranchModal';
 import {
   TrendingUp,
@@ -207,6 +207,9 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
     deleteFragrance,
     loadStandardServicesPreset,
     loadStandardInventoryPreset,
+    addInventoryItem,
+    editInventoryItem,
+    deleteInventoryItem,
     deleteBranch,
     switchBranch,
     currentBranchId,
@@ -331,6 +334,68 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
   const [isAddFragranceModalOpen, setIsAddFragranceModalOpen] = useState(false);
   const [newFragranceName, setNewFragranceName] = useState('');
   const [newFragranceDescription, setNewFragranceDescription] = useState('');
+
+  // Inventory (Pasokan) Modal & Form State
+  const [isAddInventoryModalOpen, setIsAddInventoryModalOpen] = useState(false);
+  const [isEditInventoryModalOpen, setIsEditInventoryModalOpen] = useState(false);
+  const [inventoryToEdit, setInventoryToEdit] = useState<InventoryItem | null>(null);
+  const [inventoryFormError, setInventoryFormError] = useState<string | null>(null);
+
+  const [invName, setInvName] = useState('');
+  const [invCategory, setInvCategory] = useState('deterjen');
+  const [invCustomCategory, setInvCustomCategory] = useState('');
+  const [invUnit, setInvUnit] = useState('L');
+  const [invCustomUnit, setInvCustomUnit] = useState('');
+  const [invStock, setInvStock] = useState<number>(10);
+  const [invMinStock, setInvMinStock] = useState<number>(2);
+  const [invCost, setInvCost] = useState<number>(15000);
+  const [invBranchId, setInvBranchId] = useState<string>(branches[0]?.id || 'br-pusat');
+
+  // Services Supplies Checklist State
+  const [selectedServiceSupplies, setSelectedServiceSupplies] = useState<ServiceSupplyRequirement[]>([]);
+  const [editSelectedServiceSupplies, setEditSelectedServiceSupplies] = useState<ServiceSupplyRequirement[]>([]);
+
+  const handleToggleSupply = (
+    item: InventoryItem,
+    selectedList: ServiceSupplyRequirement[],
+    setSelectedList: React.Dispatch<React.SetStateAction<ServiceSupplyRequirement[]>>
+  ) => {
+    const existing = selectedList.find((s) => s.inventoryItemId === item.id);
+    if (existing) {
+      setSelectedList(selectedList.filter((s) => s.inventoryItemId !== item.id));
+    } else {
+      let defaultQty = 1;
+      const lowerUnit = (item.unit || '').toLowerCase();
+      if (lowerUnit === 'l' || lowerUnit === 'liter') defaultQty = 0.05;
+      else if (lowerUnit === 'kg' || lowerUnit === 'kilogram') defaultQty = 0.05;
+      else if (lowerUnit === 'ml') defaultQty = 50;
+      else if (lowerUnit === 'gram' || lowerUnit === 'g') defaultQty = 50;
+      else if (lowerUnit === 'pcs' || lowerUnit === 'buah' || lowerUnit === 'lembar') defaultQty = 1;
+
+      setSelectedList([
+        ...selectedList,
+        {
+          inventoryItemId: item.id,
+          inventoryItemName: item.name,
+          quantity: defaultQty,
+          unit: item.unit,
+        },
+      ]);
+    }
+  };
+
+  const handleUpdateSupplyQty = (
+    itemId: string,
+    quantity: number,
+    selectedList: ServiceSupplyRequirement[],
+    setSelectedList: React.Dispatch<React.SetStateAction<ServiceSupplyRequirement[]>>
+  ) => {
+    setSelectedList(
+      selectedList.map((s) =>
+        s.inventoryItemId === itemId ? { ...s, quantity: Math.max(0, quantity) } : s
+      )
+    );
+  };
 
   const [isCoinModalOpen, setIsCoinModalOpen] = useState(false);
   const [isOutletQrisModalOpen, setIsOutletQrisModalOpen] = useState(false);
@@ -2066,19 +2131,40 @@ Konsultasi Admin WA: 081228263200`;
       {/* 4. MONITORING STOK TAB */}
       {activeTab === 'inventory' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h3 className="text-sm font-bold text-white">Monitoring Stok Bahan Baku & Perlengkapan</h3>
-              <p className="text-xs text-slate-400">
-                Peringatan otomatis saat stok deterjen, parfum, atau plastik jinjing menipis
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <span>Monitoring Stok Pasokan Bahan Baku & Perlengkapan</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono">
+                  {inventory.length} Item
+                </span>
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Kelola stok deterjen (L), parfum (L), plastik kemasan (pcs), dan perlengkapan outlet secara mandiri
               </p>
             </div>
-            <button
-              onClick={() => alert('Fitur reorder bahan baku supplier dikirim ke WhatsApp Purchasing!')}
-              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition-colors shadow-glow-amber"
-            >
-              + Reorder Massal ke Supplier
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setInventoryFormError(null);
+                  setInvName('');
+                  setInvCategory('deterjen');
+                  setInvCustomCategory('');
+                  setInvUnit('L');
+                  setInvCustomUnit('');
+                  setInvStock(10);
+                  setInvMinStock(2);
+                  setInvCost(15000);
+                  setInvBranchId(currentBranchId || branches[0]?.id || 'br-pusat');
+                  setIsAddInventoryModalOpen(true);
+                }}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs transition-all shadow-glow-amber flex items-center gap-1.5 cursor-pointer"
+              >
+                <Plus className="w-4 h-4 stroke-[3]" />
+                <span>+ Tambah Pasokan Baru</span>
+              </button>
+            </div>
           </div>
 
           {inventory.length === 0 ? (
@@ -2087,19 +2173,39 @@ Konsultasi Admin WA: 081228263200`;
                 <Package className="w-7 h-7" />
               </div>
               <div className="max-w-md mx-auto">
-                <h4 className="text-sm font-bold text-white">Belum Ada Data Bahan Baku & Perlengkapan</h4>
+                <h4 className="text-sm font-bold text-white">Belum Ada Data Pasokan Bahan Baku</h4>
                 <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                  Stok operasional outlet Anda masih kosong. Muat template bahan baku standar laundry (Deterjen Konsentrat, Parfum Lily, Pelicin Setrika, Plastik Jinjing) dengan 1 klik.
+                  Tambahkan bahan baku operasional Anda secara mandiri (misal: Deterjen dalam Liter, Parfum dalam Liter, atau Plastik dalam Pcs) untuk dipantau dan dihubungkan ke jasa cucian.
                 </p>
               </div>
-              <div className="flex items-center justify-center gap-3 pt-2">
+              <div className="flex items-center justify-center gap-3 pt-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInventoryFormError(null);
+                    setInvName('');
+                    setInvCategory('deterjen');
+                    setInvCustomCategory('');
+                    setInvUnit('L');
+                    setInvCustomUnit('');
+                    setInvStock(10);
+                    setInvMinStock(2);
+                    setInvCost(15000);
+                    setInvBranchId(currentBranchId || branches[0]?.id || 'br-pusat');
+                    setIsAddInventoryModalOpen(true);
+                  }}
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs flex items-center gap-2 shadow-lg shadow-amber-500/20 transition-all cursor-pointer"
+                >
+                  <Plus className="w-4 h-4 stroke-[3]" />
+                  <span>+ Tambah Pasokan Pertama Anda</span>
+                </button>
                 <button
                   type="button"
                   onClick={() => loadStandardInventoryPreset()}
-                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-lg shadow-amber-500/20 transition-all cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs flex items-center gap-2 border border-slate-700 transition-all cursor-pointer"
                 >
-                  <Sparkles className="w-4 h-4" />
-                  <span>⚡ Muat Bahan Baku Standar (1-Klik)</span>
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  <span>Muat Preset Standar (Opsional)</span>
                 </button>
               </div>
             </div>
@@ -2109,11 +2215,12 @@ Konsultasi Admin WA: 081228263200`;
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-950/70 text-slate-400 font-bold uppercase tracking-wider text-[10px] border-b border-slate-800">
                     <tr>
-                      <th className="p-3.5">Nama Barang</th>
+                      <th className="p-3.5">Nama Pasokan / Bahan</th>
                       <th className="p-3.5">Kategori</th>
                       <th className="p-3.5">Outlet Cabang</th>
                       <th className="p-3.5">Sisa Stok</th>
                       <th className="p-3.5">Batas Minimum</th>
+                      <th className="p-3.5">HPP / Biaya Satuan</th>
                       <th className="p-3.5">Status Alert</th>
                       <th className="p-3.5 text-right">Aksi</th>
                     </tr>
@@ -2124,7 +2231,12 @@ Konsultasi Admin WA: 081228263200`;
                       const branch = branches.find((b) => b.id === item.branchId);
                       return (
                         <tr key={item.id} className="hover:bg-slate-800/40 transition-colors">
-                          <td className="p-3.5 font-bold text-white">{item.name}</td>
+                          <td className="p-3.5 font-bold text-white">
+                            <div className="flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-amber-400" />
+                              <span>{item.name}</span>
+                            </div>
+                          </td>
                           <td className="p-3.5 uppercase text-[10px] text-slate-400 font-semibold">
                             {item.category}
                           </td>
@@ -2136,6 +2248,9 @@ Konsultasi Admin WA: 081228263200`;
                           </td>
                           <td className="p-3.5 text-slate-400 font-mono">
                             {item.minStockWarning} {item.unit}
+                          </td>
+                          <td className="p-3.5 text-amber-300 font-mono font-medium">
+                            {item.unitCost > 0 ? `Rp ${item.unitCost.toLocaleString('id-ID')} / ${item.unit}` : '-'}
                           </td>
                           <td className="p-3.5">
                             {isLow ? (
@@ -2149,26 +2264,523 @@ Konsultasi Admin WA: 081228263200`;
                             )}
                           </td>
                           <td className="p-3.5 text-right">
-                            <button
-                              onClick={() => {
-                                const add = prompt(`Tambah stok untuk ${item.name} (jumlah ${item.unit}):`, '10');
-                                if (add) {
-                                  const qty = parseFloat(add);
-                                  if (!isNaN(qty)) {
-                                    updateInventoryStock(item.id, item.stock + qty);
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => {
+                                  const add = prompt(`Tambah stok untuk "${item.name}" (dalam satuan ${item.unit}):`, '10');
+                                  if (add) {
+                                    const qty = parseFloat(add);
+                                    if (!isNaN(qty)) {
+                                      updateInventoryStock(item.id, item.stock + qty);
+                                    }
                                   }
-                                }
-                              }}
-                              className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition-colors"
-                            >
-                              + Tambah Stok
-                            </button>
+                                }}
+                                className="px-2 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 text-xs font-semibold border border-emerald-500/30 transition-colors"
+                                title="Tambah stok cepat"
+                              >
+                                + Stok
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setInventoryToEdit(item);
+                                  setInvName(item.name);
+                                  setInvCategory(item.category);
+                                  setInvCustomCategory(['deterjen', 'parfum', 'kemasan', 'perlengkapan'].includes(item.category) ? '' : item.category);
+                                  const isStandardUnit = ['L', 'pcs', 'kg', 'ml', 'gram'].includes(item.unit);
+                                  setInvUnit(isStandardUnit ? item.unit : 'custom');
+                                  setInvCustomUnit(isStandardUnit ? '' : item.unit);
+                                  setInvStock(item.stock);
+                                  setInvMinStock(item.minStockWarning);
+                                  setInvCost(item.unitCost || 0);
+                                  setInvBranchId(item.branchId);
+                                  setInventoryFormError(null);
+                                  setIsEditInventoryModalOpen(true);
+                                }}
+                                className="px-2 py-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 text-xs font-semibold border border-cyan-500/30 transition-colors"
+                                title="Edit pasokan"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (confirm(`Hapus pasokan "${item.name}" dari database?`)) {
+                                    deleteInventoryItem(item.id);
+                                  }
+                                }}
+                                className="px-2 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-semibold border border-rose-500/30 transition-colors"
+                                title="Hapus pasokan"
+                              >
+                                Hapus
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
                     })}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          )}
+          {/* MODAL TAMBAH PASOKAN MANDIRI */}
+          {isAddInventoryModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in">
+              <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-lg w-full p-6 shadow-2xl relative space-y-4 max-h-[90vh] overflow-y-auto no-scrollbar">
+                <button
+                  type="button"
+                  onClick={() => setIsAddInventoryModalOpen(false)}
+                  className="absolute top-4 right-4 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+
+                <div className="flex items-center gap-3 border-b border-slate-800 pb-3">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center text-slate-950 shadow-md shrink-0 font-bold">
+                    <Package className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white">Tambah Pasokan Bahan Baku Baru</h3>
+                    <p className="text-xs text-slate-400">
+                      Input mandiri stok deterjen, parfum, plastik, atau perlengkapan operasional outlet.
+                    </p>
+                  </div>
+                </div>
+
+                {inventoryFormError && (
+                  <div className="p-3 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-semibold flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
+                    <span>{inventoryFormError}</span>
+                  </div>
+                )}
+
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    setInventoryFormError(null);
+                    if (!invName.trim()) {
+                      setInventoryFormError('Nama pasokan / barang wajib diisi!');
+                      return;
+                    }
+                    if (invStock < 0) {
+                      setInventoryFormError('Jumlah stok tidak boleh negatif!');
+                      return;
+                    }
+                    const finalCategory = invCategory === 'custom' ? (invCustomCategory.trim() || 'perlengkapan') : invCategory;
+                    const finalUnit = invUnit === 'custom' ? (invCustomUnit.trim() || 'pcs') : invUnit;
+
+                    addInventoryItem({
+                      branchId: invBranchId || currentBranchId || branches[0]?.id || 'br-pusat',
+                      name: invName.trim(),
+                      category: finalCategory,
+                      stock: Number(invStock),
+                      unit: finalUnit,
+                      minStockWarning: Number(invMinStock) || 0,
+                      unitCost: Number(invCost) || 0,
+                    });
+                    setIsAddInventoryModalOpen(false);
+                  }}
+                  className="space-y-4"
+                >
+                  {/* Nama Barang */}
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                      Nama Pasokan / Bahan: <span className="text-rose-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Misal: Deterjen Sakura Konsentrat, Parfum Ocean Fresh, Plastik HD 35x50"
+                      value={invName}
+                      onChange={(e) => setInvName(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500 font-semibold"
+                    />
+                  </div>
+
+                  {/* Kategori Bahan */}
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-300 block mb-1.5">
+                      Kategori Bahan Baku:
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {[
+                        { id: 'deterjen', label: 'Deterjen & Sabun' },
+                        { id: 'parfum', label: 'Parfum & Pewangi' },
+                        { id: 'kemasan', label: 'Plastik & Tas Jinjing' },
+                        { id: 'perlengkapan', label: 'Perlengkapan Outlet' },
+                        { id: 'custom', label: 'Kategori Kustom...' },
+                      ].map((cat) => (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => setInvCategory(cat.id)}
+                          className={`p-2 rounded-xl border text-center transition-all text-xs font-semibold ${
+                            invCategory === cat.id
+                              ? 'bg-amber-500/20 border-amber-500 text-amber-300 font-bold shadow-glow-amber'
+                              : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          {cat.label}
+                        </button>
+                      ))}
+                    </div>
+                    {invCategory === 'custom' && (
+                      <input
+                        type="text"
+                        placeholder="Tulis nama kategori kustom..."
+                        value={invCustomCategory}
+                        onChange={(e) => setInvCustomCategory(e.target.value)}
+                        className="mt-2 w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
+                      />
+                    )}
+                  </div>
+
+                  {/* Satuan Unit */}
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-300 block mb-1.5">
+                      Satuan Stok (Unit): <span className="text-rose-400">*</span>
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {['L', 'pcs', 'kg', 'ml', 'gram', 'custom'].map((u) => (
+                        <button
+                          key={u}
+                          type="button"
+                          onClick={() => setInvUnit(u)}
+                          className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ${
+                            invUnit === u
+                              ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-glow-amber'
+                              : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          {u === 'custom' ? '+ Satuan Kustom' : u}
+                        </button>
+                      ))}
+                    </div>
+                    {invUnit === 'custom' && (
+                      <input
+                        type="text"
+                        placeholder="Misal: botol, lembar, pack, roll, meter, dus..."
+                        value={invCustomUnit}
+                        onChange={(e) => setInvCustomUnit(e.target.value)}
+                        className="mt-2 w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500 font-semibold"
+                      />
+                    )}
+                  </div>
+
+                  {/* Stok Awal & Batas Minimum */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                        Jumlah Stok Awal: <span className="text-rose-400">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        step="any"
+                        min="0"
+                        required
+                        value={invStock}
+                        onChange={(e) => setInvStock(parseFloat(e.target.value) || 0)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-emerald-400 font-mono font-bold focus:outline-none focus:border-amber-500"
+                      />
+                      <span className="text-[9px] text-slate-400 mt-0.5 block">
+                        Satuan: {invUnit === 'custom' ? (invCustomUnit || 'kustom') : invUnit}
+                      </span>
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                        Batas Minimum Alert:
+                      </label>
+                      <input
+                        type="number"
+                        step="any"
+                        min="0"
+                        value={invMinStock}
+                        onChange={(e) => setInvMinStock(parseFloat(e.target.value) || 0)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-rose-400 font-mono font-bold focus:outline-none focus:border-amber-500"
+                      />
+                      <span className="text-[9px] text-slate-400 mt-0.5 block">
+                        Alert merah saat stok &lt;= angka ini
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* HPP / Biaya Satuan & Cabang */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                        HPP / Harga Beli Satuan (Rp):
+                      </label>
+                      <input
+                        type="number"
+                        step="any"
+                        min="0"
+                        value={invCost}
+                        onChange={(e) => setInvCost(parseInt(e.target.value, 10) || 0)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-amber-300 font-mono font-bold focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                        Outlet Cabang:
+                      </label>
+                      <select
+                        value={invBranchId}
+                        onChange={(e) => setInvBranchId(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
+                      >
+                        {branches.map((b) => (
+                          <option key={b.id} value={b.id}>
+                            {b.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="pt-2 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsAddInventoryModalOpen(false)}
+                      className="flex-1 py-2.5 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs font-semibold"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="submit"
+                      className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black text-xs shadow-glow-amber hover:opacity-95 transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Simpan Pasokan Bahan</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* MODAL EDIT PASOKAN */}
+          {isEditInventoryModalOpen && inventoryToEdit && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in">
+              <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-lg w-full p-6 shadow-2xl relative space-y-4 max-h-[90vh] overflow-y-auto no-scrollbar">
+                <button
+                  type="button"
+                  onClick={() => setIsEditInventoryModalOpen(false)}
+                  className="absolute top-4 right-4 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+
+                <div className="flex items-center gap-3 border-b border-slate-800 pb-3">
+                  <div className="w-10 h-10 rounded-2xl bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 flex items-center justify-center shrink-0">
+                    <Edit3 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white">Edit Data Pasokan Bahan Baku</h3>
+                    <p className="text-xs text-slate-400">
+                      Perbarui nama, stok, atau satuan &quot;{inventoryToEdit.name}&quot;.
+                    </p>
+                  </div>
+                </div>
+
+                {inventoryFormError && (
+                  <div className="p-3 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-semibold flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
+                    <span>{inventoryFormError}</span>
+                  </div>
+                )}
+
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    setInventoryFormError(null);
+                    if (!invName.trim()) {
+                      setInventoryFormError('Nama pasokan / barang wajib diisi!');
+                      return;
+                    }
+                    if (invStock < 0) {
+                      setInventoryFormError('Jumlah stok tidak boleh negatif!');
+                      return;
+                    }
+                    const finalCategory = invCategory === 'custom' ? (invCustomCategory.trim() || 'perlengkapan') : invCategory;
+                    const finalUnit = invUnit === 'custom' ? (invCustomUnit.trim() || 'pcs') : invUnit;
+
+                    editInventoryItem(inventoryToEdit.id, {
+                      branchId: invBranchId,
+                      name: invName.trim(),
+                      category: finalCategory,
+                      stock: Number(invStock),
+                      unit: finalUnit,
+                      minStockWarning: Number(invMinStock) || 0,
+                      unitCost: Number(invCost) || 0,
+                    });
+                    setIsEditInventoryModalOpen(false);
+                  }}
+                  className="space-y-4"
+                >
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                      Nama Pasokan / Bahan: <span className="text-rose-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={invName}
+                      onChange={(e) => setInvName(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500 font-semibold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-300 block mb-1.5">
+                      Kategori:
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {[
+                        { id: 'deterjen', label: 'Deterjen & Sabun' },
+                        { id: 'parfum', label: 'Parfum & Pewangi' },
+                        { id: 'kemasan', label: 'Plastik & Kemasan' },
+                        { id: 'perlengkapan', label: 'Perlengkapan Outlet' },
+                        { id: 'custom', label: 'Kategori Kustom...' },
+                      ].map((cat) => (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => setInvCategory(cat.id)}
+                          className={`p-2 rounded-xl border text-center transition-all text-xs font-semibold ${
+                            invCategory === cat.id
+                              ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300 font-bold'
+                              : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          {cat.label}
+                        </button>
+                      ))}
+                    </div>
+                    {invCategory === 'custom' && (
+                      <input
+                        type="text"
+                        placeholder="Tulis nama kategori kustom..."
+                        value={invCustomCategory}
+                        onChange={(e) => setInvCustomCategory(e.target.value)}
+                        className="mt-2 w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                      />
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-300 block mb-1.5">
+                      Satuan Stok (Unit): <span className="text-rose-400">*</span>
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {['L', 'pcs', 'kg', 'ml', 'gram', 'custom'].map((u) => (
+                        <button
+                          key={u}
+                          type="button"
+                          onClick={() => setInvUnit(u)}
+                          className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ${
+                            invUnit === u
+                              ? 'bg-cyan-500 text-slate-950 border-cyan-400'
+                              : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          {u === 'custom' ? '+ Satuan Kustom' : u}
+                        </button>
+                      ))}
+                    </div>
+                    {invUnit === 'custom' && (
+                      <input
+                        type="text"
+                        placeholder="Misal: botol, lembar, pack, roll, meter, dus..."
+                        value={invCustomUnit}
+                        onChange={(e) => setInvCustomUnit(e.target.value)}
+                        className="mt-2 w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500 font-semibold"
+                      />
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                        Sisa Stok Saat Ini: <span className="text-rose-400">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        step="any"
+                        min="0"
+                        required
+                        value={invStock}
+                        onChange={(e) => setInvStock(parseFloat(e.target.value) || 0)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-emerald-400 font-mono font-bold focus:outline-none focus:border-cyan-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                        Batas Minimum Alert:
+                      </label>
+                      <input
+                        type="number"
+                        step="any"
+                        min="0"
+                        value={invMinStock}
+                        onChange={(e) => setInvMinStock(parseFloat(e.target.value) || 0)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-rose-400 font-mono font-bold focus:outline-none focus:border-cyan-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                        HPP / Harga Beli Satuan (Rp):
+                      </label>
+                      <input
+                        type="number"
+                        step="any"
+                        min="0"
+                        value={invCost}
+                        onChange={(e) => setInvCost(parseInt(e.target.value, 10) || 0)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-amber-300 font-mono font-bold focus:outline-none focus:border-cyan-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                        Outlet Cabang:
+                      </label>
+                      <select
+                        value={invBranchId}
+                        onChange={(e) => setInvBranchId(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                      >
+                        {branches.map((b) => (
+                          <option key={b.id} value={b.id}>
+                            {b.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsEditInventoryModalOpen(false)}
+                      className="flex-1 py-2.5 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs font-semibold"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="submit"
+                      className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-emerald-500 text-slate-950 font-black text-xs shadow-glow-cyan hover:opacity-95 transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Simpan Perubahan</span>
+                    </button>
+                  </div>
+                </form>
               </div>
             </div>
           )}
@@ -3568,6 +4180,7 @@ Konsultasi Admin WA: 081228263200`;
                     setNewServiceEstHours(48);
                     setNewServiceIcon('Sparkles');
                     setNewServiceDescription('');
+                    setSelectedServiceSupplies([]);
                     setIsAddServiceModalOpen(true);
                   }}
                   className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-slate-950 font-black text-xs shadow-glow-cyan transition-all flex items-center gap-1.5"
@@ -3816,6 +4429,29 @@ Konsultasi Admin WA: 081228263200`;
                           {srv.description}
                         </p>
                       )}
+
+                      {/* BOM Requirements Badges */}
+                      {srv.requiredSupplies && srv.requiredSupplies.length > 0 && (
+                        <div className="mb-3 p-2.5 rounded-2xl bg-slate-950/70 border border-amber-500/30">
+                          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-amber-300 mb-1.5">
+                            <Package className="w-3 h-3 text-amber-400" />
+                            <span>Bahan Baku Terpakai:</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {srv.requiredSupplies.map((req, idx) => (
+                              <span
+                                key={idx}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-medium bg-amber-500/10 text-amber-300 border border-amber-500/30"
+                              >
+                                <span>{req.inventoryItemName || 'Bahan'}</span>
+                                <span className="font-mono font-bold text-white">
+                                  ({req.quantity} {req.unit || ''}/{srv.unit})
+                                </span>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Action Buttons */}
@@ -3833,6 +4469,7 @@ Konsultasi Admin WA: 081228263200`;
                           setEditServiceIcon(srv.icon);
                           setEditServiceDescription(srv.description || '');
                           setEditServiceIsActive(srv.isActive !== false);
+                          setEditSelectedServiceSupplies(srv.requiredSupplies || []);
                           setIsEditServiceModalOpen(true);
                         }}
                         className="flex-1 py-1.5 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 hover:text-cyan-200 text-xs font-bold border border-slate-700 transition-all flex items-center justify-center gap-1.5"
@@ -3990,6 +4627,7 @@ Konsultasi Admin WA: 081228263200`;
                       icon: newServiceIcon,
                       description: newServiceDescription.trim() || undefined,
                       isActive: true,
+                      requiredSupplies: selectedServiceSupplies.filter((s) => s.quantity > 0),
                     });
                     setIsAddServiceModalOpen(false);
                   }}
@@ -4058,7 +4696,7 @@ Konsultasi Admin WA: 081228263200`;
                       </label>
                       <input
                         type="number"
-                        step="500"
+                        step="any"
                         min="500"
                         required
                         value={newServicePrice}
@@ -4170,6 +4808,96 @@ Konsultasi Admin WA: 081228263200`;
                     />
                   </div>
 
+                  {/* Checklist Kebutuhan Pasokan Bahan Baku (Bill of Materials) */}
+                  <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-white">
+                          <Package className="w-4 h-4 text-amber-400" />
+                          <span>Kebutuhan Pasokan Bahan Baku (Bill of Materials)</span>
+                        </div>
+                        <p className="text-[10px] text-slate-400 mt-0.5">
+                          Centang bahan yang digunakan &amp; tentukan takaran terpakai per 1 {newServiceUnit || 'unit'} jasa ini:
+                        </p>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
+                        {selectedServiceSupplies.length} Dipilih
+                      </span>
+                    </div>
+
+                    {inventory.length === 0 ? (
+                      <div className="p-3 rounded-xl bg-slate-900 border border-dashed border-slate-700 text-center space-y-1">
+                        <p className="text-xs text-slate-400 font-medium">
+                          Belum ada bahan baku di inventori.
+                        </p>
+                        <p className="text-[10px] text-slate-500">
+                          Anda dapat menambahkan pasokan di menu &quot;Monitoring Stok&quot; terlebih dahulu jika ingin mengaitkannya.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2 max-h-52 overflow-y-auto pr-1 no-scrollbar">
+                        {inventory.map((invItem) => {
+                          const isChecked = selectedServiceSupplies.some((s) => s.inventoryItemId === invItem.id);
+                          const currentReq = selectedServiceSupplies.find((s) => s.inventoryItemId === invItem.id);
+
+                          return (
+                            <div
+                              key={invItem.id}
+                              className={`p-2.5 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
+                                isChecked
+                                  ? 'bg-amber-500/10 border-amber-500/40 text-white'
+                                  : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                              }`}
+                            >
+                              <label className="flex items-center gap-2.5 cursor-pointer select-none flex-1">
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() =>
+                                    handleToggleSupply(invItem, selectedServiceSupplies, setSelectedServiceSupplies)
+                                  }
+                                  className="w-4 h-4 rounded text-amber-500 focus:ring-amber-400 focus:ring-offset-slate-900 bg-slate-800 border-slate-700 cursor-pointer"
+                                />
+                                <div className="text-xs">
+                                  <span className="font-bold text-white block">{invItem.name}</span>
+                                  <span className="text-[10px] text-slate-400">
+                                    Kategori: {invItem.category} • Sisa: {invItem.stock} {invItem.unit}
+                                  </span>
+                                </div>
+                              </label>
+
+                              {isChecked && (
+                                <div className="flex items-center gap-1.5 pl-6 sm:pl-0 self-end sm:self-auto">
+                                  <span className="text-[10px] text-slate-400 font-medium">Takaran:</span>
+                                  <input
+                                    type="number"
+                                    step="any"
+                                    min="0.0001"
+                                    required
+                                    value={currentReq?.quantity ?? 1}
+                                    onChange={(e) =>
+                                      handleUpdateSupplyQty(
+                                        invItem.id,
+                                        parseFloat(e.target.value) || 0,
+                                        selectedServiceSupplies,
+                                        setSelectedServiceSupplies
+                                      )
+                                    }
+                                    className="w-20 px-2 py-1 bg-slate-950 border border-amber-500/50 rounded-lg text-xs font-mono font-bold text-amber-300 text-right focus:outline-none focus:border-amber-400"
+                                    placeholder="0.05"
+                                  />
+                                  <span className="text-[11px] font-bold text-amber-400/90 font-mono">
+                                    {invItem.unit} / {newServiceUnit || 'unit'}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
                   {/* Buttons */}
                   <div className="pt-2 flex gap-2">
                     <button
@@ -4230,6 +4958,7 @@ Konsultasi Admin WA: 081228263200`;
                       icon: editServiceIcon,
                       description: editServiceDescription.trim() || undefined,
                       isActive: editServiceIsActive,
+                      requiredSupplies: editSelectedServiceSupplies.filter((s) => s.quantity > 0),
                     });
                     setIsEditServiceModalOpen(false);
                   }}
@@ -4255,7 +4984,7 @@ Konsultasi Admin WA: 081228263200`;
                       </label>
                       <input
                         type="number"
-                        step="500"
+                        step="any"
                         min="500"
                         required
                         value={editServicePrice}
@@ -4343,6 +5072,96 @@ Konsultasi Admin WA: 081228263200`;
                       onChange={(e) => setEditServiceDescription(e.target.value)}
                       className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
                     />
+                  </div>
+
+                  {/* Checklist Kebutuhan Pasokan Bahan Baku (Bill of Materials) */}
+                  <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-white">
+                          <Package className="w-4 h-4 text-cyan-400" />
+                          <span>Kebutuhan Pasokan Bahan Baku (Bill of Materials)</span>
+                        </div>
+                        <p className="text-[10px] text-slate-400 mt-0.5">
+                          Centang bahan yang digunakan &amp; tentukan takaran terpakai per 1 {editServiceUnit || 'unit'} jasa ini:
+                        </p>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shrink-0">
+                        {editSelectedServiceSupplies.length} Dipilih
+                      </span>
+                    </div>
+
+                    {inventory.length === 0 ? (
+                      <div className="p-3 rounded-xl bg-slate-900 border border-dashed border-slate-700 text-center space-y-1">
+                        <p className="text-xs text-slate-400 font-medium">
+                          Belum ada bahan baku di inventori.
+                        </p>
+                        <p className="text-[10px] text-slate-500">
+                          Anda dapat menambahkan pasokan di menu &quot;Monitoring Stok&quot; terlebih dahulu jika ingin mengaitkannya.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2 max-h-52 overflow-y-auto pr-1 no-scrollbar">
+                        {inventory.map((invItem) => {
+                          const isChecked = editSelectedServiceSupplies.some((s) => s.inventoryItemId === invItem.id);
+                          const currentReq = editSelectedServiceSupplies.find((s) => s.inventoryItemId === invItem.id);
+
+                          return (
+                            <div
+                              key={invItem.id}
+                              className={`p-2.5 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
+                                isChecked
+                                  ? 'bg-cyan-500/10 border-cyan-500/40 text-white'
+                                  : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                              }`}
+                            >
+                              <label className="flex items-center gap-2.5 cursor-pointer select-none flex-1">
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() =>
+                                    handleToggleSupply(invItem, editSelectedServiceSupplies, setEditSelectedServiceSupplies)
+                                  }
+                                  className="w-4 h-4 rounded text-cyan-500 focus:ring-cyan-400 focus:ring-offset-slate-900 bg-slate-800 border-slate-700 cursor-pointer"
+                                />
+                                <div className="text-xs">
+                                  <span className="font-bold text-white block">{invItem.name}</span>
+                                  <span className="text-[10px] text-slate-400">
+                                    Kategori: {invItem.category} • Sisa: {invItem.stock} {invItem.unit}
+                                  </span>
+                                </div>
+                              </label>
+
+                              {isChecked && (
+                                <div className="flex items-center gap-1.5 pl-6 sm:pl-0 self-end sm:self-auto">
+                                  <span className="text-[10px] text-slate-400 font-medium">Takaran:</span>
+                                  <input
+                                    type="number"
+                                    step="any"
+                                    min="0.0001"
+                                    required
+                                    value={currentReq?.quantity ?? 1}
+                                    onChange={(e) =>
+                                      handleUpdateSupplyQty(
+                                        invItem.id,
+                                        parseFloat(e.target.value) || 0,
+                                        editSelectedServiceSupplies,
+                                        setEditSelectedServiceSupplies
+                                      )
+                                    }
+                                    className="w-20 px-2 py-1 bg-slate-950 border border-cyan-500/50 rounded-lg text-xs font-mono font-bold text-cyan-300 text-right focus:outline-none focus:border-cyan-400"
+                                    placeholder="0.05"
+                                  />
+                                  <span className="text-[11px] font-bold text-cyan-400/90 font-mono">
+                                    {invItem.unit} / {editServiceUnit || 'unit'}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
 
                   <div className="pt-2 flex gap-2">
