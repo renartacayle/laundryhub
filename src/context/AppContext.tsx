@@ -308,6 +308,11 @@ interface AppContextType {
   // 4. Digital Scale USB / Bluetooth Auto-Read
   digitalScaleReading: DigitalScaleReading;
   readDigitalScale: () => number;
+
+  // 5. New Account 2,000 Free Tokens Surprise Modal
+  isNewAccountSurpriseOpen: boolean;
+  setIsNewAccountSurpriseOpen: (open: boolean) => void;
+  claimNewAccountSurprise: () => void;
 }
 
 export const DEFAULT_STATION_RATES: StationCommissionRates = {
@@ -361,7 +366,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const val = parseInt(savedTenant, 10);
         if (!isNaN(val)) return val;
       }
-      return 50;
+      return 2000; // Free 2k tokens starter surprise for new real owner!
     }
     const saved = localStorage.getItem('lh_coins');
     return saved ? parseInt(saved, 10) : 1850;
@@ -2014,9 +2019,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const savedCoins = localStorage.getItem(`lh_coins_${targetUid}`);
     if (savedCoins !== null) {
       const val = parseInt(savedCoins, 10);
-      setTokenCoins(isNaN(val) ? 50 : val);
+      setTokenCoins(isNaN(val) ? 2000 : val);
     } else {
-      setTokenCoins(isDemo ? 100 : 50);
+      setTokenCoins(isDemo ? 1850 : 2000);
     }
 
     // Users
@@ -2842,7 +2847,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCourierTasks([]);
     setAttendances([]);
     setNotifications([]);
-    setTokenCoins(50);
+    setTokenCoins(2000);
+    setIsNewAccountSurpriseOpen(true);
     setBranches([initialBranch]);
     setCurrentBranchId(initialBranch.id);
     setUsers([newOwnerUser]);
@@ -2859,6 +2865,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem('lh_active_gmail', cleanEmail);
     localStorage.setItem('lh_role', 'owner');
     localStorage.setItem('lh_auth_mode', 'commercial');
+    localStorage.setItem('lh_pending_new_account_surprise', 'true');
 
     const log: AuditLog = {
       id: `log-${Date.now()}`,
@@ -2866,7 +2873,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       actorName: cleanName,
       actorRole: 'owner',
       action: 'REGISTER_OWNER_UID',
-      details: `Pendaftaran Owner Baru: ${cleanName} (${cleanEmail}) - Terbit UID: ${newUid} - Outlet: ${cleanOutletName} (Cabang Utama: ${initialBranch.name})`,
+      details: `Pendaftaran Owner Baru: ${cleanName} (${cleanEmail}) - Terbit UID: ${newUid} - Outlet: ${cleanOutletName} (Cabang Utama: ${initialBranch.name}) - Bonus Kejutan: +2.000 Token IoT & AI Aktif Otomatis`,
       branchId: initialBranch.id,
     };
     setAuditLogs([log]);
@@ -2884,14 +2891,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem(`lh_customers_${newUid}`, JSON.stringify([]));
     localStorage.setItem(`lh_courier_tasks_${newUid}`, JSON.stringify([]));
     localStorage.setItem(`lh_attendances_${newUid}`, JSON.stringify([]));
-    localStorage.setItem(`lh_coins_${newUid}`, '50');
+    localStorage.setItem(`lh_coins_${newUid}`, '2000');
+    localStorage.setItem('lh_coins', '2000');
     localStorage.setItem(`lh_branches_${newUid}`, JSON.stringify([initialBranch]));
     localStorage.setItem(`lh_users_${newUid}`, JSON.stringify([newOwnerUser]));
     localStorage.setItem(`lh_audit_logs_${newUid}`, JSON.stringify([log]));
 
     return {
       success: true,
-      message: `Selamat, ${cleanName}! Outlet ${cleanOutletName} berhasil dibuat dengan Owner UID: ${newUid}. Data Anda terisolasi secara aman.`,
+      message: `Selamat, ${cleanName}! Outlet ${cleanOutletName} berhasil dibuat dengan Owner UID: ${newUid}. Kejutan: Saldo bonus +2.000 Token IoT & AI gratis telah dikreditkan ke dompet Anda!`,
       user: newOwnerUser,
     };
   };
@@ -2950,6 +2958,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         lastLoginAt: new Date().toISOString(),
       };
       localStorage.setItem('lh_owners_registry', JSON.stringify([...registry, newRegProfile]));
+      localStorage.setItem(`lh_coins_${assignedOwnerUid}`, '2000');
+      localStorage.setItem('lh_coins', '2000');
+      localStorage.setItem('lh_pending_new_account_surprise', 'true');
+      setTokenCoins(2000);
+      setIsNewAccountSurpriseOpen(true);
     }
 
     const existingIdx = users.findIndex((u) => u.email.toLowerCase() === cleanEmail);
@@ -3649,6 +3662,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return picked;
   };
 
+  // 5. New Account 2,000 Free Tokens Surprise Modal State
+  const [isNewAccountSurpriseOpen, setIsNewAccountSurpriseOpen] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('lh_pending_new_account_surprise') === 'true';
+    }
+    return false;
+  });
+
+  const claimNewAccountSurprise = () => {
+    localStorage.removeItem('lh_pending_new_account_surprise');
+    setIsNewAccountSurpriseOpen(false);
+  };
+
   const recordClockIn = (
     userId: string,
     selfieUrl?: string,
@@ -3934,7 +3960,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setServices([]);
       setFragrances([]);
       setNotifications([]);
-      setTokenCoins(50);
+      setTokenCoins(2000);
       setBranches([cleanBranch]);
       setCurrentBranchId(cleanBranch.id);
       setUsers([ownerUser]);
@@ -3972,8 +3998,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       localStorage.setItem(`lh_users_${activeOwnerUid}`, JSON.stringify([ownerUser]));
       localStorage.setItem(`lh_audit_logs_${activeOwnerUid}`, JSON.stringify([log]));
       localStorage.setItem(`lh_notifs_${activeOwnerUid}`, JSON.stringify([]));
-      localStorage.setItem(`lh_coins_${activeOwnerUid}`, '50');
-      localStorage.setItem('lh_coins', '50');
+      localStorage.setItem(`lh_coins_${activeOwnerUid}`, '2000');
+      localStorage.setItem('lh_coins', '2000');
       localStorage.setItem('lh_branch', cleanBranch.id);
       localStorage.setItem('lh_role', 'owner');
       localStorage.setItem('lh_user_id', ownerUser.id);
@@ -4148,6 +4174,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         applyGamificationReward,
         digitalScaleReading,
         readDigitalScale,
+        isNewAccountSurpriseOpen,
+        setIsNewAccountSurpriseOpen,
+        claimNewAccountSurprise,
       }}
     >
       {children}

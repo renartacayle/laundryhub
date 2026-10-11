@@ -89,8 +89,8 @@ async function runTest() {
     localStorage.setItem(`lh_inventory_${testOwnerUid}`, JSON.stringify([]));
     localStorage.setItem(`lh_services_${testOwnerUid}`, JSON.stringify([]));
     localStorage.setItem(`lh_notifs_${testOwnerUid}`, JSON.stringify([]));
-    localStorage.setItem(`lh_coins_${testOwnerUid}`, '50');
-    localStorage.setItem('lh_coins', '50');
+    localStorage.setItem(`lh_coins_${testOwnerUid}`, '2000');
+    localStorage.setItem('lh_coins', '2000');
     localStorage.setItem('lh_branch', testBranchId);
     localStorage.setItem('lh_user_id', `usr-owner-${testOwnerUid}`);
 
@@ -163,7 +163,7 @@ async function runTest() {
   if (auditResult.machinesCount !== 0) throw new Error(`Machines expected 0, got ${auditResult.machinesCount}`);
   if (auditResult.inventoryCount !== 0) throw new Error(`Inventory expected 0, got ${auditResult.inventoryCount}`);
   if (auditResult.usersCount !== 1) throw new Error(`Users expected 1 (owner only), got ${auditResult.usersCount}`);
-  if (auditResult.coins !== 50) throw new Error(`Coins expected 50, got ${auditResult.coins}`);
+  if (auditResult.coins !== 2000) throw new Error(`Coins expected 2000, got ${auditResult.coins}`);
   if (auditResult.hasDesemberEst) throw new Error('Dummy metric Desember (Est) leaked into real account!');
   if (auditResult.has152Milyar) throw new Error('Dummy metric Rp 1.52 Milyar leaked into real account!');
 
@@ -330,6 +330,9 @@ async function runTest() {
   }
   if (postResetAudit.branchesCount !== 1) {
     throw new Error(`Reset failed: branches expected 1 (primary branch preserved), got ${postResetAudit.branchesCount}`);
+  }
+  if (postResetAudit.coins !== 2000) {
+    throw new Error(`Reset failed: coins expected 2000, got ${postResetAudit.coins}`);
   }
   if (!postResetAudit.ownerStillPresent) {
     throw new Error('Reset failed: owner profile was accidentally deleted!');

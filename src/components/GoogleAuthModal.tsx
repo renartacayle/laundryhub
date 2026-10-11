@@ -22,6 +22,7 @@ import {
   CheckCheck,
   ArrowLeft,
   Key,
+  Gift,
 } from 'lucide-react';
 import { Role } from '../types';
 
@@ -46,6 +47,7 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({ isOpen, onClos
     clearDemoOrders,
     hasDemoAccounts,
     logoutOwner,
+    setIsNewAccountSurpriseOpen,
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'login' | 'register' | 'recovery'>('login');
@@ -166,7 +168,8 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({ isOpen, onClos
       setTimeout(() => {
         setAuthSuccessMsg(null);
         onClose();
-      }, 1200);
+        setIsNewAccountSurpriseOpen(true);
+      }, 1000);
     } else {
       setErrorMsg(res.message);
     }
@@ -623,19 +626,22 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({ isOpen, onClos
               </div>
             </div>
 
-            <div className="p-2.5 rounded-xl bg-cyan-950/30 border border-cyan-500/20 text-[11px] text-slate-300 flex items-start gap-2">
-              <Shield className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
-              <div className="text-[10px] text-slate-400 leading-relaxed">
-                Sistem akan membuatkan <strong className="text-cyan-300">Owner UID Baru (Unik)</strong> dan menginisialisasi database outlet bersih khusus untuk Anda.
+            <div className="p-3 rounded-xl bg-gradient-to-r from-amber-500/20 via-yellow-500/10 to-emerald-500/20 border border-amber-400/40 text-[11px] text-slate-300 flex items-start gap-2.5">
+              <span className="p-1.5 rounded-lg bg-amber-500/30 text-amber-300 shrink-0 mt-0.5">
+                <Gift className="w-4 h-4 text-amber-400" />
+              </span>
+              <div className="text-[10px] text-slate-300 leading-relaxed">
+                <strong className="text-amber-300 font-bold block text-[11px]">🎁 Kejutan Spesial Akun Baru:</strong>
+                Langsung dapatkan <strong className="text-emerald-400 font-bold">+2.000 Token IoT & AI Gratis</strong> (senilai Rp 50.000) siap pakai untuk 2.000x siklus mesin & nota POS tanpa perlu modal awal!
               </div>
             </div>
 
             <button
               id="lh-google-reg-submit-btn"
               type="submit"
-              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500 hover:opacity-95 text-slate-950 font-black text-xs shadow-glow-cyan transition-all flex items-center justify-center gap-1.5 active:scale-98"
+              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:opacity-95 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/20 transition-all flex items-center justify-center gap-1.5 active:scale-98"
             >
-              <span>Daftar & Terbitkan Owner UID Baru</span>
+              <span>Daftar & Klaim +2.000 Token Gratis</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>

@@ -157,6 +157,7 @@ export const RoleSwitcherBar: React.FC = () => {
 
             {/* Google Auth button in switcher */}
             <button
+              id="btn-google-auth-modal"
               type="button"
               onClick={() => setIsGoogleAuthModalOpen(true)}
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold border transition-all active:scale-95 ${

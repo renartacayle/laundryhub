@@ -26,6 +26,7 @@ import { PromoGamificationModal } from './components/PromoGamificationModal';
 import { WhatsAppBotModal } from './components/WhatsAppBotModal';
 import { SalarySlipModal } from './components/SalarySlipModal';
 import { GoogleAuthModal } from './components/GoogleAuthModal';
+import { NewAccountSurpriseModal } from './components/NewAccountSurpriseModal';
 
 const MainLayout: React.FC = () => {
   const {
@@ -376,6 +377,9 @@ const MainLayout: React.FC = () => {
         onClose={closeSalarySlipModal}
         staffId={salarySlipStaffId}
       />
+
+      {/* 5. New Account Surprise +2,000 Free Tokens Modal */}
+      <NewAccountSurpriseModal />
     </div>
   );
 };
