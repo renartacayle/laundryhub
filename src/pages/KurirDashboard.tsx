@@ -27,6 +27,7 @@ export const KurirDashboard: React.FC<KurirDashboardProps> = ({ currentSubTab = 
     updateCourierTaskStatus,
     updateOrderStatus,
     orders,
+    branches,
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'tasks' | 'map' | 'history'>(
@@ -290,7 +291,9 @@ export const KurirDashboard: React.FC<KurirDashboardProps> = ({ currentSubTab = 
               <div className="w-8 h-8 mx-auto rounded-full bg-cyan-500/20 flex items-center justify-center text-cyan-300 font-bold mb-1">
                 HQ
               </div>
-              <div className="text-[11px] font-bold text-white">Hub Kemang</div>
+              <div className="text-[11px] font-bold text-white">
+                {branches.find((b) => b.id === currentUser.branchId)?.name || branches[0]?.name || 'Hub Utama'}
+              </div>
               <div className="text-[9px] text-slate-400">Titik Keberangkatan</div>
             </div>
 
@@ -299,8 +302,16 @@ export const KurirDashboard: React.FC<KurirDashboardProps> = ({ currentSubTab = 
               <div className="w-8 h-8 mx-auto rounded-full bg-purple-500/20 flex items-center justify-center text-purple-300 font-bold mb-1">
                 📍
               </div>
-              <div className="text-[11px] font-bold text-white">Anisa Rahmawati</div>
-              <div className="text-[9px] text-emerald-400 font-mono">COD Rp 31.500</div>
+              <div className="text-[11px] font-bold text-white">
+                {pendingTasks[0]?.customerName || 'Tujuan Pengantaran'}
+              </div>
+              <div className="text-[9px] text-emerald-400 font-mono">
+                {pendingTasks[0]
+                  ? pendingTasks[0].amountToCollect > 0
+                    ? `COD Rp ${pendingTasks[0].amountToCollect.toLocaleString('id-ID')}`
+                    : 'Sudah Lunas'
+                  : 'Rute Siap'}
+              </div>
             </div>
 
             {/* Waypoint 3: Destination 2 */}
@@ -308,14 +319,24 @@ export const KurirDashboard: React.FC<KurirDashboardProps> = ({ currentSubTab = 
               <div className="w-8 h-8 mx-auto rounded-full bg-amber-500/20 flex items-center justify-center text-amber-300 font-bold mb-1">
                 🏠
               </div>
-              <div className="text-[11px] font-bold text-white">Reza Rahadian</div>
-              <div className="text-[9px] text-slate-400">Sudah Lunas</div>
+              <div className="text-[11px] font-bold text-white">
+                {pendingTasks[1]?.customerName || 'Mitra Penjemputan'}
+              </div>
+              <div className="text-[9px] text-slate-400">
+                {pendingTasks[1]
+                  ? pendingTasks[1].amountToCollect > 0
+                    ? `COD Rp ${pendingTasks[1].amountToCollect.toLocaleString('id-ID')}`
+                    : 'Sudah Lunas'
+                  : 'Siap Pick-Up'}
+              </div>
             </div>
 
             {/* Courier Live Pin */}
             <div className="absolute left-[36%] top-[32%] p-2 rounded-full bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-xl flex items-center gap-1.5 px-3 z-20">
               <Bike className="w-4 h-4 animate-spin-slow" />
-              <span className="text-[10px] font-bold">Rian (Kurir On The Way)</span>
+              <span className="text-[10px] font-bold">
+                {currentUser.name.split(' ')[0] || 'Kurir'} (On The Way)
+              </span>
             </div>
           </div>
         </div>

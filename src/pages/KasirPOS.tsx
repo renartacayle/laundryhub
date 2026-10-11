@@ -148,7 +148,7 @@ export const KasirPOS: React.FC<KasirPOSProps> = ({ currentSubTab = 'kasir-pos' 
     name: 'Pelanggan Umum (Guest)',
     phone: '0812-0000-0000',
     address: 'Outlet',
-    branchId: 'br-kemang',
+    branchId: currentBranchId || branches[0]?.id || 'br-pusat',
     totalOrdersCount: 0,
     depositBalance: 0,
     loyaltyPoints: 0,

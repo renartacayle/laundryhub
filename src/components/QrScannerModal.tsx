@@ -26,7 +26,8 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({
   onClose,
   onScanSuccess,
 }) => {
-  const { openTrackingModal } = useApp();
+  const { openTrackingModal, orders, branches } = useApp();
+  const sampleInvoice = orders[0]?.invoiceNo || `LH-${branches[0]?.code || 'PST'}-2610-001`;
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -313,12 +314,14 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({
               <QrCode className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
               Scan QR di struk nota cetak atau HP
             </span>
-            <button
-              onClick={() => handleDetectedCode('LH-KMG-2610-001')}
-              className="text-teal-600 dark:text-teal-400 hover:underline font-semibold"
-            >
-              Coba Nota Demo
-            </button>
+            {orders.length > 0 && (
+              <button
+                onClick={() => handleDetectedCode(sampleInvoice)}
+                className="text-teal-600 dark:text-teal-400 hover:underline font-semibold"
+              >
+                Coba: {sampleInvoice}
+              </button>
+            )}
           </div>
 
           {/* Form Manual Invoice Input */}
@@ -327,7 +330,7 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
-                placeholder="Atau ketik nomor nota (misal LH-KMG-2610-004)"
+                placeholder={`Atau ketik nomor nota (misal ${sampleInvoice})`}
                 value={manualInvoice}
                 onChange={(e) => setManualInvoice(e.target.value)}
                 className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500"

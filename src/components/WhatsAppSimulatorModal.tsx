@@ -26,7 +26,7 @@ export const WhatsAppSimulatorModal: React.FC<WhatsAppSimulatorModalProps> = ({
     cleanPhone = '62' + cleanPhone.slice(1);
   }
 
-  const branchName = branch?.name || 'LaundryHub Kemang';
+  const branchName = branch?.name || 'LaundryHub Pusat';
   const estReady = new Date(order.estReadyDate).toLocaleString('id-ID', {
     day: '2-digit',
     month: 'short',

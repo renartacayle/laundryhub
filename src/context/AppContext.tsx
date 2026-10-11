@@ -332,7 +332,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
 
   const [currentBranchId, setCurrentBranchId] = useState<string>(() => {
-    return localStorage.getItem('lh_branch') || 'br-kemang';
+    return localStorage.getItem('lh_branch') || 'br-pusat';
   });
 
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
@@ -439,6 +439,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return [initialBranch];
     }
 
+    const demoCleared = localStorage.getItem('lh_demo_accounts_cleared') === 'true';
+    if (demoCleared) {
+      const defaultCleanBranch: Branch = {
+        id: 'br-pusat',
+        ownerUid: 'OWN-DEMO-8801',
+        name: 'LaundryHub Pusat',
+        address: 'Workshop & Outlet Utama',
+        phone: '0812-8899-7701',
+        code: 'PST',
+        isPusat: true,
+        image: 'https://images.unsplash.com/photo-1545173168-9f1947eebb7f?auto=format&fit=crop&w=300&q=80',
+        createdAt: new Date().toISOString(),
+      };
+      return [defaultCleanBranch];
+    }
+
     const saved = localStorage.getItem('lh_branches_OWN-DEMO-8801') || localStorage.getItem('lh_branches');
     if (saved) {
       try {
@@ -471,7 +487,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const reg = getOwnersRegistry();
       const ownerProf = reg.find((o) => o.ownerUid === activeUid);
       if (ownerProf) {
-        let tenantBranchId = 'br-kemang';
+        let tenantBranchId = `br-${activeUid.toLowerCase().replace(/[^a-z0-9]/g, '-')}-pusat`;
         try {
           const savedBr = localStorage.getItem(`lh_branches_${activeUid}`);
           if (savedBr) {
@@ -545,6 +561,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       return [];
     }
+    const demoCleared = localStorage.getItem('lh_demo_accounts_cleared') === 'true';
+    if (demoCleared) return [];
     const saved = localStorage.getItem('lh_customers');
     return saved ? JSON.parse(saved) : INITIAL_CUSTOMERS;
   });
@@ -558,6 +576,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       return [];
     }
+    const demoCleared = localStorage.getItem('lh_demo_accounts_cleared') === 'true';
+    if (demoCleared) return [];
     const saved = localStorage.getItem('lh_orders');
     return saved ? JSON.parse(saved) : ALL_ORDERS;
   });
@@ -571,6 +591,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       return [];
     }
+    const demoCleared = localStorage.getItem('lh_demo_accounts_cleared') === 'true';
+    if (demoCleared) return [];
     const saved = localStorage.getItem('lh_inventory');
     return saved ? JSON.parse(saved) : INITIAL_INVENTORY;
   });
@@ -584,6 +606,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       return [];
     }
+    const demoCleared = localStorage.getItem('lh_demo_accounts_cleared') === 'true';
+    if (demoCleared) return [];
     const saved = localStorage.getItem('lh_machines_OWN-DEMO-8801') || localStorage.getItem('lh_machines');
     return saved ? JSON.parse(saved) : INITIAL_MACHINES;
   });
@@ -597,6 +621,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       return [];
     }
+    const demoCleared = localStorage.getItem('lh_demo_accounts_cleared') === 'true';
+    if (demoCleared) return [];
     const saved = localStorage.getItem('lh_courier_tasks');
     return saved ? JSON.parse(saved) : INITIAL_COURIER_TASKS;
   });
@@ -610,6 +636,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       return [];
     }
+    const demoCleared = localStorage.getItem('lh_demo_accounts_cleared') === 'true';
+    if (demoCleared) return [];
     const saved = localStorage.getItem('lh_audit_logs');
     return saved ? JSON.parse(saved) : INITIAL_AUDIT_LOGS;
   });
@@ -624,6 +652,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       return [];
     }
+    const demoCleared = localStorage.getItem('lh_demo_accounts_cleared') === 'true';
+    if (demoCleared) return [];
     const saved = localStorage.getItem('lh_services');
     if (saved) {
       try {
@@ -645,6 +675,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       return [];
     }
+    const demoCleared = localStorage.getItem('lh_demo_accounts_cleared') === 'true';
+    if (demoCleared) return [];
     const saved = localStorage.getItem('lh_fragrances');
     if (saved) {
       try {
@@ -667,6 +699,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       return [];
     }
+    const demoCleared = localStorage.getItem('lh_demo_accounts_cleared') === 'true';
+    if (demoCleared) return [];
     const saved = localStorage.getItem('lh_dropship_agents');
     return saved ? JSON.parse(saved) : INITIAL_DROPSHIP_AGENTS;
   });
@@ -682,6 +716,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       return [];
     }
+    const demoCleared = localStorage.getItem('lh_demo_accounts_cleared') === 'true';
+    if (demoCleared) return [];
     const saved = localStorage.getItem('lh_dropship_orders');
     return saved ? JSON.parse(saved) : INITIAL_DROPSHIP_SUPPLY_ORDERS;
   });
@@ -695,6 +731,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       return [];
     }
+    const demoCleared = localStorage.getItem('lh_demo_accounts_cleared') === 'true';
+    if (demoCleared) return [];
     const saved = localStorage.getItem('lh_withdrawals');
     return saved ? JSON.parse(saved) : INITIAL_WITHDRAWAL_REQUESTS;
   });
@@ -714,7 +752,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [currentAgentId, setCurrentAgentId] = useState<string>('agent-01');
 
-  const currentAgent = dropshipAgents.find((a) => a.id === currentAgentId) || dropshipAgents[0];
+  const fallbackAgent: DropshipAgent = {
+    id: 'agent-none',
+    name: 'Mitra Drop Point',
+    ownerName: '-',
+    phone: '-',
+    address: 'Belum ada drop point terdaftar',
+    branchId: currentBranchId || (branches[0]?.id) || 'br-pusat',
+    branchName: branches[0]?.name || 'Cabang Utama',
+    commissionPercent: 15,
+    walletBalance: 0,
+    totalEarned: 0,
+    totalOrdersCount: 0,
+    totalWeightKg: 0,
+    status: 'active',
+    bankAccount: {
+      bank: 'BCA',
+      accountNumber: '-',
+      accountName: '-',
+    },
+    createdAt: new Date().toISOString(),
+  };
+
+  const currentAgent = dropshipAgents.find((a) => a.id === currentAgentId) || dropshipAgents[0] || fallbackAgent;
 
   // Online Staff Attendance & Payroll States
   const [attendances, setAttendances] = useState<StaffAttendance[]>(() => {
@@ -726,6 +786,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       return [];
     }
+    const demoCleared = localStorage.getItem('lh_demo_accounts_cleared') === 'true';
+    if (demoCleared) return [];
     const saved = localStorage.getItem('lh_attendances');
     return saved ? JSON.parse(saved) : INITIAL_ATTENDANCE;
   });
@@ -750,44 +812,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       return [];
     }
+    const demoCleared = localStorage.getItem('lh_demo_accounts_cleared') === 'true';
+    if (demoCleared) return [];
     const saved = localStorage.getItem('lh_notifs_OWN-DEMO-8801') || localStorage.getItem('lh_notifs');
     if (saved) {
       try { return JSON.parse(saved); } catch (e) {}
     }
-    return [
-      {
-        id: 'notif-1',
-        title: 'Stok Deterjen Menipis',
-        message: 'Stok Deterjen Liquid Konsentrat di Cabang Kemang tersisa 4.5 jerigen (min: 5).',
-        type: 'stock',
-        timestamp: '15 menit yang lalu',
-        read: false,
-      },
-      {
-        id: 'notif-2',
-        title: 'Washer #1 Sedang Berjalan',
-        message: 'Washer LG Titan berjalan untuk invoice LH-KMG-2610-004.',
-        type: 'iot',
-        timestamp: '35 menit yang lalu',
-        read: false,
-      },
-      {
-        id: 'notif-3',
-        title: 'Order Dropship Masuk',
-        message: 'Mitra Drop Point Warung Berkah input order baru senilai Rp 54.000.',
-        type: 'dropship',
-        timestamp: '40 menit yang lalu',
-        read: false,
-      },
-      {
-        id: 'notif-4',
-        title: 'Order Express Masuk',
-        message: 'Order kilat LH-KMG-2610-002 (Nadia Saphira) target siap jam 18:40.',
-        type: 'order',
-        timestamp: '1 jam yang lalu',
-        read: true,
-      },
-    ];
+    return [];
   });
 
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
@@ -1933,7 +1964,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Helper to load tenant-specific data when an owner logs in or switches
   const loadTenantData = (targetUid: string, ownerUser?: User) => {
-    const isDemo = targetUid === 'OWN-DEMO-8801';
+    const demoCleared = localStorage.getItem('lh_demo_accounts_cleared') === 'true';
+    const isDemo = targetUid === 'OWN-DEMO-8801' && !demoCleared;
 
     // Orders
     const savedOrders = localStorage.getItem(`lh_orders_${targetUid}`);
@@ -3056,6 +3088,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     let realUsers = users.filter((u) => !u.isDemo && !demoIds.includes(u.id));
     const removedCount = initialCount - realUsers.length;
 
+    // Build or keep single clean primary branch
+    const cleanBranch: Branch = branches.find((b) => b.isPusat && !['br-kemang', 'br-bintaro', 'br-tebet'].includes(b.id)) || {
+      id: 'br-pusat',
+      ownerUid: activeOwnerUid || 'OWN-DEMO-8801',
+      name: 'LaundryHub Pusat',
+      address: 'Workshop & Outlet Utama',
+      phone: '0812-8899-7701',
+      code: 'PST',
+      isPusat: true,
+      image: 'https://images.unsplash.com/photo-1545173168-9f1947eebb7f?auto=format&fit=crop&w=300&q=80',
+      createdAt: new Date().toISOString(),
+    };
+
     // Ensure at least one owner exists
     let owner = realUsers.find((u) => u.role === 'owner');
     if (!owner) {
@@ -3069,7 +3114,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         email,
         phone: '0812-8899-7701',
         avatar: currentUser.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(fallbackName)}&background=0284c7&color=fff`,
-        branchId: currentBranchId,
+        branchId: cleanBranch.id,
         commissionRateKg: 0,
         commissionRateItem: 0,
         totalCommissionEarned: 0,
@@ -3087,6 +3132,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCurrentUser(owner);
     _setCurrentRole('owner');
     setActiveGmailAccount(owner.email);
+    setBranches([cleanBranch]);
+    setCurrentBranchId(cleanBranch.id);
+
+    // Deep clean all demo data
+    setOrders([]);
+    setCustomers([]);
+    setInventory([]);
+    setMachines([]);
+    setCourierTasks([]);
+    setDropshipAgents([]);
+    setDropshipSupplyOrders([]);
+    setWithdrawalRequests([]);
+    setAttendances([]);
+    setTokenCoins((prev) => Math.max(prev, 2000));
 
     localStorage.setItem('lh_users', JSON.stringify(realUsers));
     localStorage.setItem('lh_user_id', owner.id);
@@ -3094,6 +3153,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem('lh_role', 'owner');
     localStorage.setItem('lh_demo_accounts_cleared', 'true');
     localStorage.setItem('lh_auth_mode', 'commercial');
+    localStorage.setItem('lh_branch', cleanBranch.id);
+    localStorage.setItem('lh_branches', JSON.stringify([cleanBranch]));
+    localStorage.setItem('lh_orders', JSON.stringify([]));
+    localStorage.setItem('lh_customers', JSON.stringify([]));
+    localStorage.setItem('lh_inventory', JSON.stringify([]));
+    localStorage.setItem('lh_machines', JSON.stringify([]));
+    localStorage.setItem('lh_courier_tasks', JSON.stringify([]));
+    localStorage.setItem('lh_dropship_agents', JSON.stringify([]));
+    localStorage.setItem('lh_dropship_orders', JSON.stringify([]));
+    localStorage.setItem('lh_withdrawals', JSON.stringify([]));
+    localStorage.setItem('lh_attendances', JSON.stringify([]));
+    localStorage.setItem('lh_notifs', JSON.stringify([]));
 
     const log: AuditLog = {
       id: `log-${Date.now()}`,
@@ -3101,25 +3172,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       actorName: owner.name,
       actorRole: 'owner',
       action: 'DELETE_DEMO_ACCOUNTS',
-      details: `Menghapus seluruh akun demo (${removedCount} akun). Sistem kini bersih dan sepenuhnya riil.`,
-      branchId: currentBranchId,
+      details: `Menghapus seluruh akun demo (${removedCount} akun) & membersihkan data demo outlet ke clean slate.`,
+      branchId: cleanBranch.id,
     };
-    setAuditLogs((prev) => [log, ...prev]);
+    setAuditLogs([log]);
 
     const notif: NotificationItem = {
       id: `notif-${Date.now()}`,
-      title: '🗑️ Semua Akun Demo Dihapus',
-      message: `${removedCount} akun dummy telah dibersihkan. Outlet kini 100% menggunakan akun riil.`,
+      title: '🗑️ Semua Akun & Data Demo Dihapus',
+      message: `${removedCount} akun dummy & seluruh data contoh telah dibersihkan. Outlet kini 100% menggunakan data riil.`,
       timestamp: 'Baru saja',
       type: 'order',
       read: false,
     };
-    setNotifications((prev) => [notif, ...prev]);
+    setNotifications([notif]);
 
     return {
       success: true,
       removedCount,
-      message: `Berhasil menghapus ${removedCount} akun demo. Sistem kini bersih dan siap untuk operasional riil.`,
+      message: `Berhasil membersihkan seluruh akun & data demo dummy. Sistem kini bersih dan siap untuk operasional riil.`,
     };
   };
 
@@ -4005,27 +4076,86 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       localStorage.setItem('lh_user_id', ownerUser.id);
       localStorage.setItem('lh_auth_mode', 'commercial');
     } else {
+      // Clean slate for demo account as well (0 dummy data & clean outlet)
       localStorage.clear();
-      setOrders(ALL_ORDERS);
-      setCustomers(INITIAL_CUSTOMERS);
-      setUsers(INITIAL_USERS);
-      setInventory(INITIAL_INVENTORY);
-      setMachines(INITIAL_MACHINES);
-      setCourierTasks(INITIAL_COURIER_TASKS);
-      setAuditLogs(INITIAL_AUDIT_LOGS);
-      setDropshipAgents(INITIAL_DROPSHIP_AGENTS);
-      setDropshipSupplyOrders(INITIAL_DROPSHIP_SUPPLY_ORDERS);
-      setWithdrawalRequests(INITIAL_WITHDRAWAL_REQUESTS);
-      setAttendances(INITIAL_ATTENDANCE);
-      setPayrollSettings(DEFAULT_PAYROLL_SETTINGS);
-      setServices(INITIAL_SERVICES);
-      setFragrances(INITIAL_FRAGRANCES);
-      setTokenCoins(1850);
-      setCurrentRole('owner');
-      setCurrentBranchId('br-kemang');
+      localStorage.setItem('lh_demo_accounts_cleared', 'true');
+      localStorage.setItem('lh_active_owner_uid', 'OWN-DEMO-8801');
+      localStorage.setItem('lh_coins', '2000');
+      localStorage.setItem('lh_coins_OWN-DEMO-8801', '2000');
+      localStorage.setItem('lh_role', 'owner');
+      localStorage.setItem('lh_auth_mode', 'commercial');
+
+      const cleanBranch: Branch = {
+        id: 'br-pusat',
+        ownerUid: 'OWN-DEMO-8801',
+        name: 'LaundryHub Pusat',
+        address: 'Workshop & Outlet Utama',
+        phone: '0812-8899-7701',
+        code: 'PST',
+        isPusat: true,
+        image: 'https://images.unsplash.com/photo-1545173168-9f1947eebb7f?auto=format&fit=crop&w=300&q=80',
+        createdAt: new Date().toISOString(),
+      };
+
+      const cleanOwnerUser: User = {
+        id: 'usr-owner-clean',
+        ownerUid: 'OWN-DEMO-8801',
+        name: 'Owner LaundryHub',
+        role: 'owner',
+        allowedRoles: ['owner', 'kasir', 'produksi', 'kurir', 'agen'],
+        email: 'owner@laundryhub.id',
+        phone: '0812-8899-7701',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+        branchId: cleanBranch.id,
+        commissionRateKg: 0,
+        commissionRateItem: 0,
+        totalCommissionEarned: 0,
+        pin: '8888',
+        outletName: 'LaundryHub Pusat',
+        isGmailLinked: true,
+        isPersonalGoogleAccount: true,
+        isDemo: false,
+        lastLoginAt: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      };
+
+      setOrders([]);
+      setCustomers([]);
+      setInventory([]);
+      setMachines([]);
+      setCourierTasks([]);
+      setAuditLogs([]);
+      setDropshipAgents([]);
+      setDropshipSupplyOrders([]);
+      setWithdrawalRequests([]);
+      setAttendances([]);
+      setServices([]);
+      setFragrances([]);
+      setNotifications([]);
+      setBranches([cleanBranch]);
+      setCurrentBranchId(cleanBranch.id);
+      setUsers([cleanOwnerUser]);
+      setCurrentUserId(cleanOwnerUser.id);
+      setCurrentUser(cleanOwnerUser);
+      setTokenCoins(2000);
+      _setCurrentRole('owner');
       setActiveTutorial(null);
       setTutorialStep(0);
       setTrackingModalOrder(null);
+
+      localStorage.setItem('lh_branch', cleanBranch.id);
+      localStorage.setItem('lh_user_id', cleanOwnerUser.id);
+      localStorage.setItem('lh_users', JSON.stringify([cleanOwnerUser]));
+      localStorage.setItem('lh_branches', JSON.stringify([cleanBranch]));
+      localStorage.setItem('lh_orders', JSON.stringify([]));
+      localStorage.setItem('lh_customers', JSON.stringify([]));
+      localStorage.setItem('lh_inventory', JSON.stringify([]));
+      localStorage.setItem('lh_machines', JSON.stringify([]));
+      localStorage.setItem('lh_courier_tasks', JSON.stringify([]));
+      localStorage.setItem('lh_dropship_agents', JSON.stringify([]));
+      localStorage.setItem('lh_dropship_orders', JSON.stringify([]));
+      localStorage.setItem('lh_withdrawals', JSON.stringify([]));
+      localStorage.setItem('lh_attendances', JSON.stringify([]));
+      localStorage.setItem('lh_notifs', JSON.stringify([]));
     }
   };
 

@@ -11,13 +11,13 @@ interface AuthGateModalProps {
 
 // Preset default commercial PINs per role
 export const ROLE_DEFAULT_PINS: Record<Role, { pin: string; title: string; defaultUser: string }> = {
-  owner: { pin: '8888', title: 'Owner & Direksi', defaultUser: 'Budi Pratama (Owner)' },
-  operator: { pin: '1111', title: 'Operator Cabang All-in-One', defaultUser: 'Siti Rahmawati (Solo Operator)' },
-  kasir: { pin: '1234', title: 'Kasir Front Desk', defaultUser: 'Dewi Lestari (Kasir)' },
-  produksi: { pin: '2345', title: 'Workshop Produksi', defaultUser: 'Agus Santoso (Produksi)' },
-  kurir: { pin: '3456', title: 'Armada Kurir', defaultUser: 'Rian Hidayat (Kurir)' },
-  agen: { pin: '5678', title: 'Mitra Drop Point', defaultUser: 'Siti Rahmawati (Agen)' },
-  pelanggan: { pin: '0000', title: 'Portal Member', defaultUser: 'Anisa Wijaya (Member)' },
+  owner: { pin: '8888', title: 'Owner & Direksi', defaultUser: 'Akun Owner' },
+  operator: { pin: '1111', title: 'Operator Cabang All-in-One', defaultUser: 'Operator Cabang' },
+  kasir: { pin: '1234', title: 'Kasir Front Desk', defaultUser: 'Staff Kasir' },
+  produksi: { pin: '2345', title: 'Workshop Produksi', defaultUser: 'Staff Produksi' },
+  kurir: { pin: '3456', title: 'Armada Kurir', defaultUser: 'Staff Kurir' },
+  agen: { pin: '5678', title: 'Mitra Drop Point', defaultUser: 'Mitra Drop Point' },
+  pelanggan: { pin: '0000', title: 'Portal Member', defaultUser: 'Portal Pelanggan' },
 };
 
 export const AuthGateModal: React.FC<AuthGateModalProps> = ({

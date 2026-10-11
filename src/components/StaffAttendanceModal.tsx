@@ -73,6 +73,7 @@ export const StaffAttendanceModal: React.FC<StaffAttendanceModalProps> = ({ isOp
     openDopaminePayday,
     openSalarySlipModal,
     currentBranchId,
+    branches,
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'absen' | 'riwayat' | 'aturan'>('absen');
@@ -104,10 +105,16 @@ export const StaffAttendanceModal: React.FC<StaffAttendanceModalProps> = ({ isOp
   const streamRef = useRef<MediaStream | null>(null);
 
   // Target Outlet for Geofencing
-  const targetOutlet =
-    OUTLET_COORDINATES[currentUser.branchId] ||
-    OUTLET_COORDINATES[currentBranchId] ||
-    OUTLET_COORDINATES['br-kemang'];
+  const currentBranch =
+    branches.find((b) => b.id === currentUser.branchId) ||
+    branches.find((b) => b.id === currentBranchId) ||
+    branches[0];
+
+  const targetOutlet = {
+    name: currentBranch?.name || 'Outlet Utama',
+    lat: (currentBranch && OUTLET_COORDINATES[currentBranch.id]?.lat) || -6.260718,
+    lng: (currentBranch && OUTLET_COORDINATES[currentBranch.id]?.lng) || 106.815610,
+  };
 
   // Live clock
   useEffect(() => {
@@ -587,7 +594,7 @@ export const StaffAttendanceModal: React.FC<StaffAttendanceModalProps> = ({ isOp
                       }`}
                       title="Simulasi staf berada tepat di dalam toko laundry (8m)"
                     >
-                      🟢 Demo: Di Toko (8m)
+                      🟢 Simulasi: Di Toko (8m)
                     </button>
                     <button
                       type="button"
@@ -599,7 +606,7 @@ export const StaffAttendanceModal: React.FC<StaffAttendanceModalProps> = ({ isOp
                       }`}
                       title="Simulasi staf mencoba absen dari luar area / rumah (480m)"
                     >
-                      🔴 Demo: Luar (480m)
+                      🔴 Simulasi: Luar Radius (480m)
                     </button>
                     <button
                       type="button"

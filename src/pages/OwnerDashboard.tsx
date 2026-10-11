@@ -225,7 +225,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
   const [newWorkerPhone, setNewWorkerPhone] = useState('');
   const [newWorkerRole, setNewWorkerRole] = useState<Role>('kasir');
   const [newWorkerAllowedRoles, setNewWorkerAllowedRoles] = useState<Role[]>(['kasir']);
-  const [newWorkerBranchId, setNewWorkerBranchId] = useState(branches[0]?.id || 'br-kemang');
+  const [newWorkerBranchId, setNewWorkerBranchId] = useState(branches[0]?.id || 'br-pusat');
   const [newWorkerRateKg, setNewWorkerRateKg] = useState(300);
   const [newWorkerRateItem, setNewWorkerRateItem] = useState(1000);
   const [workerFormError, setWorkerFormError] = useState<string | null>(null);
@@ -444,7 +444,7 @@ Konsultasi Admin WA: 081228263200`;
     ownerName: '',
     phone: '',
     address: '',
-    branchId: branches[0]?.id || 'br-kemang',
+    branchId: branches[0]?.id || 'br-pusat',
     commissionPercent: 25,
     bankName: 'BCA',
     accountNumber: '',
@@ -455,7 +455,7 @@ Konsultasi Admin WA: 081228263200`;
     itemId: dropshipSupplies[0]?.id || 'sup-1',
     quantity: 1,
     destinationType: 'branch' as 'branch' | 'agent',
-    destinationId: branches[0]?.id || 'br-kemang',
+    destinationId: branches[0]?.id || 'br-pusat',
     recipientName: '',
     recipientPhone: '',
     destinationAddress: '',
@@ -488,7 +488,7 @@ Konsultasi Admin WA: 081228263200`;
       ownerName: '',
       phone: '',
       address: '',
-      branchId: branches[0]?.id || 'br-kemang',
+      branchId: branches[0]?.id || 'br-pusat',
       commissionPercent: 25,
       bankName: 'BCA',
       accountNumber: '',
@@ -668,13 +668,8 @@ Konsultasi Admin WA: 081228263200`;
       }));
   }, [filteredOrders]);
 
-  // Monthly stats data (Clean slate 0 if new owner / no orders)
+  // Monthly stats data (Dynamic from orders; clean slate 0 if no orders)
   const monthlyStatsData = useMemo(() => {
-    const isDemo = activeOwnerUid === 'OWN-DEMO-8801';
-    if (isDemo && orders.length > 0) {
-      return MONTHLY_STATS_2026;
-    }
-
     const months = [
       { month: 'Januari', code: 'Jan' },
       { month: 'Februari', code: 'Feb' },
@@ -725,15 +720,10 @@ Konsultasi Admin WA: 081228263200`;
         growthMoM: 0,
       };
     });
-  }, [activeOwnerUid, filteredOrders, orders.length]);
+  }, [filteredOrders]);
 
-  // Yearly stats data (Clean slate 0 if new owner / no orders)
+  // Yearly stats data (Dynamic from orders; clean slate 0 if no orders)
   const yearlyStatsData = useMemo(() => {
-    const isDemo = activeOwnerUid === 'OWN-DEMO-8801';
-    if (isDemo && orders.length > 0) {
-      return YEARLY_STATS;
-    }
-
     const currentYear = new Date().getFullYear().toString();
     const omzet = filteredOrders.reduce((sum, o) => sum + o.finalPrice, 0);
     const beban = Math.round(omzet * 0.38);
@@ -762,7 +752,7 @@ Konsultasi Admin WA: 081228263200`;
         ...branchBreakdown,
       },
     ];
-  }, [activeOwnerUid, filteredOrders, orders.length, branches]);
+  }, [filteredOrders, branches]);
 
   // Branch Performance
   const branchPerformance = branches.map((branch) => {
@@ -945,7 +935,7 @@ Konsultasi Admin WA: 081228263200`;
           <h1 className="text-base font-black text-slate-100 tracking-tight">
             {activeTab === 'overview' && 'Ringkasan Eksekutif & Omzet Konsolidasi'}
             {activeTab === 'pnl' && 'Laporan Laba Rugi Riil (P&L Cash Flow)'}
-            {activeTab === 'stats' && 'Statistik Performa Bulanan & Tahunan (2024-2026)'}
+            {activeTab === 'stats' && 'Statistik Performa Bulanan & Tahunan'}
             {activeTab === 'branches' && 'Monitoring Performa Multi-Cabang Outlet'}
             {activeTab === 'dropship' && `Jaringan Kemitraan Dropship & Payout (${dropshipAgents.length} Mitra)`}
             {activeTab === 'supplies' && 'Manajemen Pasokan Bahan Baku B2B Dropship'}
@@ -1175,7 +1165,7 @@ Konsultasi Admin WA: 081228263200`;
                   <h3 className="text-sm font-bold text-slate-100">
                     {overviewPeriod === '7days' && 'Tren Pendapatan Harian (7 Hari Terakhir)'}
                     {overviewPeriod === 'monthly' && 'Grafik Tren Bulanan (12 Bulan 2026)'}
-                    {overviewPeriod === 'yearly' && 'Grafik Pertumbuhan Tahunan (2024 - 2026 YoY)'}
+                    {overviewPeriod === 'yearly' && 'Grafik Pertumbuhan Tahunan (YoY Multi-Tahun)'}
                   </h3>
                   <p className="text-xs text-slate-400">
                     {overviewPeriod === '7days' && 'Volume transaksi dan ritme harian outlet'}
@@ -1434,7 +1424,7 @@ Konsultasi Admin WA: 081228263200`;
                   }`}
                 >
                   <CalendarDays className="w-3.5 h-3.5" />
-                  <span>Komparasi Tahunan (YoY: 2024-2026)</span>
+                  <span>Komparasi Tahunan (YoY)</span>
                 </button>
               </div>
 
@@ -1470,7 +1460,7 @@ Konsultasi Admin WA: 081228263200`;
                     Rp {totalOmzet2026.toLocaleString('id-ID')}
                   </div>
                   <div className="text-[10px] text-emerald-400 mt-1 flex items-center gap-1 font-bold">
-                    <ArrowUpRight className="w-3 h-3" /> {isDemo ? '+31.3% vs Tahun 2025' : (totalOmzet2026 > 0 ? '+100% vs Periode Awal' : 'Outlet Baru (Tahun Berjalan 2026)')}
+                    <ArrowUpRight className="w-3 h-3" /> {totalOmzet2026 > 0 ? '+100% vs Periode Awal' : 'Outlet Baru (Tahun Berjalan 2026)'}
                   </div>
                 </div>
 
@@ -1614,7 +1604,7 @@ Konsultasi Admin WA: 081228263200`;
                         <td className="p-3.5 text-cyan-400">
                           {monthlyStatsData.reduce((acc, i) => acc + i.weightKg, 0).toLocaleString()} kg
                         </td>
-                        <td className="p-3.5 text-right text-emerald-400">{isDemo ? '+31.3% YoY' : (totalOmzet2026 > 0 ? '+100% YoY' : '0% YoY')}</td>
+                        <td className="p-3.5 text-right text-emerald-400">{totalOmzet2026 > 0 ? '+100% YoY' : '0% YoY'}</td>
                       </tr>
                     </tfoot>
                   </table>
@@ -1627,36 +1617,37 @@ Konsultasi Admin WA: 081228263200`;
           {statsViewMode === 'yearly' && (
             <div className="space-y-6">
               {/* Yearly KPI Cards */}
+              {/* Yearly KPI Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="p-4 rounded-2xl glass-card border border-slate-800">
                   <span className="text-[11px] text-slate-400 uppercase font-semibold">Pertumbuhan Tahunan (CAGR)</span>
                   <div className="text-2xl font-black text-emerald-400 font-mono mt-1">
-                    {isDemo ? '+40.2% / thn' : (yearlyTotalOrders > 0 ? '+100% / thn' : '0% / thn')}
+                    {yearlyTotalOrders > 0 ? '+100% / thn' : '0% / thn'}
                   </div>
                   <div className="text-[10px] text-slate-400 mt-1">
-                    {isDemo ? 'Ekspansi dari 1 ke 3 cabang outlet' : 'Tahun berjalan ' + new Date().getFullYear()}
+                    {'Tahun berjalan ' + new Date().getFullYear()}
                   </div>
                 </div>
 
                 <div className="p-4 rounded-2xl glass-card border border-slate-800">
                   <span className="text-[11px] text-slate-400 uppercase font-semibold">
-                    {isDemo ? 'Total Omzet Akumulatif (3 Thn)' : 'Total Omzet Tahunan'}
+                    Total Omzet Tahunan
                   </span>
                   <div className="text-2xl font-black text-amber-400 font-mono mt-1">
-                    {isDemo ? 'Rp 1.52 Milyar' : 'Rp ' + yearlyTotalOmzet.toLocaleString('id-ID')}
+                    {'Rp ' + yearlyTotalOmzet.toLocaleString('id-ID')}
                   </div>
                   <div className="text-[10px] text-slate-400 mt-1">
-                    {isDemo ? 'Periode tahun 2024 - 2026' : 'Periode tahun ' + new Date().getFullYear()}
+                    {'Periode tahun ' + new Date().getFullYear()}
                   </div>
                 </div>
 
                 <div className="p-4 rounded-2xl glass-card border border-slate-800">
                   <span className="text-[11px] text-slate-400 uppercase font-semibold">Total Pakaian Dicuci</span>
                   <div className="text-2xl font-black text-cyan-400 font-mono mt-1">
-                    {isDemo ? '116.490 kg' : yearlyTotalKg.toLocaleString('id-ID') + ' kg'}
+                    {yearlyTotalKg.toLocaleString('id-ID') + ' kg'}
                   </div>
                   <div className="text-[10px] text-slate-400 mt-1">
-                    {isDemo ? 'Setara ~32.300 nota cucian' : 'Setara ' + yearlyTotalOrders.toLocaleString('id-ID') + ' nota cucian'}
+                    {'Setara ' + yearlyTotalOrders.toLocaleString('id-ID') + ' nota cucian'}
                   </div>
                 </div>
 
@@ -1676,38 +1667,21 @@ Konsultasi Admin WA: 081228263200`;
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="text-sm font-bold text-white">
-                      {isDemo ? 'Komparasi Pertumbuhan Omzet per Cabang (2024 - 2026)' : 'Pertumbuhan Omzet per Cabang (' + new Date().getFullYear() + ')'}
+                      Pertumbuhan Omzet per Cabang ({new Date().getFullYear()})
                     </h4>
                     <p className="text-xs text-slate-400">Perkembangan kontribusi pendapatan dari tiap outlet</p>
                   </div>
                   <div className="flex items-center gap-3 text-xs flex-wrap">
-                    {isDemo ? (
-                      <>
-                        <div className="flex items-center gap-1.5">
-                          <span className="w-3 h-3 rounded bg-amber-500" />
-                          <span className="text-slate-300">Kemang (Pusat)</span>
+                    {branches.map((b, idx) => {
+                      const branchColors = ['#f59e0b', '#06b6d4', '#8b5cf6', '#10b981', '#ec4899'];
+                      const col = branchColors[idx % branchColors.length];
+                      return (
+                        <div key={b.id} className="flex items-center gap-1.5">
+                          <span className="w-3 h-3 rounded" style={{ backgroundColor: col }} />
+                          <span className="text-slate-300">{b.name}</span>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="w-3 h-3 rounded bg-cyan-500" />
-                          <span className="text-slate-300">Bintaro Sek. 7</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="w-3 h-3 rounded bg-purple-500" />
-                          <span className="text-slate-300">Tebet</span>
-                        </div>
-                      </>
-                    ) : (
-                      branches.map((b, idx) => {
-                        const branchColors = ['#f59e0b', '#06b6d4', '#8b5cf6', '#10b981', '#ec4899'];
-                        const col = branchColors[idx % branchColors.length];
-                        return (
-                          <div key={b.id} className="flex items-center gap-1.5">
-                            <span className="w-3 h-3 rounded" style={{ backgroundColor: col }} />
-                            <span className="text-slate-300">{b.name}</span>
-                          </div>
-                        );
-                      })
-                    )}
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -1730,25 +1704,17 @@ Konsultasi Admin WA: 081228263200`;
                         }}
                         formatter={(val: any, name: any) => {
                           const br = branches.find((b) => b.code.toLowerCase() === name || b.id === name);
-                          const label = br ? br.name : (name === 'kemang' ? 'Kemang' : name === 'bintaro' ? 'Bintaro' : 'Tebet');
+                          const label = br ? br.name : name;
                           return [`Rp ${Number(val).toLocaleString('id-ID')}`, label];
                         }}
                       />
-                      {isDemo ? (
-                        <>
-                          <Bar dataKey="kemang" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-                          <Bar dataKey="bintaro" fill="#06b6d4" radius={[4, 4, 0, 0]} />
-                          <Bar dataKey="tebet" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-                        </>
-                      ) : (
-                        branches.map((b, idx) => {
-                          const branchColors = ['#f59e0b', '#06b6d4', '#8b5cf6', '#10b981', '#ec4899'];
-                          const col = branchColors[idx % branchColors.length];
-                          return (
-                            <Bar key={b.id} dataKey={b.code.toLowerCase()} fill={col} radius={[4, 4, 0, 0]} />
-                          );
-                        })
-                      )}
+                      {branches.map((b, idx) => {
+                        const branchColors = ['#f59e0b', '#06b6d4', '#8b5cf6', '#10b981', '#ec4899'];
+                        const col = branchColors[idx % branchColors.length];
+                        return (
+                          <Bar key={b.id} dataKey={b.code.toLowerCase()} fill={col} radius={[4, 4, 0, 0]} />
+                        );
+                      })}
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -1772,17 +1738,9 @@ Konsultasi Admin WA: 081228263200`;
                         <th className="p-3.5">Margin (%)</th>
                         <th className="p-3.5">Total Nota</th>
                         <th className="p-3.5">Total Tonase (kg)</th>
-                        {isDemo ? (
-                          <>
-                            <th className="p-3.5">Kemang</th>
-                            <th className="p-3.5">Bintaro</th>
-                            <th className="p-3.5">Tebet</th>
-                          </>
-                        ) : (
-                          branches.map((b) => (
-                            <th key={b.id} className="p-3.5">{b.name}</th>
-                          ))
-                        )}
+                        {branches.map((b) => (
+                          <th key={b.id} className="p-3.5">{b.name}</th>
+                        ))}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800/60 font-mono">
@@ -1801,24 +1759,14 @@ Konsultasi Admin WA: 081228263200`;
                           <td className="p-3.5 text-slate-300">{y.margin}%</td>
                           <td className="p-3.5 text-slate-200">{y.orders.toLocaleString()}</td>
                           <td className="p-3.5 text-cyan-300">{y.weightKg.toLocaleString()} kg</td>
-                          {isDemo ? (
-                            <>
-                              <td className="p-3.5 text-slate-300">Rp {(((y as any).kemang || 0) / 1000000).toFixed(1)}jt</td>
-                              <td className="p-3.5 text-slate-300">Rp {(((y as any).bintaro || 0) / 1000000).toFixed(1)}jt</td>
-                              <td className="p-3.5 text-slate-300">
-                                {(y as any).tebet > 0 ? `Rp ${(((y as any).tebet || 0) / 1000000).toFixed(1)}jt` : '-'}
+                          {branches.map((b) => {
+                            const bRev = (y as any)[b.code.toLowerCase()] || (y as any)[b.id] || 0;
+                            return (
+                              <td key={b.id} className="p-3.5 text-slate-300">
+                                Rp {(bRev / 1000000).toFixed(1)}jt
                               </td>
-                            </>
-                          ) : (
-                            branches.map((b) => {
-                              const bRev = (y as any)[b.code.toLowerCase()] || (y as any)[b.id] || 0;
-                              return (
-                                <td key={b.id} className="p-3.5 text-slate-300">
-                                  Rp {(bRev / 1000000).toFixed(1)}jt
-                                </td>
-                              );
-                            })
-                          )}
+                            );
+                          })}
                         </tr>
                       ))}
                     </tbody>
@@ -5464,45 +5412,19 @@ Konsultasi Admin WA: 081228263200`;
                   </div>
                 </div>
 
-                {/* Simulated Recent Inflows */}
+                {/* Dynamic Referral Status */}
                 <div className="space-y-2 pt-2 border-t border-slate-800 text-xs">
                   <div className="text-[11px] font-bold text-slate-400 flex items-center justify-between">
-                    <span>Aktivitas Pembayaran Masuk:</span>
-                    <span className="text-[10px] text-emerald-400 font-mono">Live Stream</span>
+                    <span>Aktivitas Komisi Referral:</span>
+                    <span className="text-[10px] text-emerald-400 font-mono">Status Otomatis</span>
                   </div>
-                  <div className="space-y-1.5">
-                    <div className="p-2 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between">
-                      <div>
-                        <div className="font-bold text-white text-[11px]">Laundry Berkah Tembalang</div>
-                        <div className="text-[10px] text-slate-400">Beli Paket Sultan (2.000 Nota)</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-mono font-bold text-emerald-400">+Rp 50.000</div>
-                        <div className="text-[9px] text-slate-500">SpeedCash QRIS</div>
-                      </div>
-                    </div>
-
-                    <div className="p-2 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between">
-                      <div>
-                        <div className="font-bold text-white text-[11px]">Klin Fresh Laundry</div>
-                        <div className="text-[10px] text-slate-400">Beli Paket Juragan (1.000 Nota)</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-mono font-bold text-emerald-400">+Rp 30.000</div>
-                        <div className="text-[9px] text-slate-500">SpeedCash QRIS</div>
-                      </div>
-                    </div>
-
-                    <div className="p-2 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between">
-                      <div>
-                        <div className="font-bold text-white text-[11px]">Mahasiswa Express Laundry</div>
-                        <div className="text-[10px] text-slate-400">Klaim Promo RENA50 (Free Trial)</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-mono font-bold text-cyan-400">+50 Nota</div>
-                        <div className="text-[9px] text-slate-500">Lead Baru</div>
-                      </div>
-                    </div>
+                  <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 text-center space-y-1">
+                    <p className="text-[11px] text-slate-300 font-medium">
+                      Bagikan link referral untuk mulai mencetak komisi autopilot.
+                    </p>
+                    <p className="text-[10px] text-slate-500">
+                      Setiap outlet mitra baru yang mendaftar atau top-up otomatis tercatat di dashboard ini.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -6729,7 +6651,7 @@ Konsultasi Admin WA: 081228263200`;
                       setSupplyOrderForm({
                         ...supplyOrderForm,
                         destinationType: 'branch',
-                        destinationId: branches[0]?.id || 'br-kemang',
+                        destinationId: branches[0]?.id || 'br-pusat',
                       })
                     }
                     className={`py-2 px-3 rounded-xl border text-center font-bold transition-all ${

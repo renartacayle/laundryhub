@@ -202,7 +202,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
                 {branch?.name || 'LaundryHub Express'}
               </div>
               <div className="text-[9px] text-slate-600 mt-0.5 leading-tight">
-                {branch?.address || 'Jl. Kemang Raya No. 42B, Jakarta Selatan'}
+                {branch?.address || 'Outlet Pusat LAUNDRYHUB'}
               </div>
               <div className="text-[9px] text-slate-600">Telp/WA: {branch?.phone || '0812-8899-7701'}</div>
             </div>

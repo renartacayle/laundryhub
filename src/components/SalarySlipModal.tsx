@@ -303,10 +303,10 @@ Cek keabsahan online: https://laundryhub.app/verify/${slipSerialNo}`;
                         </span>
                       </div>
                       <p className="text-xs font-bold text-neutral-800 mt-1">
-                        {staffBranch?.name || 'Workshop Kemang Flagship Central'}
+                        {staffBranch?.name || 'LaundryHub Workshop Pusat'}
                       </p>
                       <p className="text-[10px] text-neutral-600 font-mono">
-                        {staffBranch?.address || 'Jl. Kemang Raya No. 45B, Jakarta Selatan'} • Telp: (021) 719-8822
+                        {staffBranch?.address || 'Outlet Pusat LAUNDRYHUB'} • Telp: (021) 719-8822
                       </p>
                     </div>
                   </div>
@@ -586,8 +586,8 @@ Cek keabsahan online: https://laundryhub.app/verify/${slipSerialNo}`;
               <div className="max-w-sm mx-auto bg-[#fffdf5] text-neutral-950 font-mono text-xs rounded-2xl shadow-2xl p-5 border border-amber-300 relative overflow-hidden">
                 <div className="text-center pb-3 border-b-2 border-dashed border-neutral-400 space-y-1">
                   <div className="text-xl font-black tracking-widest text-neutral-950">LAUNDRYHUB</div>
-                  <div className="text-[11px] font-bold text-neutral-800">{staffBranch?.name || 'Workshop Kemang (HQ)'}</div>
-                  <div className="text-[10px] text-neutral-700">{staffBranch?.address || 'Jl. Kemang Raya No. 45B'}</div>
+                  <div className="text-[11px] font-bold text-neutral-800">{staffBranch?.name || 'LaundryHub Workshop Pusat'}</div>
+                  <div className="text-[10px] text-neutral-700">{staffBranch?.address || 'Outlet Pusat LAUNDRYHUB'}</div>
                   <div className="text-[10px] text-neutral-800 font-bold uppercase tracking-wider pt-1">
                     === STRUK SLIP GAJI BORONGAN ===
                   </div>

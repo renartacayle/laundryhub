@@ -50,9 +50,10 @@ export const DopaminePaydayModal: React.FC<DopaminePaydayModalProps> = ({
   onClose,
   staffId,
 }) => {
-  const { users, currentUser, calculateStaffSalarySlip, openSalarySlipModal } = useApp();
+  const { users, currentUser, calculateStaffSalarySlip, openSalarySlipModal, branches } = useApp();
 
   const activeStaff = staffId ? users.find((u) => u.id === staffId) || currentUser : currentUser;
+  const staffBranch = branches.find((b) => b.id === activeStaff.branchId) || branches[0];
   const slip = calculateStaffSalarySlip(activeStaff.id);
 
   const [reels, setReels] = useState<[string, string, string]>(['💰', '💰', '💰']);
@@ -245,7 +246,7 @@ export const DopaminePaydayModal: React.FC<DopaminePaydayModalProps> = ({
                     <span className="capitalize">{activeStaff.role}</span>
                     <span className="text-slate-600">•</span>
                     <Building2 className="w-2.5 h-2.5" />
-                    <span>Workshop Kemang (HQ)</span>
+                    <span>{staffBranch?.name || 'LaundryHub Pusat'}</span>
                   </div>
                 </div>
               </div>
