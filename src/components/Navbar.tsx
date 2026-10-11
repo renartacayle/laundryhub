@@ -55,6 +55,7 @@ export const Navbar: React.FC = () => {
     notifications,
     markNotificationRead,
     resetAllData,
+    activeOwnerUid,
     setIsQrScannerOpen,
     setIsAttendanceModalOpen,
   } = useApp();
@@ -435,10 +436,15 @@ export const Navbar: React.FC = () => {
                         </button>
                       </div>
 
-                      {/* Reset Demo Data */}
+                      {/* Reset Data */}
                       <button
+                        id="btn-navbar-reset-data"
                         onClick={() => {
-                          if (window.confirm('Reset semua data kembali ke seed demo awal?')) {
+                          const isReal = activeOwnerUid && activeOwnerUid !== 'OWN-DEMO-8801';
+                          const promptMsg = isReal
+                            ? 'Bersihkan semua data transaksi, mesin, dan inventori outlet ini kembali ke 0 (Clean Slate)? Akun owner dan cabang tetap tersimpan.'
+                            : 'Reset semua data kembali ke seed demo awal?';
+                          if (window.confirm(promptMsg)) {
                             resetAllData();
                             setIsToolsMenuOpen(false);
                           }
@@ -446,7 +452,7 @@ export const Navbar: React.FC = () => {
                         className="w-full flex items-center gap-2 px-2.5 py-1.5 mt-1 rounded-xl text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 text-[11px] transition-colors"
                       >
                         <RotateCcw className="w-3.5 h-3.5 shrink-0" />
-                        <span>Reset Data Demo</span>
+                        <span>{activeOwnerUid && activeOwnerUid !== 'OWN-DEMO-8801' ? 'Reset Data Outlet (Clean 0)' : 'Reset Data Demo'}</span>
                       </button>
                     </div>
                   </div>
@@ -753,14 +759,19 @@ export const Navbar: React.FC = () => {
               </button>
 
               <button
+                id="btn-navbar-mobile-reset-data"
                 onClick={() => {
-                  if (window.confirm('Reset semua data kembali ke awal?')) {
+                  const isReal = activeOwnerUid && activeOwnerUid !== 'OWN-DEMO-8801';
+                  const promptMsg = isReal
+                    ? 'Bersihkan seluruh data transaksi, mesin, dan inventori outlet ini kembali ke 0 (Clean Slate)? Akun owner dan cabang tetap tersimpan.'
+                    : 'Reset semua data kembali ke awal?';
+                  if (window.confirm(promptMsg)) {
                     resetAllData();
                     setIsMobileMenuOpen(false);
                   }
                 }}
                 className="p-2 rounded-xl bg-slate-850 hover:bg-slate-800 border border-slate-700 text-slate-400 hover:text-rose-500"
-                title="Reset Data"
+                title={activeOwnerUid && activeOwnerUid !== 'OWN-DEMO-8801' ? "Reset Data Outlet (Clean 0)" : "Reset Data"}
               >
                 <RotateCcw className="w-4 h-4" />
               </button>

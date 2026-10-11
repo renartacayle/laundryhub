@@ -46,6 +46,7 @@ export const MobileSettingsView: React.FC = () => {
     setCurrency,
     machines,
     resetAllData,
+    activeOwnerUid,
   } = useApp();
 
   const [isQrisModalOpen, setIsQrisModalOpen] = useState(false);
@@ -358,17 +359,22 @@ export const MobileSettingsView: React.FC = () => {
           </span>
         </button>
 
-        {/* Reset Demo Data Button */}
+        {/* Reset Data Button */}
         <button
+          id="btn-mobile-reset-data"
           onClick={() => {
-            if (window.confirm('Reset seluruh data transaksi kembali ke seed awal?')) {
+            const isReal = activeOwnerUid && activeOwnerUid !== 'OWN-DEMO-8801';
+            const promptMsg = isReal
+              ? 'Bersihkan seluruh data transaksi, mesin, dan inventori outlet ini kembali ke 0 (Clean Slate)? Akun owner dan cabang utama tetap tersimpan.'
+              : 'Reset seluruh data transaksi kembali ke seed awal?';
+            if (window.confirm(promptMsg)) {
               resetAllData();
             }
           }}
           className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 hover:bg-rose-500/20 text-xs font-bold transition-all"
         >
           <RotateCcw className="w-4 h-4 text-rose-400" />
-          <span>Reset Seluruh Data Demo</span>
+          <span>{activeOwnerUid && activeOwnerUid !== 'OWN-DEMO-8801' ? 'Reset Data Outlet (Clean Slate 0)' : 'Reset Seluruh Data Demo'}</span>
         </button>
       </div>
 

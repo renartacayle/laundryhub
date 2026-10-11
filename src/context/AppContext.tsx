@@ -353,6 +353,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const t = translations[language] || translations.id;
 
   const [tokenCoins, setTokenCoins] = useState<number>(() => {
+    const activeUid = localStorage.getItem('lh_active_owner_uid') || 'OWN-DEMO-8801';
+    const isDemo = activeUid === 'OWN-DEMO-8801';
+    if (!isDemo) {
+      const savedTenant = localStorage.getItem(`lh_coins_${activeUid}`);
+      if (savedTenant !== null) {
+        const val = parseInt(savedTenant, 10);
+        if (!isNaN(val)) return val;
+      }
+      return 50;
+    }
     const saved = localStorage.getItem('lh_coins');
     return saved ? parseInt(saved, 10) : 1850;
   });
@@ -456,6 +466,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const reg = getOwnersRegistry();
       const ownerProf = reg.find((o) => o.ownerUid === activeUid);
       if (ownerProf) {
+        let tenantBranchId = 'br-kemang';
+        try {
+          const savedBr = localStorage.getItem(`lh_branches_${activeUid}`);
+          if (savedBr) {
+            const parsedBr = JSON.parse(savedBr);
+            if (Array.isArray(parsedBr) && parsedBr.length > 0) {
+              tenantBranchId = parsedBr[0].id;
+            }
+          }
+        } catch (e) {}
         const ownerUser: User = {
           id: `usr-owner-${activeUid}`,
           ownerUid: activeUid,
@@ -465,7 +485,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           email: ownerProf.email,
           phone: ownerProf.phone,
           avatar: ownerProf.avatar,
-          branchId: 'br-kmg',
+          branchId: tenantBranchId,
           commissionRateKg: 0,
           commissionRateItem: 0,
           totalCommissionEarned: 0,
@@ -551,7 +571,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
 
   const [machines, setMachines] = useState<MachineIoT[]>(() => {
-    const saved = localStorage.getItem('lh_machines');
+    const activeUid = localStorage.getItem('lh_active_owner_uid') || 'OWN-DEMO-8801';
+    if (activeUid !== 'OWN-DEMO-8801') {
+      const savedTenant = localStorage.getItem(`lh_machines_${activeUid}`);
+      if (savedTenant !== null) {
+        try { return JSON.parse(savedTenant); } catch (e) {}
+      }
+      return [];
+    }
+    const saved = localStorage.getItem('lh_machines_OWN-DEMO-8801') || localStorage.getItem('lh_machines');
     return saved ? JSON.parse(saved) : INITIAL_MACHINES;
   });
 
@@ -708,40 +736,54 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
 
-  const [notifications, setNotifications] = useState<NotificationItem[]>([
-    {
-      id: 'notif-1',
-      title: 'Stok Deterjen Menipis',
-      message: 'Stok Deterjen Liquid Konsentrat di Cabang Kemang tersisa 4.5 jerigen (min: 5).',
-      type: 'stock',
-      timestamp: '15 menit yang lalu',
-      read: false,
-    },
-    {
-      id: 'notif-2',
-      title: 'Washer #1 Sedang Berjalan',
-      message: 'Washer LG Titan berjalan untuk invoice LH-KMG-2610-004.',
-      type: 'iot',
-      timestamp: '35 menit yang lalu',
-      read: false,
-    },
-    {
-      id: 'notif-3',
-      title: 'Order Dropship Masuk',
-      message: 'Mitra Drop Point Warung Berkah input order baru senilai Rp 54.000.',
-      type: 'dropship',
-      timestamp: '40 menit yang lalu',
-      read: false,
-    },
-    {
-      id: 'notif-4',
-      title: 'Order Express Masuk',
-      message: 'Order kilat LH-KMG-2610-002 (Nadia Saphira) target siap jam 18:40.',
-      type: 'order',
-      timestamp: '1 jam yang lalu',
-      read: true,
-    },
-  ]);
+  const [notifications, setNotifications] = useState<NotificationItem[]>(() => {
+    const activeUid = localStorage.getItem('lh_active_owner_uid') || 'OWN-DEMO-8801';
+    if (activeUid !== 'OWN-DEMO-8801') {
+      const savedTenant = localStorage.getItem(`lh_notifs_${activeUid}`);
+      if (savedTenant !== null) {
+        try { return JSON.parse(savedTenant); } catch (e) {}
+      }
+      return [];
+    }
+    const saved = localStorage.getItem('lh_notifs_OWN-DEMO-8801') || localStorage.getItem('lh_notifs');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return [
+      {
+        id: 'notif-1',
+        title: 'Stok Deterjen Menipis',
+        message: 'Stok Deterjen Liquid Konsentrat di Cabang Kemang tersisa 4.5 jerigen (min: 5).',
+        type: 'stock',
+        timestamp: '15 menit yang lalu',
+        read: false,
+      },
+      {
+        id: 'notif-2',
+        title: 'Washer #1 Sedang Berjalan',
+        message: 'Washer LG Titan berjalan untuk invoice LH-KMG-2610-004.',
+        type: 'iot',
+        timestamp: '35 menit yang lalu',
+        read: false,
+      },
+      {
+        id: 'notif-3',
+        title: 'Order Dropship Masuk',
+        message: 'Mitra Drop Point Warung Berkah input order baru senilai Rp 54.000.',
+        type: 'dropship',
+        timestamp: '40 menit yang lalu',
+        read: false,
+      },
+      {
+        id: 'notif-4',
+        title: 'Order Express Masuk',
+        message: 'Order kilat LH-KMG-2610-002 (Nadia Saphira) target siap jam 18:40.',
+        type: 'order',
+        timestamp: '1 jam yang lalu',
+        read: true,
+      },
+    ];
+  });
 
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
 
@@ -762,7 +804,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     name: 'Pelanggan Umum (Guest)',
     phone: '0812-0000-0000',
     address: 'Outlet',
-    branchId: 'br-kemang',
+    branchId: currentBranchId || (branches[0]?.id) || 'br-pusat',
     totalOrdersCount: 0,
     depositBalance: 0,
     loyaltyPoints: 0,
@@ -1826,6 +1868,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setCurrentUser(updatedUser);
       const targetRole = updatedUser.role === 'owner' ? 'owner' : (updatedUser.allowedRoles?.[0] || updatedUser.role);
       _setCurrentRole(targetRole);
+      if (updatedUser.role === 'owner' && updatedUser.ownerUid) {
+        setActiveOwnerUid(updatedUser.ownerUid);
+        localStorage.setItem('lh_active_owner_uid', updatedUser.ownerUid);
+        loadTenantData(updatedUser.ownerUid, updatedUser);
+      }
       setCurrentBranchId(updatedUser.branchId);
       setActiveGmailAccount(cleanEmail);
       localStorage.setItem('lh_active_gmail', cleanEmail);
@@ -1999,6 +2046,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       try { setAuditLogs(JSON.parse(savedLogs)); } catch (e) { setAuditLogs([]); }
     } else {
       setAuditLogs(isDemo ? INITIAL_AUDIT_LOGS : []);
+    }
+
+    // Machines
+    const savedMach = localStorage.getItem(`lh_machines_${targetUid}`);
+    if (savedMach !== null) {
+      try { setMachines(JSON.parse(savedMach)); } catch (e) { setMachines([]); }
+    } else {
+      setMachines(isDemo ? INITIAL_MACHINES : []);
+    }
+
+    // Notifications
+    const savedNotifs = localStorage.getItem(`lh_notifs_${targetUid}`);
+    if (savedNotifs !== null) {
+      try { setNotifications(JSON.parse(savedNotifs)); } catch (e) { setNotifications([]); }
+    } else {
+      setNotifications(isDemo ? [
+        {
+          id: 'notif-1',
+          title: 'Stok Deterjen Menipis',
+          message: 'Stok Deterjen Liquid Konsentrat di Cabang Kemang tersisa 4.5 jerigen (min: 5).',
+          type: 'stock',
+          timestamp: '15 menit yang lalu',
+          read: false,
+        },
+      ] : []);
     }
 
     // Branches
@@ -2762,12 +2834,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setInventory([]);
     setServices([]);
     setFragrances([]);
+    setMachines([]);
     setDropshipAgents([]);
     setDropshipSupplyOrders([]);
     setWithdrawalRequests([]);
     setCustomers([]);
     setCourierTasks([]);
     setAttendances([]);
+    setNotifications([]);
     setTokenCoins(50);
     setBranches([initialBranch]);
     setCurrentBranchId(initialBranch.id);
@@ -2802,6 +2876,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem(`lh_inventory_${newUid}`, JSON.stringify([]));
     localStorage.setItem(`lh_services_${newUid}`, JSON.stringify([]));
     localStorage.setItem(`lh_fragrances_${newUid}`, JSON.stringify([]));
+    localStorage.setItem(`lh_machines_${newUid}`, JSON.stringify([]));
+    localStorage.setItem(`lh_notifs_${newUid}`, JSON.stringify([]));
     localStorage.setItem(`lh_dropship_agents_${newUid}`, JSON.stringify([]));
     localStorage.setItem(`lh_dropship_orders_${newUid}`, JSON.stringify([]));
     localStorage.setItem(`lh_withdrawals_${newUid}`, JSON.stringify([]));
@@ -2920,6 +2996,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     setActiveOwnerUid(assignedOwnerUid);
+    loadTenantData(assignedOwnerUid, targetUser);
     setCurrentUserId(targetUser.id);
     setCurrentUser(targetUser);
     _setCurrentRole(targetRole);
@@ -3806,27 +3883,124 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const resetAllData = () => {
-    localStorage.clear();
-    setOrders(ALL_ORDERS);
-    setCustomers(INITIAL_CUSTOMERS);
-    setUsers(INITIAL_USERS);
-    setInventory(INITIAL_INVENTORY);
-    setMachines(INITIAL_MACHINES);
-    setCourierTasks(INITIAL_COURIER_TASKS);
-    setAuditLogs(INITIAL_AUDIT_LOGS);
-    setDropshipAgents(INITIAL_DROPSHIP_AGENTS);
-    setDropshipSupplyOrders(INITIAL_DROPSHIP_SUPPLY_ORDERS);
-    setWithdrawalRequests(INITIAL_WITHDRAWAL_REQUESTS);
-    setAttendances(INITIAL_ATTENDANCE);
-    setPayrollSettings(DEFAULT_PAYROLL_SETTINGS);
-    setServices(INITIAL_SERVICES);
-    setFragrances(INITIAL_FRAGRANCES);
-    setTokenCoins(1850);
-    setCurrentRole('owner');
-    setCurrentBranchId('br-kemang');
-    setActiveTutorial(null);
-    setTutorialStep(0);
-    setTrackingModalOrder(null);
+    const isDemo = activeOwnerUid === 'OWN-DEMO-8801';
+    if (!isDemo) {
+      // 1. Reset Real Account to pure clean slate (0 dummy data)
+      const reg = getOwnersRegistry();
+      const ownerProf = reg.find((o) => o.ownerUid === activeOwnerUid);
+      const outletName = ownerProf?.outletName || currentUser.outletName || 'LaundryHub Outlet';
+      const cleanBranch: Branch = branches.find((b) => b.isPusat) || branches[0] || {
+        id: `br-${activeOwnerUid.toLowerCase().replace(/[^a-z0-9]/g, '-')}-pusat`,
+        ownerUid: activeOwnerUid,
+        name: `${outletName} (Pusat)`,
+        address: 'Workshop & Outlet Utama',
+        phone: ownerProf?.phone || currentUser.phone || '0812-8899-7701',
+        code: (outletName.replace(/[^A-Za-z]/g, '').substring(0, 3).toUpperCase() || 'PST'),
+        isPusat: true,
+        image: 'https://images.unsplash.com/photo-1545173168-9f1947eebb7f?auto=format&fit=crop&w=300&q=80',
+        createdAt: new Date().toISOString(),
+      };
+
+      const ownerUser: User = {
+        id: currentUser.id.startsWith('usr-owner') ? currentUser.id : `usr-owner-${activeOwnerUid}`,
+        ownerUid: activeOwnerUid,
+        name: ownerProf?.name || currentUser.name,
+        role: 'owner',
+        allowedRoles: ['owner', 'kasir', 'produksi', 'kurir', 'agen'],
+        email: ownerProf?.email || currentUser.email,
+        phone: ownerProf?.phone || currentUser.phone,
+        avatar: ownerProf?.avatar || currentUser.avatar,
+        branchId: cleanBranch.id,
+        commissionRateKg: 0,
+        commissionRateItem: 0,
+        totalCommissionEarned: 0,
+        pin: ownerProf?.pin || currentUser.pin || '8888',
+        outletName,
+        isGmailLinked: true,
+        isPersonalGoogleAccount: true,
+        isDemo: false,
+        lastLoginAt: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      };
+
+      setOrders([]);
+      setCustomers([]);
+      setInventory([]);
+      setMachines([]);
+      setCourierTasks([]);
+      setDropshipAgents([]);
+      setDropshipSupplyOrders([]);
+      setWithdrawalRequests([]);
+      setAttendances([]);
+      setServices([]);
+      setFragrances([]);
+      setNotifications([]);
+      setTokenCoins(50);
+      setBranches([cleanBranch]);
+      setCurrentBranchId(cleanBranch.id);
+      setUsers([ownerUser]);
+      setCurrentUserId(ownerUser.id);
+      setCurrentUser(ownerUser);
+      _setCurrentRole('owner');
+      setActiveTutorial(null);
+      setTutorialStep(0);
+      setTrackingModalOrder(null);
+
+      const log: AuditLog = {
+        id: `log-${Date.now()}`,
+        timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+        actorName: ownerUser.name,
+        actorRole: 'owner',
+        action: 'RESET_OUTLET_DATA',
+        details: `Reset Data Outlet: Seluruh transaksi, stok, mesin & histori dibersihkan. Memulai operasional riil dari 0 (UID: ${activeOwnerUid}).`,
+        branchId: cleanBranch.id,
+      };
+      setAuditLogs([log]);
+
+      // Persist to tenant localStorage
+      localStorage.setItem(`lh_orders_${activeOwnerUid}`, JSON.stringify([]));
+      localStorage.setItem(`lh_customers_${activeOwnerUid}`, JSON.stringify([]));
+      localStorage.setItem(`lh_inventory_${activeOwnerUid}`, JSON.stringify([]));
+      localStorage.setItem(`lh_machines_${activeOwnerUid}`, JSON.stringify([]));
+      localStorage.setItem(`lh_courier_tasks_${activeOwnerUid}`, JSON.stringify([]));
+      localStorage.setItem(`lh_dropship_agents_${activeOwnerUid}`, JSON.stringify([]));
+      localStorage.setItem(`lh_dropship_orders_${activeOwnerUid}`, JSON.stringify([]));
+      localStorage.setItem(`lh_withdrawals_${activeOwnerUid}`, JSON.stringify([]));
+      localStorage.setItem(`lh_attendances_${activeOwnerUid}`, JSON.stringify([]));
+      localStorage.setItem(`lh_services_${activeOwnerUid}`, JSON.stringify([]));
+      localStorage.setItem(`lh_fragrances_${activeOwnerUid}`, JSON.stringify([]));
+      localStorage.setItem(`lh_branches_${activeOwnerUid}`, JSON.stringify([cleanBranch]));
+      localStorage.setItem(`lh_users_${activeOwnerUid}`, JSON.stringify([ownerUser]));
+      localStorage.setItem(`lh_audit_logs_${activeOwnerUid}`, JSON.stringify([log]));
+      localStorage.setItem(`lh_notifs_${activeOwnerUid}`, JSON.stringify([]));
+      localStorage.setItem(`lh_coins_${activeOwnerUid}`, '50');
+      localStorage.setItem('lh_coins', '50');
+      localStorage.setItem('lh_branch', cleanBranch.id);
+      localStorage.setItem('lh_role', 'owner');
+      localStorage.setItem('lh_user_id', ownerUser.id);
+      localStorage.setItem('lh_auth_mode', 'commercial');
+    } else {
+      localStorage.clear();
+      setOrders(ALL_ORDERS);
+      setCustomers(INITIAL_CUSTOMERS);
+      setUsers(INITIAL_USERS);
+      setInventory(INITIAL_INVENTORY);
+      setMachines(INITIAL_MACHINES);
+      setCourierTasks(INITIAL_COURIER_TASKS);
+      setAuditLogs(INITIAL_AUDIT_LOGS);
+      setDropshipAgents(INITIAL_DROPSHIP_AGENTS);
+      setDropshipSupplyOrders(INITIAL_DROPSHIP_SUPPLY_ORDERS);
+      setWithdrawalRequests(INITIAL_WITHDRAWAL_REQUESTS);
+      setAttendances(INITIAL_ATTENDANCE);
+      setPayrollSettings(DEFAULT_PAYROLL_SETTINGS);
+      setServices(INITIAL_SERVICES);
+      setFragrances(INITIAL_FRAGRANCES);
+      setTokenCoins(1850);
+      setCurrentRole('owner');
+      setCurrentBranchId('br-kemang');
+      setActiveTutorial(null);
+      setTutorialStep(0);
+      setTrackingModalOrder(null);
+    }
   };
 
   return (

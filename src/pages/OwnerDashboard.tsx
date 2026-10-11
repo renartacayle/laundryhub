@@ -16,6 +16,7 @@ import {
   ArrowDownRight,
   Plus,
   RefreshCw,
+  RotateCcw,
   Award,
   Layers,
   BarChart3,
@@ -209,6 +210,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
     deleteBranch,
     switchBranch,
     currentBranchId,
+    resetAllData,
   } = useApp();
 
   // Branch Management State
@@ -740,6 +742,13 @@ Konsultasi Admin WA: 081228263200`;
     const ordersCount = filteredOrders.length;
     const weightKg = Number(filteredOrders.reduce((sum, o) => sum + (o.weightKg || 0), 0).toFixed(1));
 
+    const branchBreakdown: Record<string, number> = {};
+    branches.forEach((b) => {
+      const bRev = filteredOrders.filter((o) => o.branchId === b.id).reduce((sum, o) => sum + o.finalPrice, 0);
+      branchBreakdown[b.code.toLowerCase()] = bRev;
+      branchBreakdown[b.id] = bRev;
+    });
+
     return [
       {
         year: currentYear,
@@ -750,12 +759,10 @@ Konsultasi Admin WA: 081228263200`;
         orders: ordersCount,
         weightKg,
         growthYoY: 0,
-        kemang: omzet,
-        bintaro: 0,
-        tebet: 0,
+        ...branchBreakdown,
       },
     ];
-  }, [activeOwnerUid, filteredOrders, orders.length]);
+  }, [activeOwnerUid, filteredOrders, orders.length, branches]);
 
   // Branch Performance
   const branchPerformance = branches.map((branch) => {
@@ -781,6 +788,16 @@ Konsultasi Admin WA: 081228263200`;
   const totalLaba2026 = monthlyStatsData.reduce((acc, m) => acc + m.laba, 0);
   const totalOrders2026 = monthlyStatsData.reduce((acc, m) => acc + m.orders, 0);
   const avgOmzetPerMonth = Math.round(totalOmzet2026 / 12);
+  const avgMargin = totalOmzet2026 > 0 ? Number(((totalLaba2026 / totalOmzet2026) * 100).toFixed(1)) : 0;
+  const peakMonth = useMemo(() => {
+    if (totalOmzet2026 === 0) return null;
+    return [...monthlyStatsData].sort((a, b) => b.omzet - a.omzet)[0];
+  }, [monthlyStatsData, totalOmzet2026]);
+
+  const isDemo = activeOwnerUid === 'OWN-DEMO-8801';
+  const yearlyTotalOmzet = yearlyStatsData.reduce((acc, y) => acc + y.omzet, 0);
+  const yearlyTotalOrders = yearlyStatsData.reduce((acc, y) => acc + y.orders, 0);
+  const yearlyTotalKg = Number(yearlyStatsData.reduce((acc, y) => acc + y.weightKg, 0).toFixed(1));
 
   return (
     <div className="space-y-6">
@@ -1005,11 +1022,31 @@ Konsultasi Admin WA: 081228263200`;
                     alert(`Owner UID (${uid}) berhasil disalin!`);
                   }
                 }}
-                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 transition-all flex items-center gap-1.5"
+                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
                 title="Salin Owner UID unik toko Anda"
               >
                 <Copy className="w-3.5 h-3.5 text-amber-400" />
                 <span>Salin UID Toko</span>
+              </button>
+
+              <button
+                type="button"
+                id="btn-owner-reset-data"
+                onClick={() => {
+                  const isDemoMode = activeOwnerUid === 'OWN-DEMO-8801';
+                  const promptMsg = isDemoMode
+                    ? 'Reset semua data kembali ke seed contoh demo awal?'
+                    : 'Peringatan: Reset database outlet akan membersihkan seluruh data transaksi, stok, mesin, pelanggan, dan histori kembali ke 0 (clean slate). Lanjutkan?';
+                  if (window.confirm(promptMsg)) {
+                    resetAllData();
+                    alert(isDemoMode ? 'Data demo berhasil di-reset!' : 'Database outlet berhasil di-reset menjadi bersih (0 transaksi & 0 dummy data)!');
+                  }
+                }}
+                className="px-3 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 hover:text-rose-200 text-xs font-bold border border-rose-500/30 transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
+                title="Reset seluruh data transaksi outlet & mulai dari 0"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-rose-400" />
+                <span>Reset Data Outlet</span>
               </button>
             </div>
           </div>
@@ -1433,7 +1470,7 @@ Konsultasi Admin WA: 081228263200`;
                     Rp {totalOmzet2026.toLocaleString('id-ID')}
                   </div>
                   <div className="text-[10px] text-emerald-400 mt-1 flex items-center gap-1 font-bold">
-                    <ArrowUpRight className="w-3 h-3" /> +31.3% vs Tahun 2025
+                    <ArrowUpRight className="w-3 h-3" /> {isDemo ? '+31.3% vs Tahun 2025' : (totalOmzet2026 > 0 ? '+100% vs Periode Awal' : 'Outlet Baru (Tahun Berjalan 2026)')}
                   </div>
                 </div>
 
@@ -1448,10 +1485,10 @@ Konsultasi Admin WA: 081228263200`;
                 <div className="p-4 rounded-2xl glass-card border border-slate-800">
                   <span className="text-[11px] text-slate-400 uppercase font-semibold">Bulan Teramai (Peak Season)</span>
                   <div className="text-xl font-black text-purple-400 mt-1">
-                    Desember (Est)
+                    {peakMonth ? peakMonth.month : 'Belum Ada Transaksi'}
                   </div>
                   <div className="text-[10px] text-amber-300 mt-1 font-mono">
-                    Rp 69.200.000 (1.360 nota)
+                    {peakMonth ? `Rp ${peakMonth.omzet.toLocaleString('id-ID')} (${peakMonth.orders} nota)` : 'Rp 0 (0 nota)'}
                   </div>
                 </div>
 
@@ -1460,7 +1497,7 @@ Konsultasi Admin WA: 081228263200`;
                   <div className="text-xl font-black text-emerald-400 font-mono mt-1">
                     Rp {totalLaba2026.toLocaleString('id-ID')}
                   </div>
-                  <div className="text-[10px] text-slate-400 mt-1">Margin Rata-rata 62.1%</div>
+                  <div className="text-[10px] text-slate-400 mt-1">Margin Rata-rata {avgMargin}%</div>
                 </div>
               </div>
 
@@ -1572,12 +1609,12 @@ Konsultasi Admin WA: 081228263200`;
                         <td className="p-3.5 text-amber-400">Rp {totalOmzet2026.toLocaleString('id-ID')}</td>
                         <td className="p-3.5 text-rose-400">Rp {(totalOmzet2026 - totalLaba2026).toLocaleString('id-ID')}</td>
                         <td className="p-3.5 text-emerald-400">Rp {totalLaba2026.toLocaleString('id-ID')}</td>
-                        <td className="p-3.5 text-white">62.1%</td>
+                        <td className="p-3.5 text-white">{avgMargin}%</td>
                         <td className="p-3.5 text-white">{totalOrders2026.toLocaleString()} Nota</td>
                         <td className="p-3.5 text-cyan-400">
                           {monthlyStatsData.reduce((acc, i) => acc + i.weightKg, 0).toLocaleString()} kg
                         </td>
-                        <td className="p-3.5 text-right text-emerald-400">+31.3% YoY</td>
+                        <td className="p-3.5 text-right text-emerald-400">{isDemo ? '+31.3% YoY' : (totalOmzet2026 > 0 ? '+100% YoY' : '0% YoY')}</td>
                       </tr>
                     </tfoot>
                   </table>
@@ -1594,33 +1631,43 @@ Konsultasi Admin WA: 081228263200`;
                 <div className="p-4 rounded-2xl glass-card border border-slate-800">
                   <span className="text-[11px] text-slate-400 uppercase font-semibold">Pertumbuhan Tahunan (CAGR)</span>
                   <div className="text-2xl font-black text-emerald-400 font-mono mt-1">
-                    +40.2% / thn
+                    {isDemo ? '+40.2% / thn' : (yearlyTotalOrders > 0 ? '+100% / thn' : '0% / thn')}
                   </div>
-                  <div className="text-[10px] text-slate-400 mt-1">Ekspansi dari 1 ke 3 cabang outlet</div>
+                  <div className="text-[10px] text-slate-400 mt-1">
+                    {isDemo ? 'Ekspansi dari 1 ke 3 cabang outlet' : 'Tahun berjalan ' + new Date().getFullYear()}
+                  </div>
                 </div>
 
                 <div className="p-4 rounded-2xl glass-card border border-slate-800">
-                  <span className="text-[11px] text-slate-400 uppercase font-semibold">Total Omzet Akumulatif (3 Thn)</span>
+                  <span className="text-[11px] text-slate-400 uppercase font-semibold">
+                    {isDemo ? 'Total Omzet Akumulatif (3 Thn)' : 'Total Omzet Tahunan'}
+                  </span>
                   <div className="text-2xl font-black text-amber-400 font-mono mt-1">
-                    Rp 1.52 Milyar
+                    {isDemo ? 'Rp 1.52 Milyar' : 'Rp ' + yearlyTotalOmzet.toLocaleString('id-ID')}
                   </div>
-                  <div className="text-[10px] text-slate-400 mt-1">Periode tahun 2024 - 2026</div>
+                  <div className="text-[10px] text-slate-400 mt-1">
+                    {isDemo ? 'Periode tahun 2024 - 2026' : 'Periode tahun ' + new Date().getFullYear()}
+                  </div>
                 </div>
 
                 <div className="p-4 rounded-2xl glass-card border border-slate-800">
                   <span className="text-[11px] text-slate-400 uppercase font-semibold">Total Pakaian Dicuci</span>
                   <div className="text-2xl font-black text-cyan-400 font-mono mt-1">
-                    116.490 kg
+                    {isDemo ? '116.490 kg' : yearlyTotalKg.toLocaleString('id-ID') + ' kg'}
                   </div>
-                  <div className="text-[10px] text-slate-400 mt-1">Setara ~32.300 nota cucian</div>
+                  <div className="text-[10px] text-slate-400 mt-1">
+                    {isDemo ? 'Setara ~32.300 nota cucian' : 'Setara ' + yearlyTotalOrders.toLocaleString('id-ID') + ' nota cucian'}
+                  </div>
                 </div>
 
                 <div className="p-4 rounded-2xl glass-card border border-slate-800">
                   <span className="text-[11px] text-slate-400 uppercase font-semibold">Ekspansi Outlet Aktif</span>
                   <div className="text-2xl font-black text-purple-400 font-mono mt-1">
-                    3 Outlet
+                    {branches.length} Outlet
                   </div>
-                  <div className="text-[10px] text-slate-400 mt-1">Kemang, Bintaro Sektor 7, & Tebet</div>
+                  <div className="text-[10px] text-slate-400 mt-1">
+                    {branches.map((b) => b.name).join(', ') || 'Cabang Utama'}
+                  </div>
                 </div>
               </div>
 
@@ -1628,22 +1675,39 @@ Konsultasi Admin WA: 081228263200`;
               <div className="p-5 rounded-3xl glass-panel border border-slate-800 space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="text-sm font-bold text-white">Komparasi Pertumbuhan Omzet per Cabang (2024 - 2026)</h4>
-                    <p className="text-xs text-slate-400">Perkembangan kontribusi pendapatan dari tiap outlet dari tahun ke tahun</p>
+                    <h4 className="text-sm font-bold text-white">
+                      {isDemo ? 'Komparasi Pertumbuhan Omzet per Cabang (2024 - 2026)' : 'Pertumbuhan Omzet per Cabang (' + new Date().getFullYear() + ')'}
+                    </h4>
+                    <p className="text-xs text-slate-400">Perkembangan kontribusi pendapatan dari tiap outlet</p>
                   </div>
-                  <div className="flex items-center gap-3 text-xs">
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-3 h-3 rounded bg-amber-500" />
-                      <span className="text-slate-300">Kemang (Pusat)</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-3 h-3 rounded bg-cyan-500" />
-                      <span className="text-slate-300">Bintaro Sek. 7</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-3 h-3 rounded bg-purple-500" />
-                      <span className="text-slate-300">Tebet</span>
-                    </div>
+                  <div className="flex items-center gap-3 text-xs flex-wrap">
+                    {isDemo ? (
+                      <>
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-3 h-3 rounded bg-amber-500" />
+                          <span className="text-slate-300">Kemang (Pusat)</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-3 h-3 rounded bg-cyan-500" />
+                          <span className="text-slate-300">Bintaro Sek. 7</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-3 h-3 rounded bg-purple-500" />
+                          <span className="text-slate-300">Tebet</span>
+                        </div>
+                      </>
+                    ) : (
+                      branches.map((b, idx) => {
+                        const branchColors = ['#f59e0b', '#06b6d4', '#8b5cf6', '#10b981', '#ec4899'];
+                        const col = branchColors[idx % branchColors.length];
+                        return (
+                          <div key={b.id} className="flex items-center gap-1.5">
+                            <span className="w-3 h-3 rounded" style={{ backgroundColor: col }} />
+                            <span className="text-slate-300">{b.name}</span>
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
                 </div>
 
@@ -1664,14 +1728,27 @@ Konsultasi Admin WA: 081228263200`;
                           borderRadius: '12px',
                           fontSize: '12px',
                         }}
-                        formatter={(val: any, name: any) => [
-                          `Rp ${Number(val).toLocaleString('id-ID')}`,
-                          name === 'kemang' ? 'Kemang' : name === 'bintaro' ? 'Bintaro' : 'Tebet',
-                        ]}
+                        formatter={(val: any, name: any) => {
+                          const br = branches.find((b) => b.code.toLowerCase() === name || b.id === name);
+                          const label = br ? br.name : (name === 'kemang' ? 'Kemang' : name === 'bintaro' ? 'Bintaro' : 'Tebet');
+                          return [`Rp ${Number(val).toLocaleString('id-ID')}`, label];
+                        }}
                       />
-                      <Bar dataKey="kemang" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="bintaro" fill="#06b6d4" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="tebet" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                      {isDemo ? (
+                        <>
+                          <Bar dataKey="kemang" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                          <Bar dataKey="bintaro" fill="#06b6d4" radius={[4, 4, 0, 0]} />
+                          <Bar dataKey="tebet" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                        </>
+                      ) : (
+                        branches.map((b, idx) => {
+                          const branchColors = ['#f59e0b', '#06b6d4', '#8b5cf6', '#10b981', '#ec4899'];
+                          const col = branchColors[idx % branchColors.length];
+                          return (
+                            <Bar key={b.id} dataKey={b.code.toLowerCase()} fill={col} radius={[4, 4, 0, 0]} />
+                          );
+                        })
+                      )}
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -1695,9 +1772,17 @@ Konsultasi Admin WA: 081228263200`;
                         <th className="p-3.5">Margin (%)</th>
                         <th className="p-3.5">Total Nota</th>
                         <th className="p-3.5">Total Tonase (kg)</th>
-                        <th className="p-3.5">Kemang</th>
-                        <th className="p-3.5">Bintaro</th>
-                        <th className="p-3.5">Tebet</th>
+                        {isDemo ? (
+                          <>
+                            <th className="p-3.5">Kemang</th>
+                            <th className="p-3.5">Bintaro</th>
+                            <th className="p-3.5">Tebet</th>
+                          </>
+                        ) : (
+                          branches.map((b) => (
+                            <th key={b.id} className="p-3.5">{b.name}</th>
+                          ))
+                        )}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800/60 font-mono">
@@ -1716,11 +1801,24 @@ Konsultasi Admin WA: 081228263200`;
                           <td className="p-3.5 text-slate-300">{y.margin}%</td>
                           <td className="p-3.5 text-slate-200">{y.orders.toLocaleString()}</td>
                           <td className="p-3.5 text-cyan-300">{y.weightKg.toLocaleString()} kg</td>
-                          <td className="p-3.5 text-slate-300">Rp {(y.kemang / 1000000).toFixed(1)}jt</td>
-                          <td className="p-3.5 text-slate-300">Rp {(y.bintaro / 1000000).toFixed(1)}jt</td>
-                          <td className="p-3.5 text-slate-300">
-                            {y.tebet > 0 ? `Rp ${(y.tebet / 1000000).toFixed(1)}jt` : '-'}
-                          </td>
+                          {isDemo ? (
+                            <>
+                              <td className="p-3.5 text-slate-300">Rp {(((y as any).kemang || 0) / 1000000).toFixed(1)}jt</td>
+                              <td className="p-3.5 text-slate-300">Rp {(((y as any).bintaro || 0) / 1000000).toFixed(1)}jt</td>
+                              <td className="p-3.5 text-slate-300">
+                                {(y as any).tebet > 0 ? `Rp ${(((y as any).tebet || 0) / 1000000).toFixed(1)}jt` : '-'}
+                              </td>
+                            </>
+                          ) : (
+                            branches.map((b) => {
+                              const bRev = (y as any)[b.code.toLowerCase()] || (y as any)[b.id] || 0;
+                              return (
+                                <td key={b.id} className="p-3.5 text-slate-300">
+                                  Rp {(bRev / 1000000).toFixed(1)}jt
+                                </td>
+                              );
+                            })
+                          )}
                         </tr>
                       ))}
                     </tbody>
@@ -4511,7 +4609,7 @@ Konsultasi Admin WA: 081228263200`;
                     {dropshipAgents.length} Lokasi
                   </div>
                   <div className="text-[11px] text-slate-400 mt-1">
-                    Terhubung ke workshop Kemang, Bintaro, Tebet
+                    Terhubung ke {branches.map((b) => b.name).join(', ') || 'workshop outlet'}
                   </div>
                 </div>
 

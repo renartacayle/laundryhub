@@ -1000,13 +1000,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
               {/* Reset Data button */}
               <button
                 type="button"
+                id="btn-sidebar-reset-data"
                 onClick={() => {
-                  if (window.confirm('Reset semua data demo kembali ke awal?')) {
+                  const isReal = activeOwnerUid && activeOwnerUid !== 'OWN-DEMO-8801';
+                  const promptMsg = isReal
+                    ? 'Bersihkan seluruh transaksi, mesin, dan inventori outlet ini kembali ke 0 (Clean Slate)? Akun owner dan cabang utama tetap tersimpan.'
+                    : 'Reset semua data demo kembali ke awal?';
+                  if (window.confirm(promptMsg)) {
                     resetAllData();
                   }
                 }}
                 className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
-                title="Reset Data Demo"
+                title={activeOwnerUid && activeOwnerUid !== 'OWN-DEMO-8801' ? "Reset Data Outlet (Clean Slate 0)" : "Reset Data Demo"}
               >
                 <RotateCcw className="w-4 h-4" />
               </button>
