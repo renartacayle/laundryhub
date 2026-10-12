@@ -169,6 +169,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({ currentSubTab = 
     withdrawalRequests,
     approveWithdrawal,
     registerDropshipAgent,
+    deleteDropshipAgent,
     orderDropshipSupplies,
     addWorker,
     removeWorker,
@@ -5550,6 +5551,18 @@ Konsultasi Admin WA: 081228263200`;
                           {isCopied ? <CheckCircle className="w-3.5 h-3.5" /> : <ExternalLink className="w-3.5 h-3.5" />}
                           <span>{isCopied ? 'Tersalin!' : 'Link POS'}</span>
                         </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (window.confirm(`Yakin ingin menghapus kemitraan drop point "${agent.name}"?`)) {
+                              deleteDropshipAgent(agent.id);
+                            }
+                          }}
+                          className="py-1.5 px-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 transition-all flex items-center justify-center"
+                          title="Hapus Mitra Dropship"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
                   );
@@ -7516,11 +7529,17 @@ Konsultasi Admin WA: 081228263200`;
                           {b.name} — {b.address}
                         </option>
                       ))
-                    : dropshipAgents.map((a) => (
-                        <option key={a.id} value={a.id}>
-                          {a.name} ({a.ownerName}) — {a.address}
+                    : dropshipAgents.length === 0 ? (
+                        <option value="" disabled>
+                          Belum ada mitra agen terdaftar (daftarkan mitra terlebih dahulu)
                         </option>
-                      ))}
+                      ) : (
+                        dropshipAgents.map((a) => (
+                          <option key={a.id} value={a.id}>
+                            {a.name} ({a.ownerName}) — {a.address}
+                          </option>
+                        ))
+                      )}
                 </select>
               </div>
 

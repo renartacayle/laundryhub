@@ -134,6 +134,8 @@ interface AppContextType {
   requestAgentWithdrawal: (agentId: string, amount: number) => { success: boolean; message: string };
   approveWithdrawal: (withdrawalId: string) => void;
   registerDropshipAgent: (agentData: Omit<DropshipAgent, 'id' | 'walletBalance' | 'totalEarned' | 'totalOrdersCount' | 'totalWeightKg' | 'createdAt'>) => DropshipAgent;
+  deleteDropshipAgent: (agentId: string) => void;
+  updateDropshipAgent: (agentId: string, data: Partial<DropshipAgent>) => void;
   orderDropshipSupplies: (
     itemId: string,
     quantity: number,
@@ -698,14 +700,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (activeUid !== 'OWN-DEMO-8801') {
       const savedTenant = localStorage.getItem(`lh_dropship_agents_${activeUid}`);
       if (savedTenant !== null) {
-        try { return JSON.parse(savedTenant); } catch (e) {}
+        try {
+          const parsed = JSON.parse(savedTenant);
+          return Array.isArray(parsed) ? parsed.filter((a: DropshipAgent) => !['agent-01', 'agent-02', 'agent-03'].includes(a.id)) : [];
+        } catch (e) {}
       }
       return [];
     }
     const demoCleared = localStorage.getItem('lh_demo_accounts_cleared') === 'true';
     if (demoCleared) return [];
     const saved = localStorage.getItem('lh_dropship_agents');
-    return saved ? JSON.parse(saved) : INITIAL_DROPSHIP_AGENTS;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return Array.isArray(parsed) ? parsed.filter((a: DropshipAgent) => !['agent-01', 'agent-02', 'agent-03'].includes(a.id)) : [];
+      } catch (e) {}
+    }
+    return [];
   });
 
   const [dropshipSupplies] = useState<DropshipSupplyItem[]>(INITIAL_DROPSHIP_SUPPLIES);
@@ -715,14 +726,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (activeUid !== 'OWN-DEMO-8801') {
       const savedTenant = localStorage.getItem(`lh_dropship_orders_${activeUid}`);
       if (savedTenant !== null) {
-        try { return JSON.parse(savedTenant); } catch (e) {}
+        try {
+          const parsed = JSON.parse(savedTenant);
+          return Array.isArray(parsed) ? parsed.filter((o: DropshipSupplyOrder) => !['so-01', 'so-02'].includes(o.id)) : [];
+        } catch (e) {}
       }
       return [];
     }
     const demoCleared = localStorage.getItem('lh_demo_accounts_cleared') === 'true';
     if (demoCleared) return [];
     const saved = localStorage.getItem('lh_dropship_orders');
-    return saved ? JSON.parse(saved) : INITIAL_DROPSHIP_SUPPLY_ORDERS;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return Array.isArray(parsed) ? parsed.filter((o: DropshipSupplyOrder) => !['so-01', 'so-02'].includes(o.id)) : [];
+      } catch (e) {}
+    }
+    return [];
   });
 
   const [withdrawalRequests, setWithdrawalRequests] = useState<WithdrawalRequest[]>(() => {
@@ -730,14 +750,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (activeUid !== 'OWN-DEMO-8801') {
       const savedTenant = localStorage.getItem(`lh_withdrawals_${activeUid}`);
       if (savedTenant !== null) {
-        try { return JSON.parse(savedTenant); } catch (e) {}
+        try {
+          const parsed = JSON.parse(savedTenant);
+          return Array.isArray(parsed) ? parsed.filter((w: WithdrawalRequest) => !['wd-01', 'wd-02'].includes(w.id)) : [];
+        } catch (e) {}
       }
       return [];
     }
     const demoCleared = localStorage.getItem('lh_demo_accounts_cleared') === 'true';
     if (demoCleared) return [];
     const saved = localStorage.getItem('lh_withdrawals');
-    return saved ? JSON.parse(saved) : INITIAL_WITHDRAWAL_REQUESTS;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return Array.isArray(parsed) ? parsed.filter((w: WithdrawalRequest) => !['wd-01', 'wd-02'].includes(w.id)) : [];
+      } catch (e) {}
+    }
+    return [];
   });
 
   const [stationRates, setStationRates] = useState<StationCommissionRates>(() => {
@@ -1248,14 +1277,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   ): Order => {
     const now = new Date();
     const dateStr = now.toISOString().replace('T', ' ').substring(0, 19);
-    const agent = dropshipAgents.find((a) => a.id === agentId) || dropshipAgents[0];
+    const agent = dropshipAgents.find((a) => a.id === agentId) || dropshipAgents[0] || fallbackAgent;
     const branch = branches.find((b) => b.id === agent.branchId) || branches[0];
     const orderIndex = orders.length + 1;
-    const invoiceNo = `DP-${agent.name.substring(11, 14).toUpperCase()}-2610-${String(orderIndex).padStart(3, '0')}`;
+    const agentCode = (agent?.name || 'AGN').replace(/[^a-zA-Z]/g, '').substring(0, 3).toUpperCase() || 'AGN';
+    const invoiceNo = `DP-${agentCode}-2610-${String(orderIndex).padStart(3, '0')}`;
     const orderId = `ord-dp-${Date.now()}`;
 
     // Agent commission calculation (e.g. 25% of final price)
-    const commissionEarned = Math.round(orderData.finalPrice * (agent.commissionPercent / 100));
+    const commPercent = agent?.commissionPercent || 15;
+    const commissionEarned = Math.round(orderData.finalPrice * (commPercent / 100));
 
     // Deduct token
     setTokenCoins((prev) => Math.max(0, prev - 1));
@@ -1264,17 +1295,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...orderData,
       id: orderId,
       invoiceNo,
-      branchId: agent.branchId,
+      branchId: agent?.branchId || branch?.id || 'br-pusat',
       createdAt: dateStr,
       isDropship: true,
-      agentId: agent.id,
-      agentName: agent.name,
+      agentId: agent?.id || 'agent-none',
+      agentName: agent?.name || 'Mitra Dropship',
       agentCommission: commissionEarned,
       statusTimestamps: {
         antrean: {
           time: dateStr,
-          picName: agent.ownerName,
-          picId: agent.id,
+          picName: agent?.ownerName || 'Mitra Dropship',
+          picId: agent?.id || 'agent-none',
         },
       },
     };
@@ -1894,6 +1925,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return newAgent;
   };
 
+  const deleteDropshipAgent = (agentId: string) => {
+    const agentToDelete = dropshipAgents.find((a) => a.id === agentId);
+    setDropshipAgents((prev) => prev.filter((a) => a.id !== agentId));
+    if (agentToDelete) {
+      const log: AuditLog = {
+        id: `log-${Date.now()}`,
+        timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+        actorName: currentUser.name,
+        actorRole: 'owner',
+        action: 'DELETE_AGENT',
+        details: `Menghapus kemitraan drop point: ${agentToDelete.name} (${agentToDelete.ownerName})`,
+        branchId: agentToDelete.branchId,
+      };
+      setAuditLogs((prev) => [log, ...prev]);
+    }
+  };
+
+  const updateDropshipAgent = (agentId: string, data: Partial<DropshipAgent>) => {
+    setDropshipAgents((prev) =>
+      prev.map((a) => (a.id === agentId ? { ...a, ...data } : a))
+    );
+  };
+
   const orderDropshipSupplies = (
     itemId: string,
     quantity: number,
@@ -2083,25 +2137,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Dropship Agents
     const savedAgents = localStorage.getItem(`lh_dropship_agents_${targetUid}`);
     if (savedAgents !== null) {
-      try { setDropshipAgents(JSON.parse(savedAgents)); } catch (e) { setDropshipAgents([]); }
+      try {
+        const parsed = JSON.parse(savedAgents);
+        setDropshipAgents(Array.isArray(parsed) ? parsed.filter((a: DropshipAgent) => !['agent-01', 'agent-02', 'agent-03'].includes(a.id)) : []);
+      } catch (e) { setDropshipAgents([]); }
     } else {
-      setDropshipAgents(isDemo ? INITIAL_DROPSHIP_AGENTS : []);
+      setDropshipAgents([]);
     }
 
     // Dropship Supply Orders
     const savedSupply = localStorage.getItem(`lh_dropship_orders_${targetUid}`);
     if (savedSupply !== null) {
-      try { setDropshipSupplyOrders(JSON.parse(savedSupply)); } catch (e) { setDropshipSupplyOrders([]); }
+      try {
+        const parsed = JSON.parse(savedSupply);
+        setDropshipSupplyOrders(Array.isArray(parsed) ? parsed.filter((o: DropshipSupplyOrder) => !['so-01', 'so-02'].includes(o.id)) : []);
+      } catch (e) { setDropshipSupplyOrders([]); }
     } else {
-      setDropshipSupplyOrders(isDemo ? INITIAL_DROPSHIP_SUPPLY_ORDERS : []);
+      setDropshipSupplyOrders([]);
     }
 
     // Withdrawal Requests
     const savedWd = localStorage.getItem(`lh_withdrawals_${targetUid}`);
     if (savedWd !== null) {
-      try { setWithdrawalRequests(JSON.parse(savedWd)); } catch (e) { setWithdrawalRequests([]); }
+      try {
+        const parsed = JSON.parse(savedWd);
+        setWithdrawalRequests(Array.isArray(parsed) ? parsed.filter((w: WithdrawalRequest) => !['wd-01', 'wd-02'].includes(w.id)) : []);
+      } catch (e) { setWithdrawalRequests([]); }
     } else {
-      setWithdrawalRequests(isDemo ? INITIAL_WITHDRAWAL_REQUESTS : []);
+      setWithdrawalRequests([]);
     }
 
     // Customers
@@ -4311,6 +4374,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         requestAgentWithdrawal,
         approveWithdrawal,
         registerDropshipAgent,
+        deleteDropshipAgent,
+        updateDropshipAgent,
         orderDropshipSupplies,
         activeGmailAccount,
         isGoogleAuthModalOpen,

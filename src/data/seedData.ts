@@ -1686,71 +1686,7 @@ export const INITIAL_AUDIT_LOGS: AuditLog[] = [
   },
 ];
 
-export const INITIAL_DROPSHIP_AGENTS: DropshipAgent[] = [
-  {
-    id: 'agent-01',
-    name: 'Drop Point Warung Berkah',
-    ownerName: 'Ibu Siti Aminah',
-    phone: '0812-7788-9901',
-    address: 'Jl. Kemang Timur No. 8, Mampang, Jaksel (Samping Alfamart)',
-    branchId: 'br-kemang',
-    branchName: 'LaundryHub Kemang (Pusat)',
-    commissionPercent: 25, // Agen dapat 25% dari omzet
-    walletBalance: 480000,
-    totalEarned: 3250000,
-    totalOrdersCount: 48,
-    totalWeightKg: 185.5,
-    status: 'active',
-    bankAccount: {
-      bank: 'BCA',
-      accountNumber: '8830192837',
-      accountName: 'Siti Aminah',
-    },
-    createdAt: '2026-08-10',
-  },
-  {
-    id: 'agent-02',
-    name: 'Drop Point Kos Putri Melati',
-    ownerName: 'Hj. Ratna Dewi',
-    phone: '0813-8899-1122',
-    address: 'Jl. Maleo Raya No. 15, Bintaro Jaya Sektor 9, Tangsel',
-    branchId: 'br-bintaro',
-    branchName: 'LaundryHub Bintaro Sektor 7',
-    commissionPercent: 25,
-    walletBalance: 720000,
-    totalEarned: 4900000,
-    totalOrdersCount: 72,
-    totalWeightKg: 260.0,
-    status: 'active',
-    bankAccount: {
-      bank: 'Bank Mandiri',
-      accountNumber: '1270009823412',
-      accountName: 'Ratna Dewi',
-    },
-    createdAt: '2026-07-15',
-  },
-  {
-    id: 'agent-03',
-    name: 'Agen Toko Kelontong Barokah',
-    ownerName: 'Pak Joko Susilo',
-    phone: '0815-9900-3344',
-    address: 'Jl. Tebet Timur Dalam Raya No. 4, Jakarta Selatan',
-    branchId: 'br-tebet',
-    branchName: 'LaundryHub Tebet Eco Park',
-    commissionPercent: 30,
-    walletBalance: 310000,
-    totalEarned: 2100000,
-    totalOrdersCount: 31,
-    totalWeightKg: 120.2,
-    status: 'active',
-    bankAccount: {
-      bank: 'BRI',
-      accountNumber: '019283719283501',
-      accountName: 'Joko Susilo',
-    },
-    createdAt: '2026-09-01',
-  },
-];
+export const INITIAL_DROPSHIP_AGENTS: DropshipAgent[] = [];
 
 export const INITIAL_DROPSHIP_SUPPLIES: DropshipSupplyItem[] = [
   {
@@ -1825,68 +1761,9 @@ export const INITIAL_DROPSHIP_SUPPLIES: DropshipSupplyItem[] = [
   },
 ];
 
-export const INITIAL_DROPSHIP_SUPPLY_ORDERS: DropshipSupplyOrder[] = [
-  {
-    id: 'so-01',
-    orderNo: 'DROPSHIP-SUP-2610-01',
-    itemId: 'sup-01',
-    itemName: 'Deterjen Konsentrat Pabrik 20L',
-    quantity: 4,
-    totalPrice: 380000,
-    destinationBranchOrAgent: 'LaundryHub Kemang (Pusat)',
-    recipientName: 'Hendra Gunawan',
-    recipientPhone: '0811-9922-001',
-    destinationAddress: 'Jl. Kemang Raya No. 42B, Mampang Prapatan, Jaksel',
-    status: 'dikirim',
-    trackingNumber: 'JNETRUCK-8829102910',
-    cargoCourier: 'JNE Trucking Cargo',
-    orderDate: '2026-10-02 11:00:00',
-    estimatedArrival: '2026-10-04 15:00:00',
-  },
-  {
-    id: 'so-02',
-    orderNo: 'DROPSHIP-SUP-2610-02',
-    itemId: 'sup-02',
-    itemName: 'Parfum Laundry Snappy Red 5L',
-    quantity: 2,
-    totalPrice: 240000,
-    destinationBranchOrAgent: 'Drop Point Warung Berkah Bu Siti',
-    recipientName: 'Ibu Siti Aminah',
-    recipientPhone: '0812-7788-9901',
-    destinationAddress: 'Jl. Kemang Timur No. 8, Mampang, Jaksel',
-    status: 'sampai',
-    trackingNumber: 'SCP-CARGO-991823719',
-    cargoCourier: 'SiCepat Cargo Express',
-    orderDate: '2026-09-30 09:30:00',
-    estimatedArrival: '2026-10-01 14:00:00',
-  },
-];
+export const INITIAL_DROPSHIP_SUPPLY_ORDERS: DropshipSupplyOrder[] = [];
 
-export const INITIAL_WITHDRAWAL_REQUESTS: WithdrawalRequest[] = [
-  {
-    id: 'wd-01',
-    agentId: 'agent-01',
-    agentName: 'Ibu Siti Aminah (Drop Point Warung Berkah)',
-    amount: 500000,
-    bank: 'BCA',
-    accountNumber: '8830192837',
-    accountName: 'Siti Aminah',
-    status: 'transferred',
-    requestedAt: '2026-10-01 10:00:00',
-    processedAt: '2026-10-01 11:30:00',
-  },
-  {
-    id: 'wd-02',
-    agentId: 'agent-02',
-    agentName: 'Hj. Ratna Dewi (Drop Point Kos Putri Melati)',
-    amount: 750000,
-    bank: 'Bank Mandiri',
-    accountNumber: '1270009823412',
-    accountName: 'Ratna Dewi',
-    status: 'pending',
-    requestedAt: '2026-10-03 14:00:00',
-  },
-];
+export const INITIAL_WITHDRAWAL_REQUESTS: WithdrawalRequest[] = [];
 
 export const DEFAULT_PAYROLL_SETTINGS: PayrollSettings = {
   dailyBaseSalary: 60000, // Rp 60.000 / hari hadir
